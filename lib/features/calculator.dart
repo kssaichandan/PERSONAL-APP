@@ -114,19 +114,19 @@ class CalculatorProvider extends ChangeNotifier {
   }
 
   num _unary() {
-    if (_pos >= _input.length) throw FormatException('Unexpected end');
+    if (_pos >= _input.length) throw const FormatException('Unexpected end');
     if (_input[_pos] == '-') { _pos++; return -_unary(); }
     if (_input[_pos] == '+') { _pos++; return _unary(); }
     return _primary();
   }
 
   num _primary() {
-    if (_pos >= _input.length) throw FormatException('Unexpected end');
+    if (_pos >= _input.length) throw const FormatException('Unexpected end');
 
     if (_input[_pos] == '(') {
       _pos++;
       final result = _expr();
-      if (_pos >= _input.length || _input[_pos] != ')') throw FormatException('Missing )');
+      if (_pos >= _input.length || _input[_pos] != ')') throw const FormatException('Missing )');
       _pos++;
       return result;
     }
@@ -142,7 +142,7 @@ class CalculatorProvider extends ChangeNotifier {
     if (_input.substring(_pos).startsWith('e') && (_pos + 1 >= _input.length || !RegExp(r'[a-zA-Z0-9]').hasMatch(_input[_pos + 1]))) { _pos++; return e; }
 
     final start = _pos;
-    while (_pos < _input.length && (RegExp(r'[0-9.]').hasMatch(_input[_pos]))) _pos++;
+    while (_pos < _input.length && (RegExp(r'[0-9.]').hasMatch(_input[_pos]))) { _pos++; }
     if (_pos == start) throw FormatException('Unexpected: ${_input[_pos]}');
     var result = double.parse(_input.substring(start, _pos));
     if (_pos < _input.length && _input[_pos] == '%') { _pos++; result /= 100; }

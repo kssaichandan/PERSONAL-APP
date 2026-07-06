@@ -207,7 +207,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     if (widget.note != null && widget.note!.content.isNotEmpty) {
       try {
         final delta = jsonDecode(widget.note!.content);
-        _controller = QuillController(document: Document.fromJson(delta));
+        _controller = QuillController(document: Document.fromJson(delta), selection: const TextSelection.collapsed(offset: 0));
       } catch (_) {
         _controller = QuillController.basic();
       }
@@ -246,14 +246,15 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           IconButton(icon: const Icon(Icons.save), onPressed: _save),
           if (widget.note != null)
             PopupMenuButton(itemBuilder: (context) => [
-              PopupMenuItem(child: Text(widget.note!.pinned ? 'Unpin' : 'Pin'), value: 'pin'),
-              const PopupMenuItem(child: Text('Delete'), value: 'delete'),
+              PopupMenuItem(value: 'pin', child: Text(widget.note!.pinned ? 'Unpin' : 'Pin')),
+              const PopupMenuItem(value: 'delete', child: Text('Delete')),
             ], onSelected: (v) async {
+              final provider = context.read<NotesProvider>();
               if (v == 'delete') {
-                await context.read<NotesProvider>().delete(widget.note!.id!);
+                await provider.delete(widget.note!.id!);
                 if (mounted) Navigator.pop(context);
               } else if (v == 'pin') {
-                await context.read<NotesProvider>().togglePin(widget.note!);
+                await provider.togglePin(widget.note!);
                 if (mounted) Navigator.pop(context);
               }
             }),
