@@ -252,10 +252,10 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
               final provider = context.read<NotesProvider>();
               if (v == 'delete') {
                 await provider.delete(widget.note!.id!);
-                if (mounted) Navigator.pop(context);
+                if (context.mounted) Navigator.pop(context);
               } else if (v == 'pin') {
                 await provider.togglePin(widget.note!);
-                if (mounted) Navigator.pop(context);
+                if (context.mounted) Navigator.pop(context);
               }
             }),
         ],
