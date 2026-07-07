@@ -14,7 +14,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   tz.initializeTimeZones();
   await AppDatabase.instance.database;
-  final androidSettings = const AndroidInitializationSettings('@mipmap/ic_launcher');
+  const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
   await notifications.initialize(InitializationSettings(android: androidSettings));
   runApp(const PersonalApp());
 }
