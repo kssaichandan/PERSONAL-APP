@@ -25,6 +25,9 @@ macos/Pods/
 # Web
 web/.build*
 
+# Local notes
+notes.md
+
 # Platform
 .android/
 ios/
