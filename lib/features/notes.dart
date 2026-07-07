@@ -4,6 +4,15 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:provider/provider.dart';
 import '../database.dart';
 
+String plainText(String deltaJson) {
+  try {
+    final delta = jsonDecode(deltaJson);
+    return (delta as List).map((op) => op['insert'] ?? '').join().trim();
+  } catch (_) {
+    return deltaJson;
+  }
+}
+
 class Note {
   final int? id;
   final String title;
@@ -50,17 +59,8 @@ class NotesProvider extends ChangeNotifier {
   void search(String q) {
     _query = q;
     if (q.isEmpty) { _filtered = []; }
-    else { _filtered = _notes.where((n) => n.title.toLowerCase().contains(q.toLowerCase()) || _plainText(n.content).toLowerCase().contains(q.toLowerCase())).toList(); }
+    else { _filtered = _notes.where((n) => n.title.toLowerCase().contains(q.toLowerCase()) || plainText(n.content).toLowerCase().contains(q.toLowerCase())).toList(); }
     notifyListeners();
-  }
-
-  String _plainText(String deltaJson) {
-    try {
-      final delta = jsonDecode(deltaJson);
-      return (delta as List).map((op) => op['insert'] ?? '').join().trim();
-    } catch (_) {
-      return deltaJson;
-    }
   }
 
   Future<void> load() async {
@@ -168,7 +168,7 @@ class NotesScreen extends StatelessWidget {
           background: Container(color: Colors.red, alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 16), child: const Icon(Icons.delete, color: Colors.white)),
           child: ListTile(
             title: Text(note.title.isEmpty ? 'Untitled' : note.title, maxLines: 1),
-            subtitle: Text(_plainText(note.content), maxLines: 2, overflow: TextOverflow.ellipsis),
+            subtitle: Text(plainText(note.content), maxLines: 2, overflow: TextOverflow.ellipsis),
             leading: note.pinned ? const Icon(Icons.push_pin) : null,
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note))),
@@ -178,14 +178,6 @@ class NotesScreen extends StatelessWidget {
     );
   }
 
-  String _plainText(String deltaJson) {
-    try {
-      final delta = jsonDecode(deltaJson);
-      return (delta as List).map((op) => op['insert'] ?? '').join().trim();
-    } catch (_) {
-      return deltaJson;
-    }
-  }
 }
 
 class NoteEditorScreen extends StatefulWidget {

@@ -33,7 +33,9 @@ class CalculatorProvider extends ChangeNotifier {
     try {
       final db = await AppDatabase.instance.database;
       await db.delete('calculator_history');
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('clearHistory failed: $e');
+    }
     await loadHistory();
   }
 
@@ -41,11 +43,14 @@ class CalculatorProvider extends ChangeNotifier {
     try {
       final db = await AppDatabase.instance.database;
       await db.delete('calculator_history', where: 'id = ?', whereArgs: [id]);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('deleteHistoryEntry failed: $e');
+    }
     await loadHistory();
   }
 
   void input(String value) {
+    if (_result == 'Error' && value != 'C' && value != '⌫') { _expression = ''; _result = ''; }
     if (value == 'C') {
       _expression = '';
       _result = '';
@@ -86,7 +91,9 @@ class CalculatorProvider extends ChangeNotifier {
         'expression': expr, 'result': res,
         'created_at': DateTime.now().toIso8601String(),
       });
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('saveToHistory failed: $e');
+    }
     await loadHistory();
   }
 

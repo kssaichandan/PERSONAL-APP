@@ -27,6 +27,7 @@ web/.build*
 
 # Local notes
 notes.md
+problems.md
 
 # Platform
 .android/

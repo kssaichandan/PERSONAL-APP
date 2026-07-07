@@ -58,7 +58,6 @@ class CalendarProvider extends ChangeNotifier {
       final end = DateFormat('yyyy-MM-dd').format(DateTime(_currentMonth.year, _currentMonth.month + 1, 0));
       final maps = await db.query('calendar_events', where: 'date >= ? AND date <= ?', whereArgs: [start, end], orderBy: 'date, time');
       _events = maps.map((m) => CalendarEvent.fromMap(m)).toList();
-      for (final e in _events) { _scheduleNotification(e); }
     } catch (e) {
       _error = 'Failed to load events';
     }
@@ -106,7 +105,9 @@ class CalendarProvider extends ChangeNotifier {
       tz.TZDateTime.from(scheduled, tz.local),
       const NotificationDetails(android: AndroidNotificationDetails('events', 'Event Reminders')),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime));
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime).catchError((e) {
+      debugPrint('scheduleNotification failed: $e');
+    }));
   }
 }
 
@@ -315,6 +316,7 @@ class _EventEditorState extends State<EventEditor> {
   }
 
   void _save() async {
+    if (!mounted) return;
     if (_titleCtrl.text.isEmpty) return;
     final event = CalendarEvent(
       id: widget.event?.id,
