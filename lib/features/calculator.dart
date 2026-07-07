@@ -513,10 +513,10 @@ class _CalcButton extends StatelessWidget {
         return label == '=' ? theme.colorScheme.primary : theme.colorScheme.primaryContainer;
       }
       if (isAction) {
-        return theme.colorScheme.errorContainer.withOpacity(0.4);
+        return theme.colorScheme.errorContainer.withValues(alpha: 0.4);
       }
       if (isScientific) {
-        return theme.colorScheme.surfaceContainerHighest.withOpacity(0.8);
+        return theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.8);
       }
       return theme.colorScheme.surfaceContainer;
     }

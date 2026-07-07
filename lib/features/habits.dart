@@ -43,7 +43,7 @@ class Habit {
 
 class HabitsProvider extends ChangeNotifier {
   List<Habit> _habits = [];
-  Map<int, Set<String>> _habitLogsByHabitId = {}; // habitId -> Set of "yyyy-MM-dd"
+  final Map<int, Set<String>> _habitLogsByHabitId = {}; // habitId -> Set of "yyyy-MM-dd"
   bool _loading = true;
   String? _error;
 
@@ -282,7 +282,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.checklist_rtl_rounded, size: 80, color: theme.colorScheme.primary.withOpacity(0.4)),
+                  Icon(Icons.checklist_rtl_rounded, size: 80, color: theme.colorScheme.primary.withValues(alpha: 0.4)),
                   const SizedBox(height: 16),
                   const Text('No habits created yet', style: TextStyle(fontSize: 18, color: Colors.grey)),
                   const SizedBox(height: 8),
@@ -326,7 +326,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                         width: 90,
                         margin: const EdgeInsets.only(right: 12),
                         decoration: BoxDecoration(
-                          color: isSel ? theme.colorScheme.primaryContainer : theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                          color: isSel ? theme.colorScheme.primaryContainer : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: isSel ? theme.colorScheme.primary : Colors.transparent,
@@ -569,7 +569,7 @@ class _WeeklyChecklist extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
@@ -625,7 +625,7 @@ class _WeeklyChecklist extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: completed
                         ? theme.colorScheme.primary
-                        : (isToday ? theme.colorScheme.primary.withOpacity(0.08) : Colors.grey.shade200),
+                        : (isToday ? theme.colorScheme.primary.withValues(alpha: 0.08) : Colors.grey.shade200),
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: completed 
@@ -690,7 +690,7 @@ class _MonthlyLogCalendar extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: isLogged 
-                  ? theme.colorScheme.primary.withOpacity(0.2) 
+                  ? theme.colorScheme.primary.withValues(alpha: 0.2) 
                   : Colors.transparent,
               border: Border.all(
                 color: isLogged ? theme.colorScheme.primary : Colors.grey.shade300,

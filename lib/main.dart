@@ -46,7 +46,7 @@ class PersonalApp extends StatelessWidget {
             elevation: 0,
             backgroundColor: Colors.transparent,
           ),
-          cardTheme: CardTheme(
+          cardTheme: CardThemeData(
             elevation: 0,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           ),
@@ -60,7 +60,7 @@ class PersonalApp extends StatelessWidget {
             elevation: 0,
             backgroundColor: Colors.transparent,
           ),
-          cardTheme: CardTheme(
+          cardTheme: CardThemeData(
             elevation: 0,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           ),

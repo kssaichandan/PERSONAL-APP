@@ -272,12 +272,12 @@ class _MonthGrid extends StatelessWidget {
             decoration: BoxDecoration(
               color: isToday 
                   ? theme.colorScheme.primaryContainer 
-                  : (habitCompleted ? theme.colorScheme.primary.withOpacity(0.06) : null),
+                  : (habitCompleted ? theme.colorScheme.primary.withValues(alpha: 0.06) : null),
               shape: BoxShape.circle,
               border: Border.all(
                 color: isToday 
                     ? theme.colorScheme.primary 
-                    : (habitCompleted ? theme.colorScheme.primary.withOpacity(0.3) : Colors.transparent),
+                    : (habitCompleted ? theme.colorScheme.primary.withValues(alpha: 0.3) : Colors.transparent),
                 width: 1,
               ),
             ),
@@ -373,7 +373,7 @@ class _DayDetailPanel extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 20)],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 20)],
         ),
         padding: const EdgeInsets.all(20),
         child: ListView(
@@ -487,7 +487,7 @@ class _DayDetailPanel extends StatelessWidget {
             else
               ...dayNotes.map((note) => Card(
                 elevation: 0,
-                color: Color(note.color).withOpacity(0.5),
+                color: Color(note.color).withValues(alpha: 0.5),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(color: theme.colorScheme.outlineVariant),

@@ -103,7 +103,7 @@ class _LifeScreenState extends State<LifeScreen> {
               end: Alignment.bottomCenter,
               colors: [
                 theme.colorScheme.surface,
-                theme.colorScheme.primary.withOpacity(0.05),
+                theme.colorScheme.primary.withValues(alpha: 0.05),
               ],
             ),
           ),
@@ -169,7 +169,7 @@ class _LifeScreenState extends State<LifeScreen> {
 
     // Based on average life expectancy of 80 years
     const expectedYears = 80;
-    final totalExpectedDays = expectedYears * 365.25;
+    const totalExpectedDays = expectedYears * 365.25;
     final lifePercentage = (totalDays / totalExpectedDays) * 100;
     final formattedPercentage = lifePercentage.toStringAsFixed(7);
 
@@ -197,10 +197,10 @@ class _LifeScreenState extends State<LifeScreen> {
             // Time Elapsed Title
             Card(
               elevation: 0,
-              color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
-                side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.15)),
+                side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.15)),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -261,9 +261,9 @@ class _LifeScreenState extends State<LifeScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
+                    const Text(
                       'Based on an average life expectancy of $expectedYears years.',
-                      style: const TextStyle(fontSize: 10, color: Colors.grey),
+                      style: TextStyle(fontSize: 10, color: Colors.grey),
                       textAlign: TextAlign.center,
                     ),
                   ],

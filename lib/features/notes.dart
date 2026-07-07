@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:intl/intl.dart';
 import '../database.dart';
 
 String plainText(String deltaJson) {
@@ -107,7 +108,7 @@ class NoteRecording {
 class NotesProvider extends ChangeNotifier {
   List<Note> _notes = [];
   List<Note> _filtered = [];
-  Map<int, List<NoteRecording>> _recordingsByNoteId = {};
+  final Map<int, List<NoteRecording>> _recordingsByNoteId = {};
   bool _loading = true;
   String? _error;
   String _query = '';
@@ -345,7 +346,7 @@ class NotesScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.notes_rounded, size: 80, color: theme.colorScheme.primary.withOpacity(0.4)),
+            Icon(Icons.notes_rounded, size: 80, color: theme.colorScheme.primary.withValues(alpha: 0.4)),
             const SizedBox(height: 16),
             Text(provider.query.isNotEmpty ? 'No matching notes' : 'No notes yet', style: const TextStyle(color: Colors.grey, fontSize: 16)),
           ],
@@ -461,7 +462,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   bool _isRecording = false;
   int _recordSeconds = 0;
   Timer? _recordTimer;
-  String? _currentRecordPath;
 
   @override
   void initState() {
@@ -527,6 +527,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   Future<void> _stopRecording() async {
     _recordTimer?.cancel();
     final path = await _audioRecorder.stop();
+    if (!mounted) return;
     setState(() {
       _isRecording = false;
     });
@@ -536,6 +537,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     } else if (path != null && widget.note?.id == null) {
       // Note not saved yet, we must save note first
       final noteId = await _saveNoteSilent();
+      if (!mounted) return;
       await context.read<NotesProvider>().saveRecording(noteId, path, _recordSeconds);
     }
   }
@@ -552,6 +554,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       createdAt: widget.note?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
     );
+    if (!mounted) return 0;
     final noteId = await context.read<NotesProvider>().save(note);
     return noteId;
   }
