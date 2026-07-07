@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:timezone/timezone.dart' as tz;
 import '../database.dart';
 import '../notifications.dart';
 
@@ -99,8 +102,11 @@ class CalendarProvider extends ChangeNotifier {
     final parts = event.time!.split(':');
     final scheduled = DateTime(event.date.year, event.date.month, event.date.day, int.parse(parts[0]), int.parse(parts[1]));
     if (scheduled.isBefore(DateTime.now())) return;
-    notifications.schedule(event.id!, event.title, event.notes.isEmpty ? null : event.notes, scheduled,
-      const NotificationDetails(android: AndroidNotificationDetails('events', 'Event Reminders')));
+    unawaited(notifications.zonedSchedule(event.id!, event.title, event.notes.isEmpty ? null : event.notes,
+      tz.TZDateTime.from(scheduled, tz.local),
+      const NotificationDetails(android: AndroidNotificationDetails('events', 'Event Reminders')),
+      androidAllowWhileIdle: true,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime));
   }
 }
 

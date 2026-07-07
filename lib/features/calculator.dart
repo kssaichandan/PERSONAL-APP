@@ -173,48 +173,46 @@ class CalculatorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Calculator'), actions: [
-        if (calc.history.isNotEmpty)
-          IconButton(icon: const Icon(Icons.delete_sweep), onPressed: calc.clearHistory),
-      ]),
-      body: Consumer<CalculatorProvider>(
-        builder: (context, calc, _) {
-          return Column(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  alignment: Alignment.bottomRight,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(calc.expression, style: const TextStyle(fontSize: 24, color: Colors.grey)),
-                      const SizedBox(height: 8),
-                      Text(calc.result, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
+    return Consumer<CalculatorProvider>(
+      builder: (context, calc, _) => Scaffold(
+        appBar: AppBar(title: const Text('Calculator'), actions: [
+          if (calc.history.isNotEmpty)
+            IconButton(icon: const Icon(Icons.delete_sweep), onPressed: calc.clearHistory),
+        ]),
+        body: Column(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                alignment: Alignment.bottomRight,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(calc.expression, style: const TextStyle(fontSize: 24, color: Colors.grey)),
+                    const SizedBox(height: 8),
+                    Text(calc.result, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold)),
+                  ],
                 ),
               ),
-              if (calc.history.isNotEmpty)
-                SizedBox(
-                  height: 100,
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    children: calc.history.take(10).map((h) => ListTile(
-                      dense: true,
-                      title: Text(h['expression']!, style: const TextStyle(fontSize: 12), maxLines: 1),
-                      subtitle: Text('= ${h['result']}', style: const TextStyle(fontSize: 13)),
-                      trailing: IconButton(icon: const Icon(Icons.close, size: 16), onPressed: () => calc.deleteHistoryEntry(int.parse(h['id']!))),
-                    )).toList(),
-                  ),
+            ),
+            if (calc.history.isNotEmpty)
+              SizedBox(
+                height: 100,
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  children: calc.history.take(10).map((h) => ListTile(
+                    dense: true,
+                    title: Text(h['expression']!, style: const TextStyle(fontSize: 12), maxLines: 1),
+                    subtitle: Text('= ${h['result']}', style: const TextStyle(fontSize: 13)),
+                    trailing: IconButton(icon: const Icon(Icons.close, size: 16), onPressed: () => calc.deleteHistoryEntry(int.parse(h['id']!))),
+                  )).toList(),
                 ),
-              _ButtonGrid(calc: calc),
-              const SizedBox(height: 8),
-            ],
-          );
-        },
+              ),
+            _ButtonGrid(calc: calc),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }

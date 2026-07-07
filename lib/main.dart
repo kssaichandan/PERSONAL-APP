@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/l10n.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:provider/provider.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 import 'database.dart';
 import 'notifications.dart';
 import 'features/notes.dart';
@@ -9,9 +13,10 @@ import 'features/calculator.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  tz.initializeTimeZones();
   await AppDatabase.instance.database;
-  const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-  await notifications.initialize(const InitializationSettings(android: androidSettings));
+  final androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+  await notifications.initialize(InitializationSettings(android: androidSettings));
   runApp(const PersonalApp());
 }
 
@@ -40,7 +45,7 @@ class PersonalApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
         themeMode: ThemeMode.system,
-        localizationsDelegates: FlutterQuillLocalizations.delegates,
+        localizationsDelegates: const [GlobalMaterialLocalizations.delegate, GlobalWidgetsLocalizations.delegate, FlutterQuillLocalizations.delegate],
         home: const MainScreen(),
       ),
     );
