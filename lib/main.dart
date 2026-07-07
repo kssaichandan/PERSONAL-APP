@@ -15,7 +15,7 @@ void main() async {
   tz.initializeTimeZones();
   await AppDatabase.instance.database;
   const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-  await notifications.initialize(InitializationSettings(android: androidSettings));
+  await notifications.initialize(const InitializationSettings(android: androidSettings));
   runApp(const PersonalApp());
 }
 
