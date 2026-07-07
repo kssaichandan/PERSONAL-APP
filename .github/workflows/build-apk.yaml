@@ -20,16 +20,16 @@ jobs:
       - run: flutter create . --project-name personal_app
       - name: Enable core library desugaring
         run: |
-          if [ -f android/app/build.gradle.kts ]; then
-            sed -i '/targetCompatibility = JavaVersion.VERSION_11/a\            setCoreLibraryDesugaringEnabled(true)' android/app/build.gradle.kts
-            sed -i '/^dependencies {/a\    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")' android/app/build.gradle.kts
-          elif [ -f android/app/build.gradle ]; then
-            sed -i '/compileOptions {/a\        coreLibraryDesugaringEnabled true' android/app/build.gradle
-            sed -i '/^dependencies {/a\    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"' android/app/build.gradle
+          f="android/app/build.gradle.kts"; [ -f "$f" ] || f="android/app/build.gradle"
+          echo "=== $f ==="; cat "$f"; echo "==="
+          if echo "$f" | grep -q '\.kts$'; then
+            sed -i '/compileOptions {/a\            coreLibraryDesugaringEnabled = true' "$f"
+            sed -i '/^dependencies {/a\    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")' "$f"
           else
-            find android -type f 2>/dev/null || echo "(android/ does not exist)"
-            exit 1
+            sed -i '/compileOptions {/a\        coreLibraryDesugaringEnabled true' "$f"
+            sed -i '/^dependencies {/a\    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"' "$f"
           fi
+          echo "=== modified ==="; cat "$f"; echo "==="
       - run: flutter build apk --debug
       - uses: actions/upload-artifact@v4
         with:
