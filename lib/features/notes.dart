@@ -502,7 +502,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final path = '${voiceDir.path}/note_rec_$timestamp.m4a';
-      _currentRecordPath = path;
 
       await _audioRecorder.start(const RecordConfig(encoder: AudioEncoder.aacLc), path: path);
       setState(() {
