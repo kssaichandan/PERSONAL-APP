@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../database.dart';
+import '../notifications.dart';
 
 class CalendarEvent {
   final int? id;
@@ -54,6 +55,7 @@ class CalendarProvider extends ChangeNotifier {
       final end = DateFormat('yyyy-MM-dd').format(DateTime(_currentMonth.year, _currentMonth.month + 1, 0));
       final maps = await db.query('calendar_events', where: 'date >= ? AND date <= ?', whereArgs: [start, end], orderBy: 'date, time');
       _events = maps.map((m) => CalendarEvent.fromMap(m)).toList();
+      for (final e in _events) { _scheduleNotification(e); }
     } catch (e) {
       _error = 'Failed to load events';
     }
@@ -65,9 +67,11 @@ class CalendarProvider extends ChangeNotifier {
     try {
       final db = await AppDatabase.instance.database;
       if (event.id == null) {
-        await db.insert('calendar_events', event.toMap()..remove('id'));
+        final id = await db.insert('calendar_events', event.toMap()..remove('id'));
+        _scheduleNotification(CalendarEvent(id: id, title: event.title, date: event.date, time: event.time, notes: event.notes));
       } else {
         await db.update('calendar_events', event.toMap(), where: 'id = ?', whereArgs: [event.id]);
+        _scheduleNotification(event);
       }
     } catch (e) {
       _error = 'Failed to save event';
@@ -81,12 +85,22 @@ class CalendarProvider extends ChangeNotifier {
     try {
       final db = await AppDatabase.instance.database;
       await db.delete('calendar_events', where: 'id = ?', whereArgs: [id]);
+      await notifications.cancel(id);
     } catch (e) {
       _error = 'Failed to delete event';
       notifyListeners();
       return;
     }
     await load();
+  }
+
+  void _scheduleNotification(CalendarEvent event) {
+    if (event.id == null || event.time == null) return;
+    final parts = event.time!.split(':');
+    final scheduled = DateTime(event.date.year, event.date.month, event.date.day, int.parse(parts[0]), int.parse(parts[1]));
+    if (scheduled.isBefore(DateTime.now())) return;
+    notifications.schedule(event.id!, event.title, event.notes.isEmpty ? null : event.notes, scheduled,
+      const NotificationDetails(android: AndroidNotificationDetails('events', 'Event Reminders')));
   }
 }
 

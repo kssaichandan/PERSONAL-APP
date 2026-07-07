@@ -20,11 +20,29 @@ class CalculatorProvider extends ChangeNotifier {
     try {
       final db = await AppDatabase.instance.database;
       final maps = await db.query('calculator_history', orderBy: 'created_at DESC', limit: 50);
-      _history = maps.map((m) => {'expression': m['expression'] as String, 'result': m['result'] as String}).toList();
+      _history = maps.map((m) => {
+        'id': m['id'].toString(), 'expression': m['expression'] as String, 'result': m['result'] as String,
+      }).toList();
     } catch (e) {
       _error = 'Failed to load history';
     }
     notifyListeners();
+  }
+
+  Future<void> clearHistory() async {
+    try {
+      final db = await AppDatabase.instance.database;
+      await db.delete('calculator_history');
+    } catch (_) {}
+    await loadHistory();
+  }
+
+  Future<void> deleteHistoryEntry(int id) async {
+    try {
+      final db = await AppDatabase.instance.database;
+      await db.delete('calculator_history', where: 'id = ?', whereArgs: [id]);
+    } catch (_) {}
+    await loadHistory();
   }
 
   void input(String value) {
@@ -156,7 +174,10 @@ class CalculatorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Calculator')),
+      appBar: AppBar(title: const Text('Calculator'), actions: [
+        if (calc.history.isNotEmpty)
+          IconButton(icon: const Icon(Icons.delete_sweep), onPressed: calc.clearHistory),
+      ]),
       body: Consumer<CalculatorProvider>(
         builder: (context, calc, _) {
           return Column(
@@ -178,21 +199,14 @@ class CalculatorScreen extends StatelessWidget {
               ),
               if (calc.history.isNotEmpty)
                 SizedBox(
-                  height: 80,
+                  height: 100,
                   child: ListView(
-                    scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 8),
-                    children: calc.history.take(10).map((h) => Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(h['expression']!, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                            Text(h['result']!, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
+                    children: calc.history.take(10).map((h) => ListTile(
+                      dense: true,
+                      title: Text(h['expression']!, style: const TextStyle(fontSize: 12), maxLines: 1),
+                      subtitle: Text('= ${h['result']}', style: const TextStyle(fontSize: 13)),
+                      trailing: IconButton(icon: const Icon(Icons.close, size: 16), onPressed: () => calc.deleteHistoryEntry(int.parse(h['id']!))),
                     )).toList(),
                   ),
                 ),
@@ -231,7 +245,7 @@ class _ButtonGrid extends StatelessWidget {
               padding: const EdgeInsets.all(3),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
                   backgroundColor: isOp ? Theme.of(context).colorScheme.primaryContainer : (isFn ? Colors.grey.shade200 : null),
                 ),
                 onPressed: () => calc.input(label),

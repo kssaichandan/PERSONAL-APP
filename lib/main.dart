@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/l10n.dart';
 import 'package:provider/provider.dart';
 import 'database.dart';
+import 'notifications.dart';
 import 'features/notes.dart';
 import 'features/calendar.dart';
 import 'features/calculator.dart';
@@ -8,6 +10,8 @@ import 'features/calculator.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppDatabase.instance.database;
+  const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+  await notifications.initialize(const InitializationSettings(android: androidSettings));
   runApp(const PersonalApp());
 }
 
@@ -36,6 +40,7 @@ class PersonalApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
         themeMode: ThemeMode.system,
+        localizationsDelegates: FlutterQuillLocalizations.delegates,
         home: const MainScreen(),
       ),
     );
