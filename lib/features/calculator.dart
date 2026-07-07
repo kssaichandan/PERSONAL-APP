@@ -6,11 +6,13 @@ import '../database.dart';
 class CalculatorProvider extends ChangeNotifier {
   String _expression = '';
   String _result = '';
+  double _memory = 0.0;
   List<Map<String, String>> _history = [];
   String? _error;
 
   String get expression => _expression;
   String get result => _result;
+  double get memory => _memory;
   List<Map<String, String>> get history => _history;
   String? get error => _error;
 
@@ -21,7 +23,9 @@ class CalculatorProvider extends ChangeNotifier {
       final db = await AppDatabase.instance.database;
       final maps = await db.query('calculator_history', orderBy: 'created_at DESC', limit: 50);
       _history = maps.map((m) => {
-        'id': m['id'].toString(), 'expression': m['expression'] as String, 'result': m['result'] as String,
+        'id': m['id'].toString(),
+        'expression': m['expression'] as String,
+        'result': m['result'] as String,
       }).toList();
     } catch (e) {
       _error = 'Failed to load history';
@@ -49,13 +53,45 @@ class CalculatorProvider extends ChangeNotifier {
     await loadHistory();
   }
 
+  void memoryClear() {
+    _memory = 0.0;
+    notifyListeners();
+  }
+
+  void memoryRecall() {
+    _expression += _formatResult(_memory);
+    notifyListeners();
+  }
+
+  void memoryAdd() {
+    _evaluateSilent();
+    if (_result != 'Error' && _result.isNotEmpty) {
+      _memory += double.tryParse(_result) ?? 0.0;
+    }
+    notifyListeners();
+  }
+
+  void memorySubtract() {
+    _evaluateSilent();
+    if (_result != 'Error' && _result.isNotEmpty) {
+      _memory -= double.tryParse(_result) ?? 0.0;
+    }
+    notifyListeners();
+  }
+
   void input(String value) {
-    if (_result == 'Error' && value != 'C' && value != '⌫') { _expression = ''; _result = ''; }
+    if (_result == 'Error' && value != 'C' && value != '⌫') {
+      _expression = '';
+      _result = '';
+    }
+    
     if (value == 'C') {
       _expression = '';
       _result = '';
     } else if (value == '⌫') {
-      if (_expression.isNotEmpty) _expression = _expression.substring(0, _expression.length - 1);
+      if (_expression.isNotEmpty) {
+        _expression = _expression.substring(0, _expression.length - 1);
+      }
     } else if (value == '=') {
       _evaluate();
       return;
@@ -64,6 +100,21 @@ class CalculatorProvider extends ChangeNotifier {
       _expression += value;
     }
     notifyListeners();
+  }
+
+  void loadExpression(String expr) {
+    _expression = expr;
+    _result = '';
+    notifyListeners();
+  }
+
+  void _evaluateSilent() {
+    try {
+      final parsed = _parse(_expression);
+      _result = _formatResult(parsed);
+    } catch (_) {
+      _result = 'Error';
+    }
   }
 
   void _evaluate() {
@@ -81,14 +132,15 @@ class CalculatorProvider extends ChangeNotifier {
   String _formatResult(num value) {
     if (value is double && (value.isNaN || value.isInfinite)) return 'Error';
     if (value == value.toInt()) return value.toInt().toString();
-    return value.toStringAsFixed(10).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
+    return value.toStringAsFixed(8).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
   }
 
   Future<void> _saveToHistory(String expr, String res) async {
     try {
       final db = await AppDatabase.instance.database;
       await db.insert('calculator_history', {
-        'expression': expr, 'result': res,
+        'expression': expr,
+        'result': res,
         'created_at': DateTime.now().toIso8601String(),
       });
     } catch (e) {
@@ -97,7 +149,7 @@ class CalculatorProvider extends ChangeNotifier {
     await loadHistory();
   }
 
-  // ponytail: recursive descent parser, no external dep
+  // upgraded ponytail recursive descent parser supporting generalized % operator
   int _pos = 0;
   String _input = '';
 
@@ -146,120 +198,361 @@ class CalculatorProvider extends ChangeNotifier {
   }
 
   num _primary() {
+    num result;
     if (_pos >= _input.length) throw const FormatException('Unexpected end');
 
     if (_input[_pos] == '(') {
       _pos++;
-      final result = _expr();
+      result = _expr();
       if (_pos >= _input.length || _input[_pos] != ')') throw const FormatException('Missing )');
       _pos++;
-      return result;
+    } else if (_input.substring(_pos).startsWith('sin(')) {
+      _pos += 4;
+      result = sin(_expr().toDouble());
+      if (_pos < _input.length && _input[_pos] == ')') _pos++;
+    } else if (_input.substring(_pos).startsWith('cos(')) {
+      _pos += 4;
+      result = cos(_expr().toDouble());
+      if (_pos < _input.length && _input[_pos] == ')') _pos++;
+    } else if (_input.substring(_pos).startsWith('tan(')) {
+      _pos += 4;
+      result = tan(_expr().toDouble());
+      if (_pos < _input.length && _input[_pos] == ')') _pos++;
+    } else if (_input.substring(_pos).startsWith('log(')) {
+      _pos += 4;
+      result = log(_expr().toDouble()) / ln10;
+      if (_pos < _input.length && _input[_pos] == ')') _pos++;
+    } else if (_input.substring(_pos).startsWith('ln(')) {
+      _pos += 3;
+      result = log(_expr().toDouble());
+      if (_pos < _input.length && _input[_pos] == ')') _pos++;
+    } else if (_input.substring(_pos).startsWith('sqrt(')) {
+      _pos += 5;
+      result = sqrt(_expr().toDouble());
+      if (_pos < _input.length && _input[_pos] == ')') _pos++;
+    } else if (_input.substring(_pos).startsWith('π')) {
+      _pos++;
+      result = pi;
+    } else if (_input.substring(_pos).startsWith('e') && (_pos + 1 >= _input.length || !RegExp(r'[a-zA-Z0-9]').hasMatch(_input[_pos + 1]))) {
+      _pos++;
+      result = e;
+    } else {
+      final start = _pos;
+      while (_pos < _input.length && (RegExp(r'[0-9.]').hasMatch(_input[_pos]))) { _pos++; }
+      if (_pos == start) throw FormatException('Unexpected: ${_input[_pos]}');
+      result = double.parse(_input.substring(start, _pos));
     }
 
-    if (_input.substring(_pos).startsWith('sin(')) { _pos += 3; return sin(_primary().toDouble()); }
-    if (_input.substring(_pos).startsWith('cos(')) { _pos += 3; return cos(_primary().toDouble()); }
-    if (_input.substring(_pos).startsWith('tan(')) { _pos += 3; return tan(_primary().toDouble()); }
-    if (_input.substring(_pos).startsWith('log(')) { _pos += 3; return log(_primary().toDouble()) / ln10; }
-    if (_input.substring(_pos).startsWith('ln(')) { _pos += 2; return log(_primary().toDouble()); }
-    if (_input.substring(_pos).startsWith('sqrt(')) { _pos += 4; return sqrt(_primary().toDouble()); }
+    // Generalized % postfix operator support (e.g. (2+3)% -> 0.05)
+    while (_pos < _input.length && _input[_pos] == '%') {
+      _pos++;
+      result /= 100;
+    }
 
-    if (_input.substring(_pos).startsWith('π')) { _pos++; return pi; }
-    if (_input.substring(_pos).startsWith('e') && (_pos + 1 >= _input.length || !RegExp(r'[a-zA-Z0-9]').hasMatch(_input[_pos + 1]))) { _pos++; return e; }
-
-    final start = _pos;
-    while (_pos < _input.length && (RegExp(r'[0-9.]').hasMatch(_input[_pos]))) { _pos++; }
-    if (_pos == start) throw FormatException('Unexpected: ${_input[_pos]}');
-    var result = double.parse(_input.substring(start, _pos));
-    if (_pos < _input.length && _input[_pos] == '%') { _pos++; result /= 100; }
     return result;
   }
 }
 
-class CalculatorScreen extends StatelessWidget {
+class CalculatorScreen extends StatefulWidget {
   const CalculatorScreen({super.key});
 
   @override
+  State<CalculatorScreen> createState() => _CalculatorScreenState();
+}
+
+class _CalculatorScreenState extends State<CalculatorScreen> {
+  bool _isScientific = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Consumer<CalculatorProvider>(
-      builder: (context, calc, _) => Scaffold(
-        appBar: AppBar(title: const Text('Calculator'), actions: [
+    final theme = Theme.of(context);
+    final calc = context.watch<CalculatorProvider>();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Calculator', style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: [
+          IconButton(
+            icon: Icon(_isScientific ? Icons.science_rounded : Icons.science_outlined, color: _isScientific ? theme.colorScheme.primary : null),
+            tooltip: 'Scientific Mode',
+            onPressed: () => setState(() => _isScientific = !_isScientific),
+          ),
           if (calc.history.isNotEmpty)
-            IconButton(icon: const Icon(Icons.delete_sweep), onPressed: calc.clearHistory),
-        ]),
-        body: Column(
+            IconButton(
+              icon: const Icon(Icons.history_rounded),
+              onPressed: () => _showHistoryDrawer(context, calc),
+            ),
+        ],
+      ),
+      body: SafeArea(
+        child: Column(
           children: [
+            // Displays Area
             Expanded(
               child: Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 alignment: Alignment.bottomRight,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(calc.expression, style: const TextStyle(fontSize: 24, color: Colors.grey)),
-                    const SizedBox(height: 8),
-                    Text(calc.result, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold)),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      reverse: true,
+                      child: Text(
+                        calc.expression.isEmpty ? '0' : calc.expression,
+                        style: const TextStyle(fontSize: 28, color: Colors.grey),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      reverse: true,
+                      child: Text(
+                        calc.result.isEmpty ? '0' : calc.result,
+                        style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-            if (calc.history.isNotEmpty)
-              SizedBox(
-                height: 100,
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  children: calc.history.take(10).map((h) => ListTile(
-                    dense: true,
-                    title: Text(h['expression']!, style: const TextStyle(fontSize: 12), maxLines: 1),
-                    subtitle: Text('= ${h['result']}', style: const TextStyle(fontSize: 13)),
-                    trailing: IconButton(icon: const Icon(Icons.close, size: 16), onPressed: () => calc.deleteHistoryEntry(int.parse(h['id']!))),
-                  )).toList(),
+
+            // Memory Buttons Row
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _MemoryButton(label: 'MC', onTap: calc.memoryClear),
+                  _MemoryButton(label: 'MR', onTap: calc.memoryRecall),
+                  _MemoryButton(label: 'M+', onTap: calc.memoryAdd),
+                  _MemoryButton(label: 'M-', onTap: calc.memorySubtract),
+                  if (calc.memory != 0.0)
+                    Text(
+                      'M = ${calc.memory.toStringAsFixed(2).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '')}',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+                    ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+
+            // Button Grids
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              padding: const EdgeInsets.all(8),
+              child: _buildButtons(calc),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildButtons(CalculatorProvider calc) {
+    if (_isScientific) {
+      return _ScientificButtonGrid(calc: calc);
+    }
+    return _StandardButtonGrid(calc: calc);
+  }
+
+  void _showHistoryDrawer(BuildContext context, CalculatorProvider calc) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Consumer<CalculatorProvider>(
+        builder: (context, provider, _) => Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Calculation History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  TextButton(onPressed: provider.clearHistory, child: const Text('Clear All')),
+                ],
+              ),
+              const Divider(),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: provider.history.length,
+                  itemBuilder: (context, index) {
+                    final item = provider.history[index];
+                    return ListTile(
+                      title: Text(item['expression']!, style: const TextStyle(fontSize: 14)),
+                      subtitle: Text('= ${item['result']!}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete_outline, size: 18),
+                        onPressed: () => provider.deleteHistoryEntry(int.parse(item['id']!)),
+                      ),
+                      onTap: () {
+                        provider.loadExpression(item['expression']!);
+                        Navigator.pop(ctx);
+                      },
+                    );
+                  },
                 ),
               ),
-            _ButtonGrid(calc: calc),
-            const SizedBox(height: 8),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _ButtonGrid extends StatelessWidget {
+class _MemoryButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _MemoryButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: onTap,
+      style: TextButton.styleFrom(minimumSize: const Size(48, 36), padding: EdgeInsets.zero),
+      child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+    );
+  }
+}
+
+class _StandardButtonGrid extends StatelessWidget {
   final CalculatorProvider calc;
-  const _ButtonGrid({required this.calc});
+  const _StandardButtonGrid({required this.calc});
 
   @override
   Widget build(BuildContext context) {
     final buttons = [
-      ['sin(', 'cos(', 'tan(', 'log(', 'C'],
-      ['√(', 'ln(', 'π', 'e', '⌫'],
-      ['7', '8', '9', '÷', '^'],
-      ['4', '5', '6', '×', '('],
-      ['1', '2', '3', '-', ')'],
-      ['0', '.', '=', '+', '%'],
+      ['C', '⌫', '%', '÷'],
+      ['7', '8', '9', '×'],
+      ['4', '5', '6', '-'],
+      ['1', '2', '3', '+'],
+      ['0', '.', '=', ''],
     ];
 
     return Column(
       children: buttons.map((row) => Row(
         children: row.map((label) {
-          final isOp = ['+', '-', '×', '÷', '=', '^', 'C', '⌫'].contains(label);
-          final isFn = ['sin(', 'cos(', 'tan(', 'log(', '√(', 'ln(', 'π', 'e', '(', ')', '%'].contains(label);
+          if (label.isEmpty) return const Expanded(child: SizedBox());
           return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(3),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  backgroundColor: isOp ? Theme.of(context).colorScheme.primaryContainer : (isFn ? Colors.grey.shade200 : null),
-                ),
-                onPressed: () => calc.input(label),
-                child: Text(label, style: TextStyle(fontSize: isOp || isFn ? 14 : 18)),
-              ),
+            child: _CalcButton(
+              label: label,
+              onTap: () => calc.input(label),
+              isOperator: ['÷', '×', '-', '+', '='].contains(label),
+              isAction: ['C', '⌫', '%'].contains(label),
             ),
           );
         }).toList(),
       )).toList(),
+    );
+  }
+}
+
+class _ScientificButtonGrid extends StatelessWidget {
+  final CalculatorProvider calc;
+  const _ScientificButtonGrid({required this.calc});
+
+  @override
+  Widget build(BuildContext context) {
+    final buttons = [
+      ['sin(', 'cos(', 'tan(', 'C', '⌫'],
+      ['sqrt(', 'log(', 'ln(', '(', ')'],
+      ['π', 'e', '^', '%', '÷'],
+      ['7', '8', '9', '×', '-'],
+      ['4', '5', '6', '+', '='],
+      ['1', '2', '3', '0', '.'],
+    ];
+
+    return Column(
+      children: buttons.map((row) => Row(
+        children: row.map((label) {
+          final isOp = ['÷', '×', '-', '+', '=', '^'].contains(label);
+          final isAction = ['C', '⌫'].contains(label);
+          final isScientific = ['sin(', 'cos(', 'tan(', 'sqrt(', 'log(', 'ln(', 'π', 'e', '(', ')', '%'].contains(label);
+
+          return Expanded(
+            child: _CalcButton(
+              label: label,
+              onTap: () => calc.input(label),
+              isOperator: isOp,
+              isAction: isAction,
+              isScientific: isScientific,
+            ),
+          );
+        }).toList(),
+      )).toList(),
+    );
+  }
+}
+
+class _CalcButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  final bool isOperator;
+  final bool isAction;
+  final bool isScientific;
+
+  const _CalcButton({
+    required this.label,
+    required this.onTap,
+    this.isOperator = false,
+    this.isAction = false,
+    this.isScientific = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    Color getBgColor() {
+      if (isOperator) {
+        return label == '=' ? theme.colorScheme.primary : theme.colorScheme.primaryContainer;
+      }
+      if (isAction) {
+        return theme.colorScheme.errorContainer.withOpacity(0.4);
+      }
+      if (isScientific) {
+        return theme.colorScheme.surfaceContainerHighest.withOpacity(0.8);
+      }
+      return theme.colorScheme.surfaceContainer;
+    }
+
+    Color getTextColor() {
+      if (isOperator) {
+        return label == '=' ? theme.colorScheme.onPrimary : theme.colorScheme.onPrimaryContainer;
+      }
+      if (isAction) {
+        return theme.colorScheme.onErrorContainer;
+      }
+      return theme.colorScheme.onSurface;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(4.0),
+      child: Material(
+        color: getBgColor(),
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            height: 52,
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: isScientific && label.length > 2 ? 14 : 20,
+                fontWeight: FontWeight.bold,
+                color: getTextColor(),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

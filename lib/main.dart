@@ -9,6 +9,8 @@ import 'notifications.dart';
 import 'features/notes.dart';
 import 'features/calendar.dart';
 import 'features/calculator.dart';
+import 'features/habits.dart';
+import 'features/life.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,22 +31,46 @@ class PersonalApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NotesProvider()),
         ChangeNotifierProvider(create: (_) => CalendarProvider()),
         ChangeNotifierProvider(create: (_) => CalculatorProvider()),
+        ChangeNotifierProvider(create: (_) => HabitsProvider()),
+        ChangeNotifierProvider(create: (_) => LifeProvider()),
       ],
       child: MaterialApp(
         title: 'Personal App',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          colorSchemeSeed: Colors.teal,
+          colorSchemeSeed: Colors.deepPurple,
           useMaterial3: true,
           brightness: Brightness.light,
+          appBarTheme: const AppBarTheme(
+            centerTitle: true,
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+          ),
+          cardTheme: CardTheme(
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          ),
         ),
         darkTheme: ThemeData(
-          colorSchemeSeed: Colors.teal,
+          colorSchemeSeed: Colors.deepPurple,
           useMaterial3: true,
           brightness: Brightness.dark,
+          appBarTheme: const AppBarTheme(
+            centerTitle: true,
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+          ),
+          cardTheme: CardTheme(
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          ),
         ),
         themeMode: ThemeMode.system,
-        localizationsDelegates: const [GlobalMaterialLocalizations.delegate, GlobalWidgetsLocalizations.delegate, FlutterQuillLocalizations.delegate],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          FlutterQuillLocalizations.delegate
+        ],
         home: const MainScreen(),
       ),
     );
@@ -63,8 +89,10 @@ class _MainScreenState extends State<MainScreen> {
 
   final _screens = const [
     NotesScreen(),
+    HabitsScreen(),
     CalendarScreen(),
     CalculatorScreen(),
+    LifeScreen(),
   ];
 
   @override
@@ -75,9 +103,31 @@ class _MainScreenState extends State<MainScreen> {
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.note), label: 'Notes'),
-          NavigationDestination(icon: Icon(Icons.calendar_month), label: 'Calendar'),
-          NavigationDestination(icon: Icon(Icons.calculate), label: 'Calculator'),
+          NavigationDestination(
+            icon: Icon(Icons.note_alt_outlined),
+            selectedIcon: Icon(Icons.note_alt_rounded),
+            label: 'Notes',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.checklist_rtl_outlined),
+            selectedIcon: Icon(Icons.checklist_rtl_rounded),
+            label: 'Habits',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calendar_month_outlined),
+            selectedIcon: Icon(Icons.calendar_month_rounded),
+            label: 'Calendar',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calculate_outlined),
+            selectedIcon: Icon(Icons.calculate_rounded),
+            label: 'Calculator',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.hourglass_empty_outlined),
+            selectedIcon: Icon(Icons.hourglass_full_rounded),
+            label: 'Life',
+          ),
         ],
       ),
     );

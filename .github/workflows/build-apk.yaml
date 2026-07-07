@@ -18,6 +18,15 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter create . --project-name personal_app
+      - name: Inject Android Permissions for Audio Recording
+        run: |
+          manifest_path="android/app/src/main/AndroidManifest.xml"
+          if [ -f "$manifest_path" ]; then
+            sed -i '/<manifest/a\    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>' "$manifest_path"
+            echo "Successfully injected permissions into $manifest_path"
+          else
+            echo "Error: Manifest not found at $manifest_path"
+          fi
       - name: Enable core library desugaring
         run: |
           f="android/app/build.gradle.kts"; [ -f "$f" ] || f="android/app/build.gradle"
