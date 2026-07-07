@@ -18,9 +18,18 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter create . --project-name personal_app
-      - run: |
-          sed -i '/compileOptions {/a\        coreLibraryDesugaringEnabled true' android/app/build.gradle
-          sed -i '/^dependencies {/a\    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"' android/app/build.gradle
+      - name: Enable core library desugaring
+        run: |
+          if [ -f android/app/build.gradle.kts ]; then
+            sed -i '/compileOptions {/a\            coreLibraryDesugaringEnabled = true' android/app/build.gradle.kts
+            sed -i '/^dependencies {/a\    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")' android/app/build.gradle.kts
+          elif [ -f android/app/build.gradle ]; then
+            sed -i '/compileOptions {/a\        coreLibraryDesugaringEnabled true' android/app/build.gradle
+            sed -i '/^dependencies {/a\    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"' android/app/build.gradle
+          else
+            find android -type f 2>/dev/null || echo "(android/ does not exist)"
+            exit 1
+          fi
       - run: flutter build apk --debug
       - uses: actions/upload-artifact@v4
         with:
