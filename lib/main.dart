@@ -4,7 +4,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:provider/provider.dart';
 import 'package:timezone/data/latest.dart' as tz;
-import 'package:timezone/timezone.dart' as tz;
 import 'database.dart';
 import 'notifications.dart';
 import 'features/notes.dart';
@@ -15,7 +14,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   tz.initializeTimeZones();
   await AppDatabase.instance.database;
-  final androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+  final androidSettings = const AndroidInitializationSettings('@mipmap/ic_launcher');
   await notifications.initialize(InitializationSettings(android: androidSettings));
   runApp(const PersonalApp());
 }

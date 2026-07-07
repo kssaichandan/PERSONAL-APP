@@ -105,7 +105,7 @@ class CalendarProvider extends ChangeNotifier {
     unawaited(notifications.zonedSchedule(event.id!, event.title, event.notes.isEmpty ? null : event.notes,
       tz.TZDateTime.from(scheduled, tz.local),
       const NotificationDetails(android: AndroidNotificationDetails('events', 'Event Reminders')),
-      androidAllowWhileIdle: true,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime));
   }
 }
