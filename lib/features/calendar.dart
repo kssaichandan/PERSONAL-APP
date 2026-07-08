@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:timezone/timezone.dart' as tz;
 import '../database.dart';
-import '../notifications.dart';
+final notifications = FlutterLocalNotificationsPlugin();
 import 'habits.dart';
 import 'notes.dart';
 
