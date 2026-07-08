@@ -33,16 +33,6 @@ class AppDatabase {
           )
         ''');
         await db.execute('''
-          CREATE TABLE note_recordings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            note_id INTEGER NOT NULL,
-            file_path TEXT NOT NULL,
-            duration_seconds INTEGER NOT NULL,
-            created_at TEXT NOT NULL,
-            FOREIGN KEY (note_id) REFERENCES notes (id) ON DELETE CASCADE
-          )
-        ''');
-        await db.execute('''
           CREATE TABLE calendar_events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
@@ -100,16 +90,6 @@ class AppDatabase {
             await db.execute("ALTER TABLE calendar_events ADD COLUMN category TEXT NOT NULL DEFAULT 'General'");
           } catch (_) {}
           
-          await db.execute('''
-            CREATE TABLE IF NOT EXISTS note_recordings (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              note_id INTEGER NOT NULL,
-              file_path TEXT NOT NULL,
-              duration_seconds INTEGER NOT NULL,
-              created_at TEXT NOT NULL,
-              FOREIGN KEY (note_id) REFERENCES notes (id) ON DELETE CASCADE
-            )
-          ''');
           await db.execute('''
             CREATE TABLE IF NOT EXISTS habits (
               id INTEGER PRIMARY KEY AUTOINCREMENT,

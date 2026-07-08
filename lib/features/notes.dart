@@ -1,12 +1,7 @@
-import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:provider/provider.dart';
-import 'package:record/record.dart';
-import 'package:audioplayers/audioplayers.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import '../database.dart';
 
@@ -81,34 +76,9 @@ class Note {
   );
 }
 
-class NoteRecording {
-  final int id;
-  final int noteId;
-  final String filePath;
-  final int durationSeconds;
-  final DateTime createdAt;
-
-  NoteRecording({
-    required this.id,
-    required this.noteId,
-    required this.filePath,
-    required this.durationSeconds,
-    required this.createdAt,
-  });
-
-  factory NoteRecording.fromMap(Map<String, dynamic> m) => NoteRecording(
-    id: m['id'],
-    noteId: m['note_id'],
-    filePath: m['file_path'],
-    durationSeconds: m['duration_seconds'],
-    createdAt: DateTime.parse(m['created_at']),
-  );
-}
-
 class NotesProvider extends ChangeNotifier {
   List<Note> _notes = [];
-  List<Note> _filtered = [];
-  final Map<int, List<NoteRecording>> _recordingsByNoteId = {};
+  List<Note> _filtered = [];;
   bool _loading = true;
   String? _error;
   String _query = '';
@@ -167,22 +137,11 @@ class NotesProvider extends ChangeNotifier {
       final db = await AppDatabase.instance.database;
       final maps = await db.query('notes', orderBy: 'pinned DESC, updated_at DESC');
       _notes = maps.map((m) => Note.fromMap(m)).toList();
-
-      final recMaps = await db.query('note_recordings');
-      _recordingsByNoteId.clear();
-      for (final rec in recMaps) {
-        final recording = NoteRecording.fromMap(rec);
-        _recordingsByNoteId.putIfAbsent(recording.noteId, () => []).add(recording);
-      }
     } catch (e) {
       _error = 'Failed to load notes';
     }
     _loading = false;
     notifyListeners();
-  }
-
-  List<NoteRecording> getRecordings(int noteId) {
-    return _recordingsByNoteId[noteId] ?? [];
   }
 
   Future<int> save(Note note) async {
@@ -206,20 +165,6 @@ class NotesProvider extends ChangeNotifier {
   Future<void> delete(int id) async {
     try {
       final db = await AppDatabase.instance.database;
-      
-      // Delete local voice recording files
-      final recs = _recordingsByNoteId[id] ?? [];
-      for (final rec in recs) {
-        try {
-          final file = File(rec.filePath);
-          if (await file.exists()) {
-            await file.delete();
-          }
-        } catch (e) {
-          debugPrint('delete local file failed: $e');
-        }
-      }
-
       await db.delete('notes', where: 'id = ?', whereArgs: [id]);
     } catch (e) {
       _error = 'Failed to delete note';
@@ -231,36 +176,6 @@ class NotesProvider extends ChangeNotifier {
 
   Future<void> togglePin(Note note) async {
     await save(note.copyWith(pinned: !note.pinned));
-  }
-
-  Future<void> saveRecording(int noteId, String filePath, int durationSeconds) async {
-    try {
-      final db = await AppDatabase.instance.database;
-      await db.insert('note_recordings', {
-        'note_id': noteId,
-        'file_path': filePath,
-        'duration_seconds': durationSeconds,
-        'created_at': DateTime.now().toIso8601String(),
-      });
-    } catch (e) {
-      debugPrint('saveRecording failed: $e');
-    }
-    await load();
-  }
-
-  Future<void> deleteRecording(int recId, String filePath) async {
-    try {
-      final db = await AppDatabase.instance.database;
-      await db.delete('note_recordings', where: 'id = ?', whereArgs: [recId]);
-      
-      final file = File(filePath);
-      if (await file.exists()) {
-        await file.delete();
-      }
-    } catch (e) {
-      debugPrint('deleteRecording failed: $e');
-    }
-    await load();
   }
 }
 
@@ -365,7 +280,6 @@ class NotesScreen extends StatelessWidget {
       itemCount: provider.notes.length,
       itemBuilder: (context, i) {
         final note = provider.notes[i];
-        final recordings = provider.getRecordings(note.id ?? 0);
         final color = Color(note.color);
         final isDarkNote = color.computeLuminance() < 0.5;
 
@@ -418,16 +332,6 @@ class NotesScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      if (recordings.isNotEmpty)
-                        Row(
-                          children: [
-                            Icon(Icons.mic, size: 12, color: isDarkNote ? Colors.white70 : Colors.black54),
-                            const SizedBox(width: 2),
-                            Text('${recordings.length}', style: TextStyle(fontSize: 10, color: isDarkNote ? Colors.white70 : Colors.black54)),
-                          ],
-                        )
-                      else
-                        const SizedBox(),
                       Text(
                         DateFormat('MMM d').format(note.updatedAt),
                         style: TextStyle(fontSize: 10, color: isDarkNote ? Colors.white38 : Colors.black38),
@@ -457,11 +361,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   late TextEditingController _titleController;
   late TextEditingController _tagsController;
   late int _selectedColor;
-  
-  final AudioRecorder _audioRecorder = AudioRecorder();
-  bool _isRecording = false;
-  int _recordSeconds = 0;
-  Timer? _recordTimer;
 
   @override
   void initState() {
@@ -487,58 +386,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     _titleController.dispose();
     _tagsController.dispose();
     _controller.dispose();
-    _audioRecorder.dispose();
-    _recordTimer?.cancel();
     super.dispose();
-  }
-
-  Future<void> _startRecording() async {
-    if (await _audioRecorder.hasPermission()) {
-      final dir = await getApplicationDocumentsDirectory();
-      final voiceDir = Directory('${dir.path}/voice_notes');
-      if (!await voiceDir.exists()) {
-        await voiceDir.create(recursive: true);
-      }
-      
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final path = '${voiceDir.path}/note_rec_$timestamp.m4a';
-
-      await _audioRecorder.start(const RecordConfig(encoder: AudioEncoder.aacLc), path: path);
-      setState(() {
-        _isRecording = true;
-        _recordSeconds = 0;
-      });
-
-      _recordTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        setState(() {
-          _recordSeconds++;
-        });
-      });
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Audio recording permission is required'))
-        );
-      }
-    }
-  }
-
-  Future<void> _stopRecording() async {
-    _recordTimer?.cancel();
-    final path = await _audioRecorder.stop();
-    if (!mounted) return;
-    setState(() {
-      _isRecording = false;
-    });
-
-    if (path != null && widget.note?.id != null) {
-      await context.read<NotesProvider>().saveRecording(widget.note!.id!, path, _recordSeconds);
-    } else if (path != null && widget.note?.id == null) {
-      // Note not saved yet, we must save note first
-      final noteId = await _saveNoteSilent();
-      if (!mounted) return;
-      await context.read<NotesProvider>().saveRecording(noteId, path, _recordSeconds);
-    }
   }
 
   Future<int> _saveNoteSilent() async {
@@ -566,8 +414,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final provider = context.watch<NotesProvider>();
-    final recordings = widget.note?.id != null ? provider.getRecordings(widget.note!.id!) : <NoteRecording>[];
 
     final colorsList = [
       0xFFFFFFFF, // white
@@ -658,70 +504,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
               ),
             ),
 
-            // Voice Memo Record Section
-            if (_isRecording)
-              Container(
-                color: theme.colorScheme.primaryContainer,
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.mic, color: Colors.red),
-                        const SizedBox(width: 8),
-                        const Text('Recording Voice Note...', style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(width: 16),
-                        Text(
-                          '${(_recordSeconds ~/ 60).toString().padLeft(2, '0')}:${(_recordSeconds % 60).toString().padLeft(2, '0')}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'),
-                        ),
-                      ],
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.stop_circle_rounded, color: Colors.red, size: 36),
-                      onPressed: _stopRecording,
-                    ),
-                  ],
-                ),
-              )
-            else
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerLow,
-                  border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Voice Notes', style: TextStyle(fontWeight: FontWeight.bold)),
-                    IconButton(
-                      icon: const Icon(Icons.mic_none_rounded),
-                      onPressed: _startRecording,
-                    ),
-                  ],
-                ),
-              ),
 
-            // Voice Memos List
-            if (recordings.isNotEmpty)
-              Container(
-                constraints: const BoxConstraints(maxHeight: 140),
-                color: theme.colorScheme.surfaceContainerLowest,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: recordings.length,
-                  itemBuilder: (context, i) {
-                    final rec = recordings[i];
-                    return _AudioPlayerWidget(
-                      recording: rec,
-                      onDelete: () => provider.deleteRecording(rec.id, rec.filePath),
-                    );
-                  },
-                ),
-              ),
           ],
         ),
       ),
@@ -729,99 +512,4 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 }
 
-class _AudioPlayerWidget extends StatefulWidget {
-  final NoteRecording recording;
-  final VoidCallback onDelete;
 
-  const _AudioPlayerWidget({required this.recording, required this.onDelete});
-
-  @override
-  State<_AudioPlayerWidget> createState() => _AudioPlayerWidgetState();
-}
-
-class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
-  final AudioPlayer _audioPlayer = AudioPlayer();
-  bool _isPlaying = false;
-  Duration _duration = Duration.zero;
-  Duration _position = Duration.zero;
-
-  @override
-  void initState() {
-    super.initState();
-    _duration = Duration(seconds: widget.recording.durationSeconds);
-    
-    _audioPlayer.onPlayerStateChanged.listen((state) {
-      if (mounted) {
-        setState(() {
-          _isPlaying = state == PlayerState.playing;
-        });
-      }
-    });
-
-    _audioPlayer.onDurationChanged.listen((d) {
-      if (mounted) {
-        setState(() {
-          _duration = d;
-        });
-      }
-    });
-
-    _audioPlayer.onPositionChanged.listen((p) {
-      if (mounted) {
-        setState(() {
-          _position = p;
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _audioPlayer.dispose();
-    super.dispose();
-  }
-
-  void _togglePlay() async {
-    if (_isPlaying) {
-      await _audioPlayer.pause();
-    } else {
-      await _audioPlayer.play(DeviceFileSource(widget.recording.filePath));
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          IconButton(
-            icon: Icon(_isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill, size: 32),
-            onPressed: _togglePlay,
-          ),
-          Text(
-            '${_position.inMinutes}:${(_position.inSeconds % 60).toString().padLeft(2, '0')}',
-            style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
-          ),
-          Expanded(
-            child: Slider(
-              value: _position.inSeconds.toDouble().clamp(0.0, _duration.inSeconds.toDouble()),
-              max: _duration.inSeconds.toDouble() > 0 ? _duration.inSeconds.toDouble() : 1.0,
-              onChanged: (val) async {
-                await _audioPlayer.seek(Duration(seconds: val.toInt()));
-              },
-            ),
-          ),
-          Text(
-            '${_duration.inMinutes}:${(_duration.inSeconds % 60).toString().padLeft(2, '0')}',
-            style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-            onPressed: widget.onDelete,
-          )
-        ],
-      ),
-    );
-  }
-}
