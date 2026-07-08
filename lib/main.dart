@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_quill/flutter_quill.dart';
 final notifications = FlutterLocalNotificationsPlugin();
 import 'package:provider/provider.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -69,7 +68,6 @@ class PersonalApp extends StatelessWidget {
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
-          FlutterQuillLocalizations.delegate
         ],
         home: const MainScreen(),
       ),

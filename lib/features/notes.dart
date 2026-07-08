@@ -1,18 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../database.dart';
-
-String plainText(String deltaJson) {
-  try {
-    final delta = jsonDecode(deltaJson);
-    return (delta as List).map((op) => op['insert'] ?? '').join().trim();
-  } catch (_) {
-    return deltaJson;
-  }
-}
 
 class Note {
   final int? id;
@@ -118,7 +107,7 @@ class NotesProvider extends ChangeNotifier {
     } else {
       _filtered = _notes.where((n) =>
         n.title.toLowerCase().contains(q.toLowerCase()) ||
-        plainText(n.content).toLowerCase().contains(q.toLowerCase())
+        n.content.toLowerCase().contains(q.toLowerCase())
       ).toList();
     }
     notifyListeners();
@@ -319,7 +308,7 @@ class NotesScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   Expanded(
                     child: Text(
-                      plainText(note.content),
+                      note.content,
                       style: TextStyle(
                         fontSize: 12,
                         color: isDarkNote ? Colors.white70 : Colors.black87,
@@ -357,8 +346,8 @@ class NoteEditorScreen extends StatefulWidget {
 }
 
 class _NoteEditorScreenState extends State<NoteEditorScreen> {
-  late QuillController _controller;
   late TextEditingController _titleController;
+  late TextEditingController _contentController;
   late TextEditingController _tagsController;
   late int _selectedColor;
 
@@ -366,35 +355,24 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.note?.title ?? '');
+    _contentController = TextEditingController(text: widget.note?.content ?? '');
     _tagsController = TextEditingController(text: widget.note?.tags ?? '');
     _selectedColor = widget.note?.color ?? 0xFFFFFFFF;
-
-    if (widget.note != null && widget.note!.content.isNotEmpty) {
-      try {
-        final delta = jsonDecode(widget.note!.content);
-        _controller = QuillController(document: Document.fromJson(delta), selection: const TextSelection.collapsed(offset: 0));
-      } catch (_) {
-        _controller = QuillController.basic();
-      }
-    } else {
-      _controller = QuillController.basic();
-    }
   }
 
   @override
   void dispose() {
     _titleController.dispose();
+    _contentController.dispose();
     _tagsController.dispose();
-    _controller.dispose();
     super.dispose();
   }
 
   Future<int> _saveNoteSilent() async {
-    final content = jsonEncode(_controller.document.toDelta().toJson());
     final note = Note(
       id: widget.note?.id,
       title: _titleController.text,
-      content: content,
+      content: _contentController.text,
       color: _selectedColor,
       pinned: widget.note?.pinned ?? false,
       tags: _tagsController.text,
@@ -493,18 +471,21 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
             ),
             const Divider(height: 1),
 
-            // Toolbar
-            QuillSimpleToolbar(controller: _controller),
-            
-            // Rich Text Editor View
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: QuillEditor.basic(controller: _controller),
+                child: TextField(
+                  controller: _contentController,
+                  maxLines: null,
+                  expands: true,
+                  textAlignVertical: TextAlignVertical.top,
+                  decoration: const InputDecoration(
+                    hintText: 'Start writing...',
+                    border: InputBorder.none,
+                  ),
+                ),
               ),
             ),
-
-
           ],
         ),
       ),
