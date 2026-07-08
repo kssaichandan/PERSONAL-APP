@@ -7,9 +7,9 @@ class Note {
   final int? id;
   final String title;
   final String content;
-  final int color; // ARGB value
+  final int color;
   final bool pinned;
-  final String tags; // Comma-separated
+  final String tags;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -45,12 +45,11 @@ class Note {
     createdAt: DateTime.parse(m['created_at']),
     updatedAt: DateTime.parse(m['updated_at']),
   );
-
 }
 
 class NotesProvider extends ChangeNotifier {
   List<Note> _notes = [];
-  List<Note> _filtered = [];;
+  List<Note> _filtered = [];
   bool _loading = true;
   String? _error;
   String _query = '';
@@ -72,9 +71,7 @@ class NotesProvider extends ChangeNotifier {
     for (final note in _notes) {
       if (note.tags.isNotEmpty) {
         for (final tag in note.tags.split(',')) {
-          if (tag.trim().isNotEmpty) {
-            tagsSet.add(tag.trim());
-          }
+          if (tag.trim().isNotEmpty) tagsSet.add(tag.trim());
         }
       }
     }
@@ -163,22 +160,25 @@ class NotesScreen extends StatelessWidget {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notes', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('Notes', style: theme.textTheme.titleLarge),
       ),
       body: Consumer<NotesProvider>(
         builder: (context, provider, _) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Search Bar
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 child: TextField(
                   decoration: InputDecoration(
                     hintText: 'Search notes...',
                     prefixIcon: const Icon(Icons.search_rounded),
                     suffixIcon: provider.query.isNotEmpty
-                      ? IconButton(icon: const Icon(Icons.clear), onPressed: () => provider.search(''))
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () => provider.search(''),
+                          tooltip: 'Clear search',
+                        )
                       : null,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                     filled: true,
@@ -188,8 +188,6 @@ class NotesScreen extends StatelessWidget {
                   onChanged: provider.search,
                 ),
               ),
-
-              // Tags Filter Horizontal Row
               if (provider.allTags.length > 1)
                 SizedBox(
                   height: 48,
@@ -203,20 +201,15 @@ class NotesScreen extends StatelessWidget {
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: FilterChip(
-                          label: Text(tag),
+                          label: Text(tag, style: theme.textTheme.bodySmall),
                           selected: isSel,
                           onSelected: (_) => provider.selectTag(tag),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                         ),
                       );
                     },
                   ),
                 ),
-
-              // Notes Grid
-              Expanded(
-                child: _buildGrid(context, provider),
-              ),
+              Expanded(child: _buildGrid(context, provider)),
             ],
           );
         },
@@ -230,7 +223,9 @@ class NotesScreen extends StatelessWidget {
 
   Widget _buildGrid(BuildContext context, NotesProvider provider) {
     final theme = Theme.of(context);
-    if (provider.error != null) return Center(child: Text(provider.error!, style: const TextStyle(color: Colors.red)));
+    if (provider.error != null) {
+      return Center(child: Text(provider.error!, style: TextStyle(color: theme.colorScheme.error)));
+    }
     if (provider.loading) return const Center(child: CircularProgressIndicator());
     if (provider.notes.isEmpty) {
       return Center(
@@ -239,7 +234,10 @@ class NotesScreen extends StatelessWidget {
           children: [
             Icon(Icons.notes_rounded, size: 80, color: theme.colorScheme.primary.withValues(alpha: 0.4)),
             const SizedBox(height: 16),
-            Text(provider.query.isNotEmpty ? 'No matching notes' : 'No notes yet', style: const TextStyle(color: Colors.grey, fontSize: 16)),
+            Text(
+              provider.query.isNotEmpty ? 'No matching notes' : 'No notes yet',
+              style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
           ],
         ),
       );
@@ -264,10 +262,6 @@ class NotesScreen extends StatelessWidget {
           child: Card(
             elevation: 1,
             color: color,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: BorderSide(color: theme.colorScheme.outlineVariant, width: 0.8),
-            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -305,15 +299,10 @@ class NotesScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        DateFormat('MMM d').format(note.updatedAt),
-                        style: TextStyle(fontSize: 10, color: isDarkNote ? Colors.white38 : Colors.black38),
-                      ),
-                    ],
-                  )
+                  Text(
+                    DateFormat('MMM d').format(note.updatedAt),
+                    style: TextStyle(fontSize: 10, color: isDarkNote ? Colors.white38 : Colors.black38),
+                  ),
                 ],
               ),
             ),
@@ -367,8 +356,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       updatedAt: DateTime.now(),
     );
     if (!mounted) return 0;
-    final noteId = await context.read<NotesProvider>().save(note);
-    return noteId;
+    return context.read<NotesProvider>().save(note);
   }
 
   void _save() async {
@@ -381,16 +369,16 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     final theme = Theme.of(context);
 
     final colorsList = [
-      0xFFFFFFFF, // white
-      0xFFF28B82, // red
-      0xFFFBBC04, // orange
-      0xFFFFF475, // yellow
-      0xFFCCFF90, // green
-      0xFFA7FFEB, // teal
-      0xFFCBF0F8, // blue
-      0xD7AECFC9, // dark gray/teal
-      0xFFD7AEFB, // purple
-      0xFFFDCFE8, // pink
+      0xFFFFFFFF,
+      0xFFF28B82,
+      0xFFFBBC04,
+      0xFFFFF475,
+      0xFFCCFF90,
+      0xFFA7FFEB,
+      0xFFCBF0F8,
+      0xD7AECFC9,
+      0xFFD7AEFB,
+      0xFFFDCFE8,
     ];
 
     return Scaffold(
@@ -404,45 +392,48 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         actions: [
-          IconButton(icon: const Icon(Icons.palette_outlined), onPressed: () {
-            showModalBottomSheet(
-              context: context,
-              builder: (ctx) => Container(
-                height: 100,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: colorsList.length,
-                  itemBuilder: (context, i) {
-                    final c = colorsList[i];
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() => _selectedColor = c);
-                        Navigator.pop(ctx);
-                      },
-                      child: Container(
-                        width: 48,
-                        margin: const EdgeInsets.only(right: 12),
-                        decoration: BoxDecoration(
-                          color: Color(c),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.grey.shade400, width: c == _selectedColor ? 3 : 1),
+          IconButton(
+            icon: const Icon(Icons.palette_outlined),
+            tooltip: 'Change color',
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                builder: (ctx) => Container(
+                  height: 100,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: colorsList.length,
+                    itemBuilder: (context, i) {
+                      final c = colorsList[i];
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() => _selectedColor = c);
+                          Navigator.pop(ctx);
+                        },
+                        child: Container(
+                          width: 48,
+                          margin: const EdgeInsets.only(right: 12),
+                          decoration: BoxDecoration(
+                            color: Color(c),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: theme.colorScheme.outline, width: c == _selectedColor ? 3 : 1),
+                          ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
-              ),
-            );
-          }),
-          IconButton(icon: const Icon(Icons.check), onPressed: _save),
+              );
+            },
+          ),
+          IconButton(icon: const Icon(Icons.check), tooltip: 'Save note', onPressed: _save),
         ],
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // Tags Input Row
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: TextField(
@@ -453,11 +444,10 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                   border: InputBorder.none,
                   isDense: true,
                 ),
-                style: const TextStyle(fontSize: 13),
+                style: theme.textTheme.bodyMedium,
               ),
             ),
             const Divider(height: 1),
-
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -479,5 +469,3 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     );
   }
 }
-
-

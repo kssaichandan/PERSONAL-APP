@@ -11,6 +11,9 @@ import 'features/calculator.dart';
 import 'features/habits.dart';
 import 'features/life.dart';
 
+const _spacing = [0.0, 4, 8, 12, 16, 24, 32, 48];
+const _radius = [0.0, 8, 12, 16, 24];
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   tz.initializeTimeZones();
@@ -59,7 +62,17 @@ class PersonalApp extends StatelessWidget {
     ),
     cardTheme: CardThemeData(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_radius[4])),
+    ),
+    textTheme: const TextTheme(
+      titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+      bodyLarge: TextStyle(fontSize: 16),
+      bodyMedium: TextStyle(fontSize: 14),
+      bodySmall: TextStyle(fontSize: 12),
+      labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+      labelSmall: TextStyle(fontSize: 10),
     ),
   );
 }

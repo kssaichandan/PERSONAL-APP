@@ -11,7 +11,7 @@ class Habit {
   final int? id;
   final String name;
   final String icon;
-  final String? reminderTime; // e.g. "08:00"
+  final String? reminderTime;
   final DateTime createdAt;
 
   Habit({this.id, required this.name, required this.icon, this.reminderTime, required this.createdAt});
@@ -31,12 +31,11 @@ class Habit {
     reminderTime: m['reminder_time'],
     createdAt: DateTime.parse(m['created_at']),
   );
-
 }
 
 class HabitsProvider extends ChangeNotifier {
   List<Habit> _habits = [];
-  final Map<int, Set<String>> _habitLogsByHabitId = {}; // habitId -> Set of "yyyy-MM-dd"
+  final Map<int, Set<String>> _habitLogsByHabitId = {};
   bool _loading = true;
   String? _error;
 
@@ -52,10 +51,8 @@ class HabitsProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final db = await AppDatabase.instance.database;
-      
       final habitMaps = await db.query('habits', orderBy: 'created_at ASC');
       _habits = habitMaps.map((m) => Habit.fromMap(m)).toList();
-
       final logMaps = await db.query('habit_logs');
       _habitLogsByHabitId.clear();
       for (final log in logMaps) {
@@ -80,7 +77,6 @@ class HabitsProvider extends ChangeNotifier {
     try {
       final db = await AppDatabase.instance.database;
       final logs = _habitLogsByHabitId[habitId] ?? {};
-      
       if (logs.contains(dateStr)) {
         await db.delete('habit_logs', where: 'habit_id = ? AND date = ?', whereArgs: [habitId, dateStr]);
         _habitLogsByHabitId[habitId]?.remove(dateStr);
@@ -90,7 +86,7 @@ class HabitsProvider extends ChangeNotifier {
       }
       notifyListeners();
     } catch (e) {
-      debugPrint('toggleLog failed: $e');
+      if (kDebugMode) debugPrint('toggleLog failed: $e');
     }
   }
 
@@ -99,13 +95,10 @@ class HabitsProvider extends ChangeNotifier {
       final db = await AppDatabase.instance.database;
       final habit = Habit(name: name, icon: icon, reminderTime: reminderTime, createdAt: DateTime.now());
       final id = await db.insert('habits', habit.toMap()..remove('id'));
-      
       final savedHabit = Habit(id: id, name: name, icon: icon, reminderTime: reminderTime, createdAt: habit.createdAt);
-      if (reminderTime != null) {
-        _scheduleHabitNotification(savedHabit);
-      }
+      if (reminderTime != null) _scheduleHabitNotification(savedHabit);
     } catch (e) {
-      debugPrint('saveHabit failed: $e');
+      if (kDebugMode) debugPrint('saveHabit failed: $e');
     }
     await load();
   }
@@ -116,7 +109,7 @@ class HabitsProvider extends ChangeNotifier {
       await db.delete('habits', where: 'id = ?', whereArgs: [id]);
       await notifications.cancel(1000 + id);
     } catch (e) {
-      debugPrint('deleteHabit failed: $e');
+      if (kDebugMode) debugPrint('deleteHabit failed: $e');
     }
     await load();
   }
@@ -127,13 +120,10 @@ class HabitsProvider extends ChangeNotifier {
       final current = _habits.firstWhere((h) => h.id == habitId);
       final updated = Habit(id: current.id, name: current.name, icon: current.icon, reminderTime: reminderTime, createdAt: current.createdAt);
       await db.update('habits', updated.toMap(), where: 'id = ?', whereArgs: [habitId]);
-      
       await notifications.cancel(1000 + habitId);
-      if (reminderTime != null) {
-        _scheduleHabitNotification(updated);
-      }
+      if (reminderTime != null) _scheduleHabitNotification(updated);
     } catch (e) {
-      debugPrint('updateReminder failed: $e');
+      if (kDebugMode) debugPrint('updateReminder failed: $e');
     }
     await load();
   }
@@ -143,45 +133,35 @@ class HabitsProvider extends ChangeNotifier {
     final parts = habit.reminderTime!.split(':');
     final hour = int.parse(parts[0]);
     final minute = int.parse(parts[1]);
-
     unawaited(notifications.zonedSchedule(
       1000 + habit.id!,
       'Habit Reminder: ${habit.name}',
       'Time to complete your habit! Tap to log it.',
       _nextInstanceOfTime(hour, minute),
       const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'habits',
-          'Habit Reminders',
-          importance: Importance.high,
-          priority: Priority.high,
-        ),
+        android: AndroidNotificationDetails('habits', 'Habit Reminders', importance: Importance.high, priority: Priority.high),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
     ).catchError((e) {
-      debugPrint('scheduleHabitNotification failed: $e');
+      if (kDebugMode) debugPrint('scheduleHabitNotification failed: $e');
     }));
   }
 
   tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
     final now = tz.TZDateTime.now(tz.local);
     var scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
-    if (scheduledDate.isBefore(now)) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
-    }
+    if (scheduledDate.isBefore(now)) scheduledDate = scheduledDate.add(const Duration(days: 1));
     return scheduledDate;
   }
 
   Map<String, int> getStreaks(int habitId) {
     final dates = _habitLogsByHabitId[habitId] ?? {};
     if (dates.isEmpty) return {'current': 0, 'max': 0};
-
     final sorted = dates.map((d) => DateTime.parse(d)).toList()..sort();
     final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final yesterday = today.subtract(const Duration(days: 1));
-
     int maxStreak = 0;
     int temp = 1;
     for (int i = 1; i < sorted.length; i++) {
@@ -193,8 +173,6 @@ class HabitsProvider extends ChangeNotifier {
       }
     }
     if (temp > maxStreak) maxStreak = temp;
-
-    // ponytail: reverse scan for current streak from most recent log
     final last = sorted.last;
     int currentStreak = 0;
     if (last == today || last == yesterday) {
@@ -207,7 +185,6 @@ class HabitsProvider extends ChangeNotifier {
         }
       }
     }
-
     return {'current': currentStreak, 'max': maxStreak};
   }
 
@@ -216,9 +193,7 @@ class HabitsProvider extends ChangeNotifier {
     int count = 0;
     for (final logDate in logs) {
       final parsed = DateTime.parse(logDate);
-      if (parsed.year == month.year && parsed.month == month.month) {
-        count++;
-      }
+      if (parsed.year == month.year && parsed.month == month.month) count++;
     }
     return count;
   }
@@ -240,10 +215,11 @@ class _HabitsScreenState extends State<HabitsScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Habit Tracker', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('Habit Tracker', style: theme.textTheme.titleLarge),
         actions: [
           IconButton(
             icon: const Icon(Icons.add_circle_outline_rounded),
+            tooltip: 'Add habit',
             onPressed: () => _showAddHabitDialog(context),
           )
         ],
@@ -251,7 +227,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
       body: Consumer<HabitsProvider>(
         builder: (context, provider, _) {
           if (provider.loading) return const Center(child: CircularProgressIndicator());
-          if (provider.error != null) return Center(child: Text(provider.error!));
+          if (provider.error != null) return Center(child: Text(provider.error!, style: TextStyle(color: theme.colorScheme.error)));
           if (provider.habits.isEmpty) {
             return Center(
               child: Column(
@@ -259,7 +235,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                 children: [
                   Icon(Icons.checklist_rtl_rounded, size: 80, color: theme.colorScheme.primary.withValues(alpha: 0.4)),
                   const SizedBox(height: 16),
-                  const Text('No habits created yet', style: TextStyle(fontSize: 18, color: Colors.grey)),
+                  Text('No habits created yet', style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                   const SizedBox(height: 8),
                   ElevatedButton.icon(
                     onPressed: () => _showAddHabitDialog(context),
@@ -271,10 +247,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
             );
           }
 
-          // If no habit is selected yet, select the first one
           _selectedHabit ??= provider.habits.first;
-
-          // Double check if selected habit still exists
           if (!provider.habits.any((h) => h.id == _selectedHabit!.id)) {
             _selectedHabit = provider.habits.first;
           }
@@ -282,7 +255,6 @@ class _HabitsScreenState extends State<HabitsScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Habits Horizontal Selection
               SizedBox(
                 height: 110,
                 child: ListView.builder(
@@ -294,7 +266,6 @@ class _HabitsScreenState extends State<HabitsScreen> {
                     final isSel = h.id == _selectedHabit?.id;
                     final streaks = provider.getStreaks(h.id!);
                     final currentStreak = streaks['current'] ?? 0;
-                    
                     return GestureDetector(
                       onTap: () => setState(() => _selectedHabit = h),
                       child: Container(
@@ -303,10 +274,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                         decoration: BoxDecoration(
                           color: isSel ? theme.colorScheme.primaryContainer : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isSel ? theme.colorScheme.primary : Colors.transparent,
-                            width: 2,
-                          ),
+                          border: Border.all(color: isSel ? theme.colorScheme.primary : Colors.transparent, width: 2),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -339,10 +307,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                   },
                 ),
               ),
-
               const Divider(height: 1),
-
-              // Weekly Checklist Widget for Selected Habit
               if (_selectedHabit != null) ...[
                 Padding(
                   padding: const EdgeInsets.all(16),
@@ -355,13 +320,13 @@ class _HabitsScreenState extends State<HabitsScreen> {
                           children: [
                             Text(
                               'Log Habit: ${_selectedHabit!.name}',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              style: theme.textTheme.titleMedium,
                             ),
                             Text(
-                              _selectedHabit!.reminderTime == null 
-                                ? 'No reminder alarm set' 
+                              _selectedHabit!.reminderTime == null
+                                ? 'No reminder set'
                                 : 'Daily reminder at ${_selectedHabit!.reminderTime}',
-                              style: const TextStyle(fontSize: 12, color: Colors.grey),
+                              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                             ),
                           ],
                         ),
@@ -370,10 +335,12 @@ class _HabitsScreenState extends State<HabitsScreen> {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.alarm),
+                            tooltip: 'Set reminder',
                             onPressed: () => _pickReminderTime(context, _selectedHabit!, provider),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                            icon: const Icon(Icons.delete_outline_rounded),
+                            tooltip: 'Delete habit',
                             onPressed: () => _confirmDeleteHabit(context, _selectedHabit!, provider),
                           ),
                         ],
@@ -383,9 +350,9 @@ class _HabitsScreenState extends State<HabitsScreen> {
                 ),
                 _WeeklyChecklist(habit: _selectedHabit!, provider: provider),
                 const SizedBox(height: 16),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Text('Monthly Overview', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text('Monthly Overview', style: theme.textTheme.titleMedium),
                 ),
                 const SizedBox(height: 8),
                 Expanded(
@@ -395,9 +362,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                       provider: provider,
                       currentMonth: _currentLogMonth,
                       onMonthChanged: (newMonth) {
-                        setState(() {
-                          _currentLogMonth = newMonth;
-                        });
+                        setState(() => _currentLogMonth = newMonth);
                       },
                     ),
                   ),
@@ -427,7 +392,6 @@ class _HabitsScreenState extends State<HabitsScreen> {
     final titleCtrl = TextEditingController();
     String selectedIcon = 'star';
     final provider = context.read<HabitsProvider>();
-
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -456,9 +420,9 @@ class _HabitsScreenState extends State<HabitsScreen> {
                       decoration: BoxDecoration(
                         color: isSel ? Theme.of(context).colorScheme.primaryContainer : Colors.transparent,
                         shape: BoxShape.circle,
-                        border: Border.all(color: isSel ? Theme.of(context).colorScheme.primary : Colors.grey.shade400),
+                        border: Border.all(color: isSel ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline),
                       ),
-                      child: Icon(_getIconData(iconName), color: isSel ? Theme.of(context).colorScheme.primary : Colors.grey.shade600),
+                      child: Icon(_getIconData(iconName), color: isSel ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   );
                 }).toList(),
@@ -520,20 +484,15 @@ class _HabitsScreenState extends State<HabitsScreen> {
 class _WeeklyChecklist extends StatelessWidget {
   final Habit habit;
   final HabitsProvider provider;
-
   const _WeeklyChecklist({required this.habit, required this.provider});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final now = DateTime.now();
-    final todayWeekday = now.weekday; // 1 = Mon ... 7 = Sun
-    
-    // Compute the start (Monday) of this week
+    final todayWeekday = now.weekday;
     final monday = now.subtract(Duration(days: todayWeekday - 1));
-
     final weekDays = List.generate(7, (i) => monday.add(Duration(days: i)));
-
     final dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
     return Container(
@@ -541,13 +500,9 @@ class _WeeklyChecklist extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       child: Row(
@@ -557,42 +512,31 @@ class _WeeklyChecklist extends StatelessWidget {
           final completed = provider.isCompleted(habit.id!, date);
           final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
           final isFuture = date.isAfter(now);
-
           return Column(
             children: [
               Text(
                 dayNames[index],
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                  color: isToday ? theme.colorScheme.primary : Colors.grey,
-                ),
+                style: TextStyle(fontSize: 12, fontWeight: isToday ? FontWeight.bold : FontWeight.normal, color: isToday ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 4),
               Text(
                 '${date.day}',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                  color: isToday ? theme.colorScheme.primary : Colors.grey,
-                ),
+                style: TextStyle(fontSize: 10, fontWeight: isToday ? FontWeight.bold : FontWeight.normal, color: isToday ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 8),
               GestureDetector(
-                onTap: isFuture 
-                  ? null 
-                  : () {
-                      provider.toggleLog(habit.id!, date);
-                      if (!completed) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Completed "${habit.name}"! 🎉'),
-                            duration: const Duration(milliseconds: 600),
-                            behavior: SnackBarBehavior.floating,
-                          )
-                        );
-                      }
-                    },
+                onTap: isFuture ? null : () {
+                  provider.toggleLog(habit.id!, date);
+                  if (!completed) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Completed "${habit.name}"!'),
+                        duration: const Duration(milliseconds: 600),
+                        behavior: SnackBarBehavior.floating,
+                      )
+                    );
+                  }
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
                   width: 38,
@@ -600,19 +544,17 @@ class _WeeklyChecklist extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: completed
                         ? theme.colorScheme.primary
-                        : (isToday ? theme.colorScheme.primary.withValues(alpha: 0.08) : Colors.grey.shade200),
+                        : (isToday ? theme.colorScheme.primary.withValues(alpha: 0.08) : theme.colorScheme.surfaceContainerHighest),
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: completed 
-                          ? theme.colorScheme.primary 
-                          : (isToday ? theme.colorScheme.primary : Colors.transparent),
+                      color: completed ? theme.colorScheme.primary : (isToday ? theme.colorScheme.primary : Colors.transparent),
                       width: 1.5,
                     ),
                   ),
                   child: completed
                       ? const Icon(Icons.check_rounded, color: Colors.white, size: 20)
-                      : (isFuture 
-                          ? Icon(Icons.lock_outline_rounded, color: Colors.grey.shade400, size: 14)
+                      : (isFuture
+                          ? Icon(Icons.lock_outline_rounded, color: theme.colorScheme.onSurfaceVariant, size: 14)
                           : null),
                 ),
               ),
@@ -629,7 +571,6 @@ class _MonthlyLogCalendar extends StatelessWidget {
   final HabitsProvider provider;
   final DateTime currentMonth;
   final ValueChanged<DateTime> onMonthChanged;
-
   const _MonthlyLogCalendar({
     required this.habit,
     required this.provider,
@@ -642,21 +583,16 @@ class _MonthlyLogCalendar extends StatelessWidget {
     final theme = Theme.of(context);
     final firstDay = DateTime(currentMonth.year, currentMonth.month, 1);
     final totalDays = DateTime(currentMonth.year, currentMonth.month + 1, 0).day;
-    final startWeekday = firstDay.weekday; // 1 = Mon ... 7 = Sun
-    
+    final startWeekday = firstDay.weekday;
     final completedCount = provider.completionsInMonth(habit.id!, currentMonth);
     final streakStats = provider.getStreaks(habit.id!);
     final currentStreak = streakStats['current'] ?? 0;
     final maxStreak = streakStats['max'] ?? 0;
-
     final cells = <Widget>[];
-    for (int i = 1; i < startWeekday; i++) {
-      cells.add(const SizedBox());
-    }
+    for (int i = 1; i < startWeekday; i++) cells.add(const SizedBox());
     for (int day = 1; day <= totalDays; day++) {
       final date = DateTime(currentMonth.year, currentMonth.month, day);
       final isLogged = provider.isCompleted(habit.id!, date);
-      
       cells.add(
         Center(
           child: Container(
@@ -664,13 +600,8 @@ class _MonthlyLogCalendar extends StatelessWidget {
             height: 32,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: isLogged 
-                  ? theme.colorScheme.primary.withValues(alpha: 0.2) 
-                  : Colors.transparent,
-              border: Border.all(
-                color: isLogged ? theme.colorScheme.primary : Colors.grey.shade300,
-                width: isLogged ? 1.5 : 1,
-              ),
+              color: isLogged ? theme.colorScheme.primary.withValues(alpha: 0.2) : Colors.transparent,
+              border: Border.all(color: isLogged ? theme.colorScheme.primary : theme.colorScheme.outlineVariant, width: isLogged ? 1.5 : 1),
               shape: BoxShape.circle,
             ),
             child: Text(
@@ -685,52 +616,40 @@ class _MonthlyLogCalendar extends StatelessWidget {
         ),
       );
     }
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Card(
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: theme.colorScheme.outlineVariant),
-        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // Month Navigator
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
                     icon: const Icon(Icons.chevron_left),
-                    onPressed: () {
-                      onMonthChanged(DateTime(currentMonth.year, currentMonth.month - 1));
-                    },
+                    tooltip: 'Previous month',
+                    onPressed: () => onMonthChanged(DateTime(currentMonth.year, currentMonth.month - 1)),
                   ),
                   Text(
                     DateFormat('MMMM yyyy').format(currentMonth),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: theme.textTheme.titleMedium,
                   ),
                   IconButton(
                     icon: const Icon(Icons.chevron_right),
-                    onPressed: () {
-                      onMonthChanged(DateTime(currentMonth.year, currentMonth.month + 1));
-                    },
+                    tooltip: 'Next month',
+                    onPressed: () => onMonthChanged(DateTime(currentMonth.year, currentMonth.month + 1)),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              
-              // Calendar Grid Header
               Row(
                 children: ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-                    .map((d) => Expanded(child: Center(child: Text(d, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)))))
+                    .map((d) => Expanded(child: Center(child: Text(d, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant)))))
                     .toList(),
               ),
               const SizedBox(height: 8),
-
-              // Calendar Days Grid
               GridView.count(
                 crossAxisCount: 7,
                 shrinkWrap: true,
@@ -738,8 +657,6 @@ class _MonthlyLogCalendar extends StatelessWidget {
                 children: cells,
               ),
               const Divider(height: 24),
-
-              // Statistics Panels
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
@@ -776,22 +693,17 @@ class _StatBlock extends StatelessWidget {
   final String title;
   final String value;
   final Color color;
-
-  const _StatBlock({
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.color,
-  });
+  const _StatBlock({required this.icon, required this.title, required this.value, required this.color});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       children: [
         Icon(icon, color: color, size: 24),
         const SizedBox(height: 4),
-        Text(title, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-        Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(title, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        Text(value, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
       ],
     );
   }

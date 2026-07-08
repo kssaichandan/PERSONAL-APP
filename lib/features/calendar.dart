@@ -14,7 +14,7 @@ class CalendarEvent {
   final String title;
   final DateTime date;
   final String? time;
-  final String category; // 'General', 'Work', 'Personal', 'Urgent'
+  final String category;
   final String notes;
 
   CalendarEvent({
@@ -93,14 +93,7 @@ class CalendarProvider extends ChangeNotifier {
       final db = await AppDatabase.instance.database;
       if (event.id == null) {
         final id = await db.insert('calendar_events', event.toMap()..remove('id'));
-        _scheduleNotification(CalendarEvent(
-          id: id,
-          title: event.title,
-          date: event.date,
-          time: event.time,
-          category: event.category,
-          notes: event.notes,
-        ));
+        _scheduleNotification(CalendarEvent(id: id, title: event.title, date: event.date, time: event.time, category: event.category, notes: event.notes));
       } else {
         await db.update('calendar_events', event.toMap(), where: 'id = ?', whereArgs: [event.id]);
         _scheduleNotification(event);
@@ -131,7 +124,6 @@ class CalendarProvider extends ChangeNotifier {
     final parts = event.time!.split(':');
     final scheduled = DateTime(event.date.year, event.date.month, event.date.day, int.parse(parts[0]), int.parse(parts[1]));
     if (scheduled.isBefore(DateTime.now())) return;
-
     unawaited(notifications.zonedSchedule(
       event.id!,
       event.title,
@@ -141,8 +133,17 @@ class CalendarProvider extends ChangeNotifier {
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
     ).catchError((e) {
-      debugPrint('scheduleNotification failed: $e');
+      if (kDebugMode) debugPrint('scheduleNotification failed: $e');
     }));
+  }
+}
+
+Color categoryColor(String cat) {
+  switch (cat) {
+    case 'Work': return Colors.blue;
+    case 'Personal': return Colors.green;
+    case 'Urgent': return Colors.red;
+    default: return Colors.orange;
   }
 }
 
@@ -151,15 +152,15 @@ class CalendarScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Calendar & Logs', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('Calendar & Logs', style: theme.textTheme.titleLarge),
       ),
       body: Consumer<CalendarProvider>(
         builder: (context, provider, _) {
-          if (provider.error != null) return Center(child: Text(provider.error!, style: const TextStyle(color: Colors.red)));
+          if (provider.error != null) return Center(child: Text(provider.error!, style: TextStyle(color: theme.colorScheme.error)));
           if (provider.loading) return const Center(child: CircularProgressIndicator());
-          
           return Column(
             children: [
               _MonthHeader(provider: provider),
@@ -186,32 +187,21 @@ class CalendarScreen extends StatelessWidget {
   }
 }
 
-Color categoryColor(String cat) {
-  switch (cat) {
-    case 'Work': return Colors.blue;
-    case 'Personal': return Colors.green;
-    case 'Urgent': return Colors.red;
-    default: return Colors.orange;
-  }
-}
-
 class _MonthHeader extends StatelessWidget {
   final CalendarProvider provider;
   const _MonthHeader({required this.provider});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          IconButton(icon: const Icon(Icons.chevron_left_rounded), onPressed: provider.previousMonth),
-          Text(
-            DateFormat('MMMM yyyy').format(provider.currentMonth),
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          IconButton(icon: const Icon(Icons.chevron_right_rounded), onPressed: provider.nextMonth),
+          IconButton(icon: const Icon(Icons.chevron_left_rounded), tooltip: 'Previous month', onPressed: provider.previousMonth),
+          Text(DateFormat('MMMM yyyy').format(provider.currentMonth), style: theme.textTheme.titleMedium),
+          IconButton(icon: const Icon(Icons.chevron_right_rounded), tooltip: 'Next month', onPressed: provider.nextMonth),
         ],
       ),
     );
@@ -221,11 +211,12 @@ class _MonthHeader extends StatelessWidget {
 class _DayNames extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        children: days.map((d) => Expanded(child: Center(child: Text(d, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey))))).toList(),
+        children: days.map((d) => Expanded(child: Center(child: Text(d, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant))))).toList(),
       ),
     );
   }
@@ -239,23 +230,16 @@ class _MonthGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final habitsProvider = context.watch<HabitsProvider>();
-    
     final first = DateTime(provider.currentMonth.year, provider.currentMonth.month, 1);
     final daysInMonth = DateTime(provider.currentMonth.year, provider.currentMonth.month + 1, 0).day;
     final startWeekday = first.weekday;
     final today = DateTime.now();
-
     final cells = <Widget>[];
-    for (int i = 1; i < startWeekday; i++) {
-      cells.add(const SizedBox());
-    }
-    
+    for (int i = 1; i < startWeekday; i++) cells.add(const SizedBox());
     for (int day = 1; day <= daysInMonth; day++) {
       final date = DateTime(provider.currentMonth.year, provider.currentMonth.month, day);
       final events = provider.eventsForDay(date);
       final isToday = date.year == today.year && date.month == today.month && date.day == today.day;
-      
-      // Check if any habit was completed on this day for the glowing background highlight
       bool habitCompleted = false;
       for (final habit in habitsProvider.habits) {
         if (habitsProvider.isCompleted(habit.id!, date)) {
@@ -263,21 +247,16 @@ class _MonthGrid extends StatelessWidget {
           break;
         }
       }
-
       cells.add(
         GestureDetector(
           onTap: () => _showDayDetail(context, date, provider),
           child: Container(
             margin: const EdgeInsets.all(3),
             decoration: BoxDecoration(
-              color: isToday 
-                  ? theme.colorScheme.primaryContainer 
-                  : (habitCompleted ? theme.colorScheme.primary.withValues(alpha: 0.06) : null),
+              color: isToday ? theme.colorScheme.primaryContainer : (habitCompleted ? theme.colorScheme.primary.withValues(alpha: 0.06) : null),
               shape: BoxShape.circle,
               border: Border.all(
-                color: isToday 
-                    ? theme.colorScheme.primary 
-                    : (habitCompleted ? theme.colorScheme.primary.withValues(alpha: 0.3) : Colors.transparent),
+                color: isToday ? theme.colorScheme.primary : (habitCompleted ? theme.colorScheme.primary.withValues(alpha: 0.3) : Colors.transparent),
                 width: 1,
               ),
             ),
@@ -300,10 +279,7 @@ class _MonthGrid extends StatelessWidget {
                         width: 4,
                         height: 4,
                         margin: const EdgeInsets.symmetric(horizontal: 0.5),
-                        decoration: BoxDecoration(
-                          color: categoryColor(e.category),
-                          shape: BoxShape.circle,
-                        ),
+                        decoration: BoxDecoration(color: categoryColor(e.category), shape: BoxShape.circle),
                       )).toList(),
                     ),
                 ],
@@ -313,7 +289,6 @@ class _MonthGrid extends StatelessWidget {
         ),
       );
     }
-
     return GridView.count(
       crossAxisCount: 7,
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -334,27 +309,18 @@ class _MonthGrid extends StatelessWidget {
 class _DayDetailPanel extends StatelessWidget {
   final DateTime date;
   final CalendarProvider provider;
-
   const _DayDetailPanel({required this.date, required this.provider});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final events = provider.eventsForDay(date);
-    
-    // Habits completed on this day
     final habitsProvider = context.watch<HabitsProvider>();
-    final completedHabits = habitsProvider.habits
-        .where((h) => habitsProvider.isCompleted(h.id!, date))
-        .toList();
-
-    // Notes created/updated on this day
+    final completedHabits = habitsProvider.habits.where((h) => habitsProvider.isCompleted(h.id!, date)).toList();
     final notesProvider = context.watch<NotesProvider>();
-    final dayNotes = notesProvider.notes.where((n) {
-      return n.updatedAt.year == date.year &&
-             n.updatedAt.month == date.month &&
-             n.updatedAt.day == date.day;
-    }).toList();
+    final dayNotes = notesProvider.notes.where((n) =>
+      n.updatedAt.year == date.year && n.updatedAt.month == date.month && n.updatedAt.day == date.day
+    ).toList();
 
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
@@ -363,7 +329,7 @@ class _DayDetailPanel extends StatelessWidget {
       builder: (context, scrollController) => Container(
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 20)],
         ),
         padding: const EdgeInsets.all(20),
@@ -374,21 +340,16 @@ class _DayDetailPanel extends StatelessWidget {
               child: Container(
                 width: 40,
                 height: 4,
-                decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)),
               ),
             ),
             const SizedBox(height: 16),
-            Text(
-              DateFormat('EEEE, MMMM d, yyyy').format(date),
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
+            Text(DateFormat('EEEE, MMMM d, yyyy').format(date), style: theme.textTheme.titleLarge),
             const Divider(height: 24),
-
-            // Events Section
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Events / Reminders', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text('Events / Reminders', style: theme.textTheme.titleMedium),
                 TextButton.icon(
                   icon: const Icon(Icons.add, size: 16),
                   label: const Text('Add', style: TextStyle(fontSize: 13)),
@@ -405,20 +366,13 @@ class _DayDetailPanel extends StatelessWidget {
               ],
             ),
             if (events.isEmpty)
-              const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('No events scheduled.', style: TextStyle(color: Colors.grey)))
+              Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text('No events scheduled.', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)))
             else
               ...events.map((e) => Card(
                 elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: theme.colorScheme.outlineVariant),
-                ),
                 child: ListTile(
-                  leading: CircleAvatar(
-                    radius: 8,
-                    backgroundColor: categoryColor(e.category),
-                  ),
-                  title: Text(e.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  leading: CircleAvatar(radius: 8, backgroundColor: categoryColor(e.category)),
+                  title: Text(e.title, style: theme.textTheme.titleSmall),
                   subtitle: Text(
                     (e.time != null ? '${e.time!}  •  ' : '') + (e.notes.isNotEmpty ? e.notes : e.category),
                     maxLines: 1,
@@ -429,6 +383,7 @@ class _DayDetailPanel extends StatelessWidget {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.edit_rounded, size: 18),
+                        tooltip: 'Edit event',
                         onPressed: () {
                           Navigator.pop(context);
                           showModalBottomSheet(
@@ -440,22 +395,20 @@ class _DayDetailPanel extends StatelessWidget {
                         },
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                        icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                        tooltip: 'Delete event',
                         onPressed: () => provider.delete(e.id!),
                       ),
                     ],
                   ),
                 ),
               )),
-
             const SizedBox(height: 16),
             const Divider(height: 24),
-
-            // Habits Section
-            const Text('Completed Habits', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text('Completed Habits', style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             if (completedHabits.isEmpty)
-              const Text('No habits completed on this day.', style: TextStyle(color: Colors.grey))
+              Text('No habits completed on this day.', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant))
             else
               Wrap(
                 spacing: 8,
@@ -463,28 +416,20 @@ class _DayDetailPanel extends StatelessWidget {
                 children: completedHabits.map((h) => Chip(
                   avatar: const Icon(Icons.check_circle, color: Colors.green, size: 16),
                   label: Text(h.name),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 )).toList(),
               ),
-
             const SizedBox(height: 16),
             const Divider(height: 24),
-
-            // Notes Section
-            const Text('Notes Updated Today', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text('Notes Updated Today', style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             if (dayNotes.isEmpty)
-              const Text('No notes edited today.', style: TextStyle(color: Colors.grey))
+              Text('No notes edited today.', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant))
             else
               ...dayNotes.map((note) => Card(
                 elevation: 0,
                 color: Color(note.color).withValues(alpha: 0.5),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: theme.colorScheme.outlineVariant),
-                ),
                 child: ListTile(
-                  title: Text(note.title.isEmpty ? 'Untitled' : note.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  title: Text(note.title.isEmpty ? 'Untitled' : note.title, style: theme.textTheme.titleSmall),
                   subtitle: Text(plainText(note.content), maxLines: 1, overflow: TextOverflow.ellipsis),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () {
@@ -498,6 +443,11 @@ class _DayDetailPanel extends StatelessWidget {
       ),
     );
   }
+}
+
+// ponytail: top-level plain-text extraction, same approach used in NotesProvider
+String plainText(String content) {
+  return content.replaceAll(RegExp(r'<[^>]*>'), '').replaceAll(RegExp(r'\s+'), ' ').trim();
 }
 
 class EventEditor extends StatefulWidget {
@@ -523,7 +473,6 @@ class _EventEditorState extends State<EventEditor> {
     _notesCtrl = TextEditingController(text: widget.event?.notes ?? '');
     _date = widget.event?.date ?? widget.selectedDate ?? DateTime.now();
     _selectedCategory = widget.event?.category ?? 'General';
-    
     if (widget.event?.time != null) {
       final parts = widget.event!.time!.split(':');
       _time = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
@@ -550,7 +499,6 @@ class _EventEditorState extends State<EventEditor> {
   void _save() async {
     if (!mounted) return;
     if (_titleCtrl.text.isEmpty) return;
-    
     final event = CalendarEvent(
       id: widget.event?.id,
       title: _titleCtrl.text,
@@ -559,7 +507,6 @@ class _EventEditorState extends State<EventEditor> {
       category: _selectedCategory,
       notes: _notesCtrl.text,
     );
-    
     await context.read<CalendarProvider>().save(event);
     if (mounted) Navigator.pop(context);
   }
@@ -568,20 +515,19 @@ class _EventEditorState extends State<EventEditor> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final categories = ['General', 'Work', 'Personal', 'Urgent'];
-    
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Event Scheduler', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+            Text('Event Scheduler', style: theme.textTheme.titleMedium, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             TextField(
               controller: _titleCtrl,
@@ -609,9 +555,7 @@ class _EventEditorState extends State<EventEditor> {
               ],
             ),
             const SizedBox(height: 12),
-            
-            // Category Chooser
-            const Text('Category', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+            Text('Category', style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
             const SizedBox(height: 4),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -621,19 +565,16 @@ class _EventEditorState extends State<EventEditor> {
                   label: Text(cat),
                   selected: isSel,
                   onSelected: (_) => setState(() => _selectedCategory = cat),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 );
               }).toList(),
             ),
             const SizedBox(height: 16),
-
             TextField(
               controller: _notesCtrl,
               decoration: const InputDecoration(labelText: 'Notes / Description', border: OutlineInputBorder()),
               maxLines: 2,
             ),
             const SizedBox(height: 20),
-            
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),

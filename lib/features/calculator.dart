@@ -38,7 +38,7 @@ class CalculatorProvider extends ChangeNotifier {
       final db = await AppDatabase.instance.database;
       await db.delete('calculator_history');
     } catch (e) {
-      debugPrint('clearHistory failed: $e');
+      if (kDebugMode) debugPrint('clearHistory failed: $e');
     }
     await loadHistory();
   }
@@ -48,15 +48,12 @@ class CalculatorProvider extends ChangeNotifier {
       final db = await AppDatabase.instance.database;
       await db.delete('calculator_history', where: 'id = ?', whereArgs: [id]);
     } catch (e) {
-      debugPrint('deleteHistoryEntry failed: $e');
+      if (kDebugMode) debugPrint('deleteHistoryEntry failed: $e');
     }
     await loadHistory();
   }
 
-  void memoryClear() {
-    _memory = 0.0;
-    notifyListeners();
-  }
+  void memoryClear() { _memory = 0.0; notifyListeners(); }
 
   void memoryRecall() {
     _expression += _formatResult(_memory);
@@ -65,17 +62,13 @@ class CalculatorProvider extends ChangeNotifier {
 
   void memoryAdd() {
     _evaluateSilent();
-    if (_result != 'Error' && _result.isNotEmpty) {
-      _memory += double.tryParse(_result) ?? 0.0;
-    }
+    if (_result != 'Error' && _result.isNotEmpty) _memory += double.tryParse(_result) ?? 0.0;
     notifyListeners();
   }
 
   void memorySubtract() {
     _evaluateSilent();
-    if (_result != 'Error' && _result.isNotEmpty) {
-      _memory -= double.tryParse(_result) ?? 0.0;
-    }
+    if (_result != 'Error' && _result.isNotEmpty) _memory -= double.tryParse(_result) ?? 0.0;
     notifyListeners();
   }
 
@@ -84,14 +77,11 @@ class CalculatorProvider extends ChangeNotifier {
       _expression = '';
       _result = '';
     }
-    
     if (value == 'C') {
       _expression = '';
       _result = '';
     } else if (value == '⌫') {
-      if (_expression.isNotEmpty) {
-        _expression = _expression.substring(0, _expression.length - 1);
-      }
+      if (_expression.isNotEmpty) _expression = _expression.substring(0, _expression.length - 1);
     } else if (value == '=') {
       _evaluate();
       return;
@@ -144,12 +134,11 @@ class CalculatorProvider extends ChangeNotifier {
         'created_at': DateTime.now().toIso8601String(),
       });
     } catch (e) {
-      debugPrint('saveToHistory failed: $e');
+      if (kDebugMode) debugPrint('saveToHistory failed: $e');
     }
     await loadHistory();
   }
 
-  // upgraded ponytail recursive descent parser supporting generalized % operator
   int _pos = 0;
   String _input = '';
 
@@ -200,7 +189,6 @@ class CalculatorProvider extends ChangeNotifier {
   num _primary() {
     num result;
     if (_pos >= _input.length) throw const FormatException('Unexpected end');
-
     if (_input[_pos] == '(') {
       _pos++;
       result = _expr();
@@ -238,11 +226,10 @@ class CalculatorProvider extends ChangeNotifier {
       result = e;
     } else {
       final start = _pos;
-      while (_pos < _input.length && (RegExp(r'[0-9.]').hasMatch(_input[_pos]))) { _pos++; }
+      while (_pos < _input.length && RegExp(r'[0-9.]').hasMatch(_input[_pos])) { _pos++; }
       if (_pos == start) throw FormatException('Unexpected: ${_input[_pos]}');
       result = double.parse(_input.substring(start, _pos));
     }
-
     return result;
   }
 }
@@ -262,11 +249,12 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Calculator', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('Calculator', style: theme.textTheme.titleLarge),
         actions: [
           if (calc.history.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.history_rounded),
+              tooltip: 'Show history',
               onPressed: () => _showHistoryDrawer(context, calc),
             ),
         ],
@@ -274,7 +262,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Displays Area
             Expanded(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -288,7 +275,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                       reverse: true,
                       child: Text(
                         calc.expression.isEmpty ? '0' : calc.expression,
-                        style: const TextStyle(fontSize: 28, color: Colors.grey),
+                        style: theme.textTheme.titleLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -297,15 +284,13 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                       reverse: true,
                       child: Text(
                         calc.result.isEmpty ? '0' : calc.result,
-                        style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
+                        style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-
-            // Memory Buttons Row
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Row(
@@ -318,28 +303,22 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                   if (calc.memory != 0.0)
                     Text(
                       'M = ${calc.memory.toStringAsFixed(2).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '')}',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+                      style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
                     ),
                 ],
               ),
             ),
             const Divider(height: 1),
-
-            // Button Grids
             AnimatedContainer(
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeInOut,
               padding: const EdgeInsets.all(8),
-              child: _buildButtons(calc),
+              child: _StandardButtonGrid(calc: calc),
             ),
           ],
         ),
       ),
     );
-  }
-
-  Widget _buildButtons(CalculatorProvider calc) {
-    return _StandardButtonGrid(calc: calc);
   }
 
   void _showHistoryDrawer(BuildContext context, CalculatorProvider calc) {
@@ -366,10 +345,11 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                   itemBuilder: (context, index) {
                     final item = provider.history[index];
                     return ListTile(
-                      title: Text(item['expression']!, style: const TextStyle(fontSize: 14)),
-                      subtitle: Text('= ${item['result']!}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      title: Text(item['expression']!, style: theme.textTheme.bodyMedium),
+                      subtitle: Text('= ${item['result']!}', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete_outline, size: 18),
+                        tooltip: 'Delete entry',
                         onPressed: () => provider.deleteHistoryEntry(int.parse(item['id']!)),
                       ),
                       onTap: () {
@@ -391,15 +371,15 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 class _MemoryButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
-
   const _MemoryButton({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return TextButton(
       onPressed: onTap,
       style: TextButton.styleFrom(minimumSize: const Size(48, 36), padding: EdgeInsets.zero),
-      child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+      child: Text(label, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant)),
     );
   }
 }
@@ -410,16 +390,14 @@ class _StandardButtonGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final buttons = [
-      ['C', '⌫', '%', '÷'],
-      ['7', '8', '9', '×'],
-      ['4', '5', '6', '-'],
-      ['1', '2', '3', '+'],
-      ['0', '.', '=', ''],
-    ];
-
     return Column(
-      children: buttons.map((row) => Row(
+      children: [
+        ['C', '⌫', '%', '÷'],
+        ['7', '8', '9', '×'],
+        ['4', '5', '6', '-'],
+        ['1', '2', '3', '+'],
+        ['0', '.', '=', ''],
+      ].map((row) => Row(
         children: row.map((label) {
           if (label.isEmpty) return const Expanded(child: SizedBox());
           return Expanded(
@@ -441,40 +419,25 @@ class _CalcButton extends StatelessWidget {
   final VoidCallback onTap;
   final bool isOperator;
   final bool isAction;
-
-  const _CalcButton({
-    required this.label,
-    required this.onTap,
-    this.isOperator = false,
-    this.isAction = false,
-  });
+  const _CalcButton({required this.label, required this.onTap, this.isOperator = false, this.isAction = false});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
     Color getBgColor() {
-      if (isOperator) {
-        return label == '=' ? theme.colorScheme.primary : theme.colorScheme.primaryContainer;
-      }
-      if (isAction) {
-        return theme.colorScheme.errorContainer.withValues(alpha: 0.4);
-      }
+      if (isOperator) return label == '=' ? theme.colorScheme.primary : theme.colorScheme.primaryContainer;
+      if (isAction) return theme.colorScheme.errorContainer.withValues(alpha: 0.4);
       return theme.colorScheme.surfaceContainer;
     }
 
     Color getTextColor() {
-      if (isOperator) {
-        return label == '=' ? theme.colorScheme.onPrimary : theme.colorScheme.onPrimaryContainer;
-      }
-      if (isAction) {
-        return theme.colorScheme.onErrorContainer;
-      }
+      if (isOperator) return label == '=' ? theme.colorScheme.onPrimary : theme.colorScheme.onPrimaryContainer;
+      if (isAction) return theme.colorScheme.onErrorContainer;
       return theme.colorScheme.onSurface;
     }
 
     return Padding(
-      padding: const EdgeInsets.all(4.0),
+      padding: const EdgeInsets.all(4),
       child: Material(
         color: getBgColor(),
         borderRadius: BorderRadius.circular(16),
@@ -484,14 +447,7 @@ class _CalcButton extends StatelessWidget {
           child: Container(
             height: 52,
             alignment: Alignment.center,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: getTextColor(),
-              ),
-            ),
+            child: Text(label, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: getTextColor())),
           ),
         ),
       ),

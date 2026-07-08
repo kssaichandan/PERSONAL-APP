@@ -19,11 +19,9 @@ class LifeProvider extends ChangeNotifier {
     try {
       final db = await AppDatabase.instance.database;
       final maps = await db.query('settings', where: 'key = ?', whereArgs: ['dob']);
-      if (maps.isNotEmpty) {
-        _dob = DateTime.parse(maps.first['value'] as String);
-      }
+      if (maps.isNotEmpty) _dob = DateTime.parse(maps.first['value'] as String);
     } catch (e) {
-      debugPrint('loadDOB failed: $e');
+      if (kDebugMode) debugPrint('loadDOB failed: $e');
     }
     _loading = false;
     notifyListeners();
@@ -33,7 +31,6 @@ class LifeProvider extends ChangeNotifier {
     try {
       final db = await AppDatabase.instance.database;
       final val = DateFormat('yyyy-MM-dd').format(date);
-      
       final maps = await db.query('settings', where: 'key = ?', whereArgs: ['dob']);
       if (maps.isEmpty) {
         await db.insert('settings', {'key': 'dob', 'value': val});
@@ -43,7 +40,7 @@ class LifeProvider extends ChangeNotifier {
       _dob = DateTime(date.year, date.month, date.day);
       notifyListeners();
     } catch (e) {
-      debugPrint('saveDOB failed: $e');
+      if (kDebugMode) debugPrint('saveDOB failed: $e');
     }
   }
 
@@ -54,7 +51,7 @@ class LifeProvider extends ChangeNotifier {
       _dob = null;
       notifyListeners();
     } catch (e) {
-      debugPrint('resetDOB failed: $e');
+      if (kDebugMode) debugPrint('resetDOB failed: $e');
     }
   }
 }
@@ -72,7 +69,6 @@ class _LifeScreenState extends State<LifeScreen> {
   @override
   void initState() {
     super.initState();
-    // Update every 100 milliseconds for smooth millisecond ticking
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) setState(() {});
     });
@@ -89,22 +85,17 @@ class _LifeScreenState extends State<LifeScreen> {
     final theme = Theme.of(context);
     final provider = context.watch<LifeProvider>();
 
-    if (provider.loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
+    if (provider.loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
     if (provider.dob == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Life Tracker', style: TextStyle(fontWeight: FontWeight.bold))),
+        appBar: AppBar(title: Text('Life Tracker', style: theme.textTheme.titleLarge)),
         body: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                theme.colorScheme.surface,
-                theme.colorScheme.primary.withValues(alpha: 0.05),
-              ],
+              colors: [theme.colorScheme.surface, theme.colorScheme.primary.withValues(alpha: 0.05)],
             ),
           ),
           child: Padding(
@@ -123,7 +114,7 @@ class _LifeScreenState extends State<LifeScreen> {
                 const SizedBox(height: 12),
                 Text(
                   'Set your date of birth to track your time elapsed and view a live-updating life progress meter.',
-                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
+                  style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 40),
@@ -143,11 +134,9 @@ class _LifeScreenState extends State<LifeScreen> {
       );
     }
 
-    // Calculations
     final dob = provider.dob!;
     final now = DateTime.now();
     final difference = now.difference(dob);
-
     int years = now.year - dob.year;
     int months = now.month - dob.month;
     int days = now.day - dob.day;
@@ -156,18 +145,13 @@ class _LifeScreenState extends State<LifeScreen> {
       final prevMonth = DateTime(now.year, now.month, 0);
       days += prevMonth.day;
     }
-    if (months < 0) {
-      years--;
-      months += 12;
-    }
+    if (months < 0) { years--; months += 12; }
 
     final totalDays = difference.inDays;
     final totalHours = difference.inHours;
     final totalMinutes = difference.inMinutes;
     final totalSeconds = difference.inSeconds;
     final totalMillis = difference.inMilliseconds;
-
-    // Based on average life expectancy of 80 years
     const expectedYears = 80;
     const totalExpectedDays = expectedYears * 365.25;
     final lifePercentage = (totalDays / totalExpectedDays) * 100;
@@ -175,16 +159,16 @@ class _LifeScreenState extends State<LifeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Life Journey', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('Life Journey', style: theme.textTheme.titleLarge),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_backup_restore_rounded),
-            tooltip: 'Reset DOB',
+            tooltip: 'Reset date of birth',
             onPressed: () => _confirmReset(context, provider),
           ),
           IconButton(
             icon: const Icon(Icons.edit_calendar_rounded),
-            tooltip: 'Change DOB',
+            tooltip: 'Change date of birth',
             onPressed: () => _pickDate(context, provider),
           ),
         ],
@@ -194,14 +178,9 @@ class _LifeScreenState extends State<LifeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Time Elapsed Title
             Card(
               elevation: 0,
               color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-                side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.15)),
-              ),
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
@@ -214,31 +193,25 @@ class _LifeScreenState extends State<LifeScreen> {
                       textBaseline: TextBaseline.alphabetic,
                       children: [
                         Text('$years', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
-                        const Text(' yrs  ', style: TextStyle(fontSize: 16, color: Colors.grey)),
+                        Text(' yrs  ', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                         Text('$months', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
-                        const Text(' mos  ', style: TextStyle(fontSize: 16, color: Colors.grey)),
+                        Text(' mos  ', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                         Text('$days', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
-                        const Text(' days', style: TextStyle(fontSize: 16, color: Colors.grey)),
+                        Text(' days', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Born on ${DateFormat('MMMM d, yyyy').format(dob)}',
-                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     )
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 16),
-
-            // Live Life Meter
             Card(
               elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-                side: BorderSide(color: theme.colorScheme.outlineVariant),
-              ),
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
@@ -247,7 +220,7 @@ class _LifeScreenState extends State<LifeScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Life Progress Meter', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                        Text('$formattedPercentage%', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: theme.colorScheme.primary, fontFamily: 'monospace')),
+                        Text('$formattedPercentage%', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -261,9 +234,9 @@ class _LifeScreenState extends State<LifeScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Based on an average life expectancy of $expectedYears years.',
-                      style: TextStyle(fontSize: 10, color: Colors.grey),
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -271,8 +244,6 @@ class _LifeScreenState extends State<LifeScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Exact Realtime Metrics Cards Grid
             Text('REAL-TIME LIFE METRICS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1, color: theme.colorScheme.outline)),
             const SizedBox(height: 8),
             GridView.count(
@@ -283,55 +254,30 @@ class _LifeScreenState extends State<LifeScreen> {
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
               children: [
-                _MetricCard(
-                  title: 'Total Days',
-                  value: NumberFormat('#,###').format(totalDays),
-                  icon: Icons.today_rounded,
-                  color: Colors.teal,
-                ),
-                _MetricCard(
-                  title: 'Total Hours',
-                  value: NumberFormat('#,###').format(totalHours),
-                  icon: Icons.watch_later_rounded,
-                  color: Colors.blue,
-                ),
-                _MetricCard(
-                  title: 'Total Minutes',
-                  value: NumberFormat('#,###').format(totalMinutes),
-                  icon: Icons.timer_rounded,
-                  color: Colors.indigo,
-                ),
-                _MetricCard(
-                  title: 'Total Seconds',
-                  value: NumberFormat('#,###').format(totalSeconds),
-                  icon: Icons.hourglass_full_rounded,
-                  color: Colors.amber.shade800,
-                ),
+                _MetricCard(title: 'Total Days', value: NumberFormat('#,###').format(totalDays), icon: Icons.today_rounded, color: Colors.teal),
+                _MetricCard(title: 'Total Hours', value: NumberFormat('#,###').format(totalHours), icon: Icons.watch_later_rounded, color: Colors.blue),
+                _MetricCard(title: 'Total Minutes', value: NumberFormat('#,###').format(totalMinutes), icon: Icons.timer_rounded, color: Colors.indigo),
+                _MetricCard(title: 'Total Seconds', value: NumberFormat('#,###').format(totalSeconds), icon: Icons.hourglass_full_rounded, color: Colors.amber.shade800),
               ],
             ),
-
             const SizedBox(height: 16),
             Card(
               elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: theme.colorScheme.outlineVariant),
-              ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.bolt, color: Colors.purple),
-                        SizedBox(width: 8),
-                        Text('Ticking milliseconds:', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        const Icon(Icons.bolt, color: Colors.purple),
+                        const SizedBox(width: 8),
+                        const Text('Ticking milliseconds:', style: TextStyle(fontSize: 12)),
                       ],
                     ),
                     Text(
                       NumberFormat('#,###').format(totalMillis),
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, fontFamily: 'monospace', color: Colors.purple),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.purple),
                     ),
                   ],
                 ),
@@ -350,9 +296,7 @@ class _LifeScreenState extends State<LifeScreen> {
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
     );
-    if (picked != null) {
-      await provider.saveDOB(picked);
-    }
+    if (picked != null) await provider.saveDOB(picked);
   }
 
   void _confirmReset(BuildContext context, LifeProvider provider) {
@@ -381,23 +325,13 @@ class _MetricCard extends StatelessWidget {
   final String value;
   final IconData icon;
   final Color color;
-
-  const _MetricCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
+  const _MetricCard({required this.title, required this.value, required this.icon, required this.color});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: theme.colorScheme.outlineVariant),
-      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -407,14 +341,11 @@ class _MetricCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(title, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                 Icon(icon, color: color, size: 18),
               ],
             ),
-            Text(
-              value,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
-            )
+            Text(value, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
           ],
         ),
       ),
