@@ -36,34 +36,8 @@ class PersonalApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Personal App',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorSchemeSeed: Colors.deepPurple,
-          useMaterial3: true,
-          brightness: Brightness.light,
-          appBarTheme: const AppBarTheme(
-            centerTitle: true,
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-          ),
-          cardTheme: CardThemeData(
-            elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          ),
-        ),
-        darkTheme: ThemeData(
-          colorSchemeSeed: Colors.deepPurple,
-          useMaterial3: true,
-          brightness: Brightness.dark,
-          appBarTheme: const AppBarTheme(
-            centerTitle: true,
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-          ),
-          cardTheme: CardThemeData(
-            elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          ),
-        ),
+        theme: _appTheme(Brightness.light),
+        darkTheme: _appTheme(Brightness.dark),
         themeMode: ThemeMode.system,
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
@@ -73,6 +47,21 @@ class PersonalApp extends StatelessWidget {
       ),
     );
   }
+
+  ThemeData _appTheme(Brightness brightness) => ThemeData(
+    colorSchemeSeed: Colors.deepPurple,
+    useMaterial3: true,
+    brightness: brightness,
+    appBarTheme: const AppBarTheme(
+      centerTitle: true,
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+    ),
+    cardTheme: CardThemeData(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    ),
+  );
 }
 
 class MainScreen extends StatefulWidget {

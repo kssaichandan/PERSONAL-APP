@@ -73,7 +73,7 @@ class _LifeScreenState extends State<LifeScreen> {
   void initState() {
     super.initState();
     // Update every 100 milliseconds for smooth millisecond ticking
-    _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) setState(() {});
     });
   }
@@ -171,7 +171,7 @@ class _LifeScreenState extends State<LifeScreen> {
     const expectedYears = 80;
     const totalExpectedDays = expectedYears * 365.25;
     final lifePercentage = (totalDays / totalExpectedDays) * 100;
-    final formattedPercentage = lifePercentage.toStringAsFixed(7);
+    final formattedPercentage = lifePercentage.toStringAsFixed(2);
 
     return Scaffold(
       appBar: AppBar(

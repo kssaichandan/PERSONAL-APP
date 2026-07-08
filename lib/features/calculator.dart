@@ -243,12 +243,6 @@ class CalculatorProvider extends ChangeNotifier {
       result = double.parse(_input.substring(start, _pos));
     }
 
-    // Generalized % postfix operator support (e.g. (2+3)% -> 0.05)
-    while (_pos < _input.length && _input[_pos] == '%') {
-      _pos++;
-      result /= 100;
-    }
-
     return result;
   }
 }

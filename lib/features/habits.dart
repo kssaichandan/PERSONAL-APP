@@ -32,13 +32,6 @@ class Habit {
     createdAt: DateTime.parse(m['created_at']),
   );
 
-  Habit copyWith({String? name, String? icon, String? reminderTime}) => Habit(
-    id: id,
-    name: name ?? this.name,
-    icon: icon ?? this.icon,
-    reminderTime: reminderTime ?? this.reminderTime,
-    createdAt: createdAt,
-  );
 }
 
 class HabitsProvider extends ChangeNotifier {
@@ -132,7 +125,7 @@ class HabitsProvider extends ChangeNotifier {
     try {
       final db = await AppDatabase.instance.database;
       final current = _habits.firstWhere((h) => h.id == habitId);
-      final updated = current.copyWith(reminderTime: reminderTime);
+      final updated = Habit(id: current.id, name: current.name, icon: current.icon, reminderTime: reminderTime, createdAt: current.createdAt);
       await db.update('habits', updated.toMap(), where: 'id = ?', whereArgs: [habitId]);
       
       await notifications.cancel(1000 + habitId);
@@ -185,52 +178,34 @@ class HabitsProvider extends ChangeNotifier {
     final dates = _habitLogsByHabitId[habitId] ?? {};
     if (dates.isEmpty) return {'current': 0, 'max': 0};
 
-    final sortedDates = dates.map((d) => DateTime.parse(d)).toList()..sort();
-    
-    int maxStreak = 0;
-    int currentStreak = 0;
-    int tempStreak = 0;
-
-    DateTime? prev;
-    for (final date in sortedDates) {
-      if (prev == null) {
-        tempStreak = 1;
-      } else {
-        final diff = date.difference(prev).inDays;
-        if (diff == 1) {
-          tempStreak++;
-        } else if (diff > 1) {
-          if (tempStreak > maxStreak) maxStreak = tempStreak;
-          tempStreak = 1;
-        }
-      }
-      prev = date;
-    }
-    if (tempStreak > maxStreak) maxStreak = tempStreak;
-
+    final sorted = dates.map((d) => DateTime.parse(d)).toList()..sort();
     final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final yesterday = today.subtract(const Duration(days: 1));
-    final formattedToday = DateFormat('yyyy-MM-dd').format(today);
-    final formattedYesterday = DateFormat('yyyy-MM-dd').format(yesterday);
 
-    if (dates.contains(formattedToday)) {
-      int streak = 0;
-      DateTime d = today;
-      while (dates.contains(DateFormat('yyyy-MM-dd').format(d))) {
-        streak++;
-        d = d.subtract(const Duration(days: 1));
+    int maxStreak = 0;
+    int temp = 1;
+    for (int i = 1; i < sorted.length; i++) {
+      if (sorted[i].difference(sorted[i - 1]).inDays == 1) {
+        temp++;
+      } else {
+        if (temp > maxStreak) maxStreak = temp;
+        temp = 1;
       }
-      currentStreak = streak;
-    } else if (dates.contains(formattedYesterday)) {
-      int streak = 0;
-      DateTime d = yesterday;
-      while (dates.contains(DateFormat('yyyy-MM-dd').format(d))) {
-        streak++;
-        d = d.subtract(const Duration(days: 1));
+    }
+    if (temp > maxStreak) maxStreak = temp;
+
+    // ponytail: reverse scan for current streak from most recent log
+    final last = sorted.last;
+    int currentStreak = 0;
+    if (last == today || last == yesterday) {
+      currentStreak = 1;
+      for (int i = sorted.length - 2; i >= 0; i--) {
+        if (sorted[i + 1].difference(sorted[i]).inDays == 1) {
+          currentStreak++;
+        } else {
+          break;
+        }
       }
-      currentStreak = streak;
-    } else {
-      currentStreak = 0;
     }
 
     return {'current': currentStreak, 'max': maxStreak};

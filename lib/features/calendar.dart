@@ -186,6 +186,15 @@ class CalendarScreen extends StatelessWidget {
   }
 }
 
+Color categoryColor(String cat) {
+  switch (cat) {
+    case 'Work': return Colors.blue;
+    case 'Personal': return Colors.green;
+    case 'Urgent': return Colors.red;
+    default: return Colors.orange;
+  }
+}
+
 class _MonthHeader extends StatelessWidget {
   final CalendarProvider provider;
   const _MonthHeader({required this.provider});
@@ -225,15 +234,6 @@ class _DayNames extends StatelessWidget {
 class _MonthGrid extends StatelessWidget {
   final CalendarProvider provider;
   const _MonthGrid({required this.provider});
-
-  Color _getCategoryColor(String cat) {
-    switch (cat) {
-      case 'Work': return Colors.blue;
-      case 'Personal': return Colors.green;
-      case 'Urgent': return Colors.red;
-      default: return Colors.orange;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -301,7 +301,7 @@ class _MonthGrid extends StatelessWidget {
                         height: 4,
                         margin: const EdgeInsets.symmetric(horizontal: 0.5),
                         decoration: BoxDecoration(
-                          color: _getCategoryColor(e.category),
+                          color: categoryColor(e.category),
                           shape: BoxShape.circle,
                         ),
                       )).toList(),
@@ -336,15 +336,6 @@ class _DayDetailPanel extends StatelessWidget {
   final CalendarProvider provider;
 
   const _DayDetailPanel({required this.date, required this.provider});
-
-  Color _getCategoryColor(String cat) {
-    switch (cat) {
-      case 'Work': return Colors.blue;
-      case 'Personal': return Colors.green;
-      case 'Urgent': return Colors.red;
-      default: return Colors.orange;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -425,7 +416,7 @@ class _DayDetailPanel extends StatelessWidget {
                 child: ListTile(
                   leading: CircleAvatar(
                     radius: 8,
-                    backgroundColor: _getCategoryColor(e.category),
+                    backgroundColor: categoryColor(e.category),
                   ),
                   title: Text(e.title, style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text(

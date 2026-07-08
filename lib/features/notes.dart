@@ -46,23 +46,6 @@ class Note {
     updatedAt: DateTime.parse(m['updated_at']),
   );
 
-  Note copyWith({
-    String? title,
-    String? content,
-    int? color,
-    bool? pinned,
-    String? tags,
-    DateTime? updatedAt,
-  }) => Note(
-    id: id,
-    title: title ?? this.title,
-    content: content ?? this.content,
-    color: color ?? this.color,
-    pinned: pinned ?? this.pinned,
-    tags: tags ?? this.tags,
-    createdAt: createdAt,
-    updatedAt: updatedAt ?? this.updatedAt,
-  );
 }
 
 class NotesProvider extends ChangeNotifier {
@@ -164,7 +147,11 @@ class NotesProvider extends ChangeNotifier {
   }
 
   Future<void> togglePin(Note note) async {
-    await save(note.copyWith(pinned: !note.pinned));
+    await save(Note(
+      id: note.id, title: note.title, content: note.content,
+      color: note.color, pinned: !note.pinned, tags: note.tags,
+      createdAt: note.createdAt, updatedAt: DateTime.now(),
+    ));
   }
 }
 
