@@ -261,8 +261,6 @@ class CalculatorScreen extends StatefulWidget {
 }
 
 class _CalculatorScreenState extends State<CalculatorScreen> {
-  bool _isScientific = false;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -272,11 +270,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       appBar: AppBar(
         title: const Text('Calculator', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
-          IconButton(
-            icon: Icon(_isScientific ? Icons.science_rounded : Icons.science_outlined, color: _isScientific ? theme.colorScheme.primary : null),
-            tooltip: 'Scientific Mode',
-            onPressed: () => setState(() => _isScientific = !_isScientific),
-          ),
           if (calc.history.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.history_rounded),
@@ -352,9 +345,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 
   Widget _buildButtons(CalculatorProvider calc) {
-    if (_isScientific) {
-      return _ScientificButtonGrid(calc: calc);
-    }
     return _StandardButtonGrid(calc: calc);
   }
 
@@ -452,56 +442,17 @@ class _StandardButtonGrid extends StatelessWidget {
   }
 }
 
-class _ScientificButtonGrid extends StatelessWidget {
-  final CalculatorProvider calc;
-  const _ScientificButtonGrid({required this.calc});
-
-  @override
-  Widget build(BuildContext context) {
-    final buttons = [
-      ['sin(', 'cos(', 'tan(', 'C', '⌫'],
-      ['sqrt(', 'log(', 'ln(', '(', ')'],
-      ['π', 'e', '^', '%', '÷'],
-      ['7', '8', '9', '×', '-'],
-      ['4', '5', '6', '+', '='],
-      ['1', '2', '3', '0', '.'],
-    ];
-
-    return Column(
-      children: buttons.map((row) => Row(
-        children: row.map((label) {
-          final isOp = ['÷', '×', '-', '+', '=', '^'].contains(label);
-          final isAction = ['C', '⌫'].contains(label);
-          final isScientific = ['sin(', 'cos(', 'tan(', 'sqrt(', 'log(', 'ln(', 'π', 'e', '(', ')', '%'].contains(label);
-
-          return Expanded(
-            child: _CalcButton(
-              label: label,
-              onTap: () => calc.input(label),
-              isOperator: isOp,
-              isAction: isAction,
-              isScientific: isScientific,
-            ),
-          );
-        }).toList(),
-      )).toList(),
-    );
-  }
-}
-
 class _CalcButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final bool isOperator;
   final bool isAction;
-  final bool isScientific;
 
   const _CalcButton({
     required this.label,
     required this.onTap,
     this.isOperator = false,
     this.isAction = false,
-    this.isScientific = false,
   });
 
   @override
@@ -514,9 +465,6 @@ class _CalcButton extends StatelessWidget {
       }
       if (isAction) {
         return theme.colorScheme.errorContainer.withValues(alpha: 0.4);
-      }
-      if (isScientific) {
-        return theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.8);
       }
       return theme.colorScheme.surfaceContainer;
     }
@@ -544,8 +492,8 @@ class _CalcButton extends StatelessWidget {
             alignment: Alignment.center,
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: isScientific && label.length > 2 ? 14 : 20,
+              style: const TextStyle(
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: getTextColor(),
               ),
