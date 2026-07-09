@@ -47,7 +47,6 @@ class LifeProvider extends ChangeNotifier {
       _dob = null;
       notifyListeners();
     } catch (_) {}
-    }
   }
 }
 

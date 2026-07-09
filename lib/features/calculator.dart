@@ -49,7 +49,7 @@ class CalculatorProvider extends ChangeNotifier {
     await loadHistory();
   }
 
-  Future<void> memoryClear() { _memory = 0.0; notifyListeners(); }
+  void memoryClear() { _memory = 0.0; notifyListeners(); }
 
   void memoryRecall() {
     _expression += _formatResult(_memory);
@@ -130,7 +130,6 @@ class CalculatorProvider extends ChangeNotifier {
         'created_at': DateTime.now().toIso8601String(),
       });
     } catch (_) {}
-    }
     await loadHistory();
   }
 
