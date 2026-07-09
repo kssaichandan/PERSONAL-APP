@@ -20,9 +20,7 @@ class LifeProvider extends ChangeNotifier {
       final db = await AppDatabase.instance.database;
       final maps = await db.query('settings', where: 'key = ?', whereArgs: ['dob']);
       if (maps.isNotEmpty) _dob = DateTime.parse(maps.first['value'] as String);
-    } catch (e) {
-      if (kDebugMode) debugPrint('loadDOB failed: $e');
-    }
+    } catch (_) {}
     _loading = false;
     notifyListeners();
   }
@@ -39,9 +37,7 @@ class LifeProvider extends ChangeNotifier {
       }
       _dob = DateTime(date.year, date.month, date.day);
       notifyListeners();
-    } catch (e) {
-      if (kDebugMode) debugPrint('saveDOB failed: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> resetDOB() async {
@@ -50,8 +46,7 @@ class LifeProvider extends ChangeNotifier {
       await db.delete('settings', where: 'key = ?', whereArgs: ['dob']);
       _dob = null;
       notifyListeners();
-    } catch (e) {
-      if (kDebugMode) debugPrint('resetDOB failed: $e');
+    } catch (_) {}
     }
   }
 }

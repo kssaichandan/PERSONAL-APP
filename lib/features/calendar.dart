@@ -5,9 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:timezone/timezone.dart' as tz;
 import '../database.dart';
-final notifications = FlutterLocalNotificationsPlugin();
 import 'habits.dart';
 import 'notes.dart';
+final notifications = FlutterLocalNotificationsPlugin();
 
 class CalendarEvent {
   final int? id;
@@ -132,9 +132,7 @@ class CalendarProvider extends ChangeNotifier {
       const NotificationDetails(android: AndroidNotificationDetails('events', 'Event Reminders')),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-    ).catchError((e) {
-      if (kDebugMode) debugPrint('scheduleNotification failed: $e');
-    }));
+    ).catchError((_) {}));
   }
 }
 

@@ -37,9 +37,7 @@ class CalculatorProvider extends ChangeNotifier {
     try {
       final db = await AppDatabase.instance.database;
       await db.delete('calculator_history');
-    } catch (e) {
-      if (kDebugMode) debugPrint('clearHistory failed: $e');
-    }
+    } catch (_) {}
     await loadHistory();
   }
 
@@ -47,13 +45,11 @@ class CalculatorProvider extends ChangeNotifier {
     try {
       final db = await AppDatabase.instance.database;
       await db.delete('calculator_history', where: 'id = ?', whereArgs: [id]);
-    } catch (e) {
-      if (kDebugMode) debugPrint('deleteHistoryEntry failed: $e');
-    }
+    } catch (_) {}
     await loadHistory();
   }
 
-  void memoryClear() { _memory = 0.0; notifyListeners(); }
+  Future<void> memoryClear() { _memory = 0.0; notifyListeners(); }
 
   void memoryRecall() {
     _expression += _formatResult(_memory);
@@ -113,7 +109,7 @@ class CalculatorProvider extends ChangeNotifier {
       _result = _formatResult(parsed);
       _saveToHistory(_expression, _result);
       _expression = _result;
-    } catch (e) {
+    } catch (_) {
       _result = 'Error';
     }
     notifyListeners();
@@ -133,8 +129,7 @@ class CalculatorProvider extends ChangeNotifier {
         'result': res,
         'created_at': DateTime.now().toIso8601String(),
       });
-    } catch (e) {
-      if (kDebugMode) debugPrint('saveToHistory failed: $e');
+    } catch (_) {}
     }
     await loadHistory();
   }
@@ -326,7 +321,9 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => Consumer<CalculatorProvider>(
-        builder: (context, provider, _) => Container(
+        builder: (context, provider, _) {
+          final theme = Theme.of(context);
+          return Container(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -361,8 +358,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 ),
               ),
             ],
-          ),
-        ),
+          ));
+        },
       ),
     );
   }

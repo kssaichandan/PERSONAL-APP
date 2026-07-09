@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-final notifications = FlutterLocalNotificationsPlugin();
 import 'package:provider/provider.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'database.dart';
@@ -11,7 +10,7 @@ import 'features/calculator.dart';
 import 'features/habits.dart';
 import 'features/life.dart';
 
-const _spacing = [0.0, 4, 8, 12, 16, 24, 32, 48];
+final notifications = FlutterLocalNotificationsPlugin();
 const _radius = [0.0, 8, 12, 16, 24];
 
 void main() async {
@@ -62,7 +61,7 @@ class PersonalApp extends StatelessWidget {
     ),
     cardTheme: CardThemeData(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_radius[4])),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_radius[4].toDouble())),
     ),
     textTheme: const TextTheme(
       titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

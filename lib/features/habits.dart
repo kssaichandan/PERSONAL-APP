@@ -85,9 +85,7 @@ class HabitsProvider extends ChangeNotifier {
         _habitLogsByHabitId.putIfAbsent(habitId, () => {}).add(dateStr);
       }
       notifyListeners();
-    } catch (e) {
-      if (kDebugMode) debugPrint('toggleLog failed: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> saveHabit(String name, String icon, String? reminderTime) async {
@@ -97,9 +95,7 @@ class HabitsProvider extends ChangeNotifier {
       final id = await db.insert('habits', habit.toMap()..remove('id'));
       final savedHabit = Habit(id: id, name: name, icon: icon, reminderTime: reminderTime, createdAt: habit.createdAt);
       if (reminderTime != null) _scheduleHabitNotification(savedHabit);
-    } catch (e) {
-      if (kDebugMode) debugPrint('saveHabit failed: $e');
-    }
+    } catch (_) {}
     await load();
   }
 
@@ -108,9 +104,7 @@ class HabitsProvider extends ChangeNotifier {
       final db = await AppDatabase.instance.database;
       await db.delete('habits', where: 'id = ?', whereArgs: [id]);
       await notifications.cancel(1000 + id);
-    } catch (e) {
-      if (kDebugMode) debugPrint('deleteHabit failed: $e');
-    }
+    } catch (_) {}
     await load();
   }
 
@@ -122,9 +116,7 @@ class HabitsProvider extends ChangeNotifier {
       await db.update('habits', updated.toMap(), where: 'id = ?', whereArgs: [habitId]);
       await notifications.cancel(1000 + habitId);
       if (reminderTime != null) _scheduleHabitNotification(updated);
-    } catch (e) {
-      if (kDebugMode) debugPrint('updateReminder failed: $e');
-    }
+    } catch (_) {}
     await load();
   }
 
@@ -144,9 +136,7 @@ class HabitsProvider extends ChangeNotifier {
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-    ).catchError((e) {
-      if (kDebugMode) debugPrint('scheduleHabitNotification failed: $e');
-    }));
+    ).catchError((_) {}));
   }
 
   tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
