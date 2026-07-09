@@ -233,7 +233,7 @@ class _MonthGrid extends StatelessWidget {
     final startWeekday = first.weekday;
     final today = DateTime.now();
     final cells = <Widget>[];
-    for (int i = 1; i < startWeekday; i++) cells.add(const SizedBox());
+    for (int i = 1; i < startWeekday; i++) { cells.add(const SizedBox()); }
     for (int day = 1; day <= daysInMonth; day++) {
       final date = DateTime(provider.currentMonth.year, provider.currentMonth.month, day);
       final events = provider.eventsForDay(date);

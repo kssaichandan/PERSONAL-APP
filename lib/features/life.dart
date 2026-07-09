@@ -262,16 +262,16 @@ class _LifeScreenState extends State<LifeScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
+                    const Row(
                       children: [
-                        const Icon(Icons.bolt, color: Colors.purple),
-                        const SizedBox(width: 8),
-                        const Text('Ticking milliseconds:', style: TextStyle(fontSize: 12)),
+                        Icon(Icons.bolt, color: Colors.purple),
+                        SizedBox(width: 8),
+                        Text('Ticking milliseconds:', style: TextStyle(fontSize: 12)),
                       ],
                     ),
                     Text(
                       NumberFormat('#,###').format(totalMillis),
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.purple),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.purple),
                     ),
                   ],
                 ),

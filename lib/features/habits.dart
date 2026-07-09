@@ -579,7 +579,7 @@ class _MonthlyLogCalendar extends StatelessWidget {
     final currentStreak = streakStats['current'] ?? 0;
     final maxStreak = streakStats['max'] ?? 0;
     final cells = <Widget>[];
-    for (int i = 1; i < startWeekday; i++) cells.add(const SizedBox());
+    for (int i = 1; i < startWeekday; i++) { cells.add(const SizedBox()); }
     for (int day = 1; day <= totalDays; day++) {
       final date = DateTime(currentMonth.year, currentMonth.month, day);
       final isLogged = provider.isCompleted(habit.id!, date);
