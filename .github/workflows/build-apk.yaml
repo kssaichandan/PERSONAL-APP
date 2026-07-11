@@ -48,7 +48,7 @@ jobs:
         with:
           channel: stable
       - name: Check outdated dependencies
-        run: dart pub outdated --no-dev-dependencies || true
+        run: dart pub outdated --no-dev-dependencies > /dev/null 2>&1 || true
       - name: Run OSV Scanner
         uses: google/osv-scanner@v1
         with:
@@ -68,33 +68,6 @@ jobs:
         run: flutter pub get
       - name: Create Android project
         run: flutter create . --project-name personal_app
-      - name: Inject Android Permissions
-        run: |
-          manifest_path="android/app/src/main/AndroidManifest.xml"
-          if [ -f "$manifest_path" ]; then
-            sed -i '/<manifest/a\    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>' "$manifest_path"
-            echo "Successfully injected permissions into $manifest_path"
-          else
-            echo "Error: Manifest not found at $manifest_path"
-          fi
-      - name: Enable core library desugaring
-        run: |
-          f="android/app/build.gradle.kts"; [ -f "$f" ] || f="android/app/build.gradle"
-          if echo "$f" | grep -q '\.kts$'; then
-            sed -i '/compileOptions {/a\            isCoreLibraryDesugaringEnabled = true' "$f"
-            if grep -q 'dependencies' "$f"; then
-              sed -i '/dependencies {/a\    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")' "$f"
-            else
-              echo -e '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}' >> "$f"
-            fi
-          else
-            sed -i '/compileOptions {/a\        coreLibraryDesugaringEnabled true' "$f"
-            if grep -q 'dependencies' "$f"; then
-              sed -i '/dependencies {/a\    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"' "$f"
-            else
-              echo -e '\ndependencies {\n    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"\n}' >> "$f"
-            fi
-          fi
       - name: Build Debug APK
         run: flutter build apk --debug
       - name: Upload Debug APK
@@ -102,7 +75,6 @@ jobs:
         with:
           name: app-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
-
       - name: Build Release APK
         run: flutter build apk --release
       - name: Upload Release APK
@@ -110,7 +82,6 @@ jobs:
         with:
           name: app-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-
       - name: Build App Bundle
         run: flutter build appbundle --release
       - name: Upload App Bundle
