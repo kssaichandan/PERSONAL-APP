@@ -5,7 +5,9 @@ build/
 *.iml
 .idea/
 .vscode/
-*.lock
+Podfile.lock
+package-lock.json
+yarn.lock
 
 # Android
 local.properties

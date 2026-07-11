@@ -829,7 +829,7 @@ class _EventEditorState extends State<EventEditor> {
             Text('Repeat', style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
             const SizedBox(height: 4),
             DropdownButtonFormField<String>(
-              value: _recurrence,
+              initialValue: _recurrence,
               items: const [
                 DropdownMenuItem(value: 'none', child: Text('Does not repeat')),
                 DropdownMenuItem(value: 'daily', child: Text('Daily')),

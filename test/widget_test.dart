@@ -4,15 +4,15 @@ import 'package:provider/provider.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import '../lib/main.dart';
-import '../lib/features/notes.dart';
-import '../lib/features/habits.dart';
-import '../lib/features/calendar.dart';
-import '../lib/features/calculator.dart';
-import '../lib/features/life.dart';
-import '../lib/features/settings_provider.dart';
-import '../lib/services/notification_service.dart';
-import '../lib/database.dart';
+import 'package:personal_app/main.dart';
+import 'package:personal_app/features/notes.dart';
+import 'package:personal_app/features/habits.dart';
+import 'package:personal_app/features/calendar.dart';
+import 'package:personal_app/features/calculator.dart';
+import 'package:personal_app/features/life.dart';
+import 'package:personal_app/features/settings_provider.dart';
+import 'package:personal_app/services/notification_service.dart';
+import 'package:personal_app/database.dart';
 import 'package:sqflite_sqlcipher/sqflite.dart' as sqlcipher;
 
 class MockNotificationService extends Mock implements NotificationService {}

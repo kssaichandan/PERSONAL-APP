@@ -33,7 +33,7 @@ class SettingsProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
 
       _themeMode = ThemeMode.values.byName(prefs.getString('theme_mode') ?? 'system');
-      final colorSeedValue = prefs.getInt('color_seed') ?? Colors.deepPurple.value;
+      final colorSeedValue = prefs.getInt('color_seed') ?? Colors.deepPurple.toARGB32();
       _colorSeed = Color(colorSeedValue);
       _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
       _habitRemindersEnabled = prefs.getBool('habit_reminders_enabled') ?? true;
@@ -64,7 +64,7 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('color_seed', color.value);
+      await prefs.setInt('color_seed', color.toARGB32());
     } catch (e) {
       debugLog('Failed to save color seed: $e');
     }

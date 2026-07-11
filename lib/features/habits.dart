@@ -379,7 +379,11 @@ class _HabitsScreenState extends State<HabitsScreen> {
                       TextButton.icon(
                         icon: const Icon(Icons.select_all_rounded),
                         label: const Text('Select All'),
-                        onPressed: () => provider.habits.forEach((h) => provider.selectedHabits.add(h.id!)),
+                        onPressed: () {
+                          for (final h in provider.habits) {
+                            provider.selectedHabits.add(h.id!);
+                          }
+                        },
                       ),
                       TextButton.icon(
                         icon: const Icon(Icons.clear_rounded),
@@ -402,7 +406,10 @@ class _HabitsScreenState extends State<HabitsScreen> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: provider.habits.length,
-                  onReorder: (oldIndex, newIndex) => provider.reorderHabits(oldIndex, newIndex),
+                  onReorderItem: (Object oldItem, int newIndex) {
+                    final int oldIndex = provider.habits.indexOf(oldItem as Habit);
+                    provider.reorderHabits(oldIndex, newIndex);
+                  },
                   itemBuilder: (context, index) {
                     final h = provider.habits[index];
                     final isSel = h.id == _selectedHabit?.id;
@@ -640,7 +647,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
       initial = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
     }
     final picked = await showTimePicker(context: context, initialTime: initial ?? now);
-    if (picked != null) {
+    if (picked != null && context.mounted) {
       final formatted = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
       await provider.updateReminder(habit.id!, formatted, context);
     }
