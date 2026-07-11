@@ -4,7 +4,6 @@ import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'dart:io';
 import 'package:intl/intl.dart';
 
 import '../database.dart';
@@ -265,9 +264,11 @@ class _DataSection extends StatelessWidget {
 
       final jsonString = const JsonEncoder.withIndent('  ').convert(exportData);
       
-      await Share.share(
-        jsonString,
-        subject: 'Personal App Backup - ${DateFormat('yyyy-MM-dd').format(DateTime.now())}',
+      await SharePlus.instance.share(
+        ShareParams(
+          text: jsonString,
+          subject: 'Personal App Backup - ${DateFormat('yyyy-MM-dd').format(DateTime.now())}',
+        ),
       );
       
       if (context.mounted) {
@@ -291,9 +292,7 @@ class _DataSection extends StatelessWidget {
       if (result == null || result.files.isEmpty) return;
       
       final file = result.files.first;
-      final content = file.bytes != null 
-          ? utf8.decode(file.bytes!)
-          : await File(file.path!).readAsString();
+      final content = await file.readAsBytes().then(utf8.decode);
       
       final data = jsonDecode(content) as Map<String, dynamic>;
       
