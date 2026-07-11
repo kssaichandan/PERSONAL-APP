@@ -66,18 +66,6 @@ jobs:
           cache: true
       - name: Install dependencies
         run: flutter pub get
-      - name: Create Android project
-        run: flutter create . --project-name personal_app
-      - name: Fix Android SDK and NDK versions
-        run: |
-          f="android/app/build.gradle.kts"; [ -f "$f" ] || f="android/app/build.gradle"
-          if echo "$f" | grep -q '\.kts$'; then
-            sed -i 's/compileSdk = .*/compileSdk = 36/' "$f"
-            sed -i 's/ndkVersion = .*/ndkVersion = "28.2.13676358"/' "$f"
-          else
-            sed -i 's/compileSdk .*/compileSdk 36/' "$f"
-            sed -i 's/ndkVersion .*/ndkVersion "28.2.13676358"/' "$f"
-          fi
       - name: Build Debug APK
         run: flutter build apk --debug
       - name: Upload Debug APK
