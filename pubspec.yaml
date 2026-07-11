@@ -25,7 +25,6 @@ dependencies:
   get_it: ^8.0.0
   workmanager: ^0.5.2
   local_auth: ^2.3.0
-  local_auth: ^2.3.0
   flutter_secure_storage: ^9.2.2
   workmanager: ^0.5.2
   get_it: ^8.0.0
