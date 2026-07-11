@@ -13,7 +13,6 @@ void callbackDispatcher() {
 Future<void> setupWorkmanager() async {
   await Workmanager().initialize(
     callbackDispatcher,
-    isInDebugMode: false,
   );
   
   await Workmanager().registerPeriodicTask(
