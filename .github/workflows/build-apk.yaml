@@ -22,6 +22,14 @@ jobs:
         run: flutter analyze
       - name: Run tests with coverage
         run: flutter test --coverage
+      - name: Check coverage threshold
+        run: |
+          COVERAGE=$(lcov --summary coverage/lcov.info 2>&1 | grep "lines" | grep -oP '[\d.]+(?=%)')
+          echo "Line coverage: $COVERAGE%"
+          if [ $(echo "$COVERAGE < 80" | bc -l) -eq 1 ]; then
+            echo "Coverage $COVERAGE% is below 80% threshold"
+            exit 1
+          fi
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:

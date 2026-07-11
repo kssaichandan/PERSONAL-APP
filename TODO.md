@@ -10,16 +10,16 @@ Generated from full codebase audit (2026-07-10). All issues categorized by sever
 - [x] Create `test/` directory structure
 - [x] Write unit tests for all Providers (`NotesProvider`, `HabitsProvider`, `CalendarProvider`, `CalculatorProvider`, `LifeProvider`)
 - [x] Write widget tests for each screen (`NotesScreen`, `HabitsScreen`, `CalendarScreen`, `CalculatorScreen`, `LifeScreen`)
-- [ ] Add integration test for critical flows (create note → edit → delete, add habit → toggle → streak, create event → notify)
-- [ ] Add `flutter test` step to CI workflow
+- [x] Add integration test for critical flows (create note → edit → delete, add habit → toggle → streak, create event → notify)
+- [x] Add `flutter test` step to CI workflow
 
 ### C2: No Native Config — Can't Build Locally
-- [ ] Run `flutter create .` locally to generate `android/` and `ios/` directories
-- [ ] Commit generated native folders to git
-- [ ] Configure Android `minSdkVersion`, `targetSdkVersion`, `compileSdkVersion` in `android/app/build.gradle.kts`
-- [ ] Configure iOS deployment target in `ios/Runner.xcodeproj` / `Podfile`
-- [ ] Add app icons, launch screens, splash screen config
-- [ ] Verify local debug build works: `flutter run`
+- [x] Run `flutter create .` locally to generate `android/` and `ios/` directories
+- [x] Commit generated native folders to git
+- [x] Configure Android `minSdkVersion`, `targetSdkVersion`, `compileSdkVersion` in `android/app/build.gradle.kts`
+- [x] Configure iOS deployment target in `ios/Runner.xcodeproj` / `Podfile`
+- [x] Add app icons, launch screens, splash screen config
+- [x] Verify local debug build works: `flutter run` (requires Windows Developer Mode)
 
 ### C3: Silent Error Swallowing in Production
 - [x] `habits.dart:88` — `toggleLog` catch block: show SnackBar on failure
@@ -40,9 +40,9 @@ Generated from full codebase audit (2026-07-10). All issues categorized by sever
 ### C5: Missing Runtime Notification Permission (Android 13+)
 - [x] Add `permission_handler` dependency
 - [x] On app start (`main.dart`), request `Permission.notification` if not granted
-- [ ] Show rationale dialog before requesting
-- [ ] Handle permanent denial (open app settings)
-- [ ] Test on Android 13+ emulator/device
+- [x] Show rationale dialog before requesting
+- [x] Handle permanent denial (open app settings)
+- [x] Test on Android 13+ emulator/device
 
 ---
 
@@ -70,7 +70,7 @@ Generated from full codebase audit (2026-07-10). All issues categorized by sever
   - [x] **Life Tracker**: Life expectancy input (default 80), date format
   - [x] **Calculator**: Scientific mode toggle, decimal places
   - [x] **About**: Version, license, GitHub link
-- [ ] Persist settings in `settings` table (key-value)
+- [x] Persist settings in SharedPreferences (`settings_provider.dart`)
 
 ### H4: No Data Export/Import/Backup
 - [x] Add export functionality in settings (JSON with share_plus)
@@ -85,7 +85,7 @@ Generated from full codebase audit (2026-07-10). All issues categorized by sever
 - [x] Update `CalendarEvent` model and `toMap/fromMap`
 - [x] Add recurrence selector in `EventEditor` (dropdown)
 - [x] Modify `eventsForDay` to expand recurring events
-- [ ] Handle notification scheduling for recurring events
+- [x] Handle notification scheduling for recurring events (daily/weekly/monthly via matchDateTimeComponents)
 
 ### H6: No Event Search/Filter in Calendar
 - [x] Add search bar in CalendarScreen AppBar
@@ -166,9 +166,9 @@ Generated from full codebase audit (2026-07-10). All issues categorized by sever
 - [x] Define breakpoints: phone (<600), tablet (600-1200), desktop (>1200)
 
 ### M7: Portrait/Landscape Not Tested
-- [ ] Test all screens in landscape mode
-- [ ] Add `MediaQuery` checks for orientation-specific layouts where needed
-- [ ] Ensure bottom nav doesn't overlap content in landscape
+- [x] Test all screens in landscape mode
+- [x] Add `MediaQuery` checks for orientation-specific layouts where needed
+- [x] Ensure bottom nav doesn't overlap content in landscape
 
 ### M8: Long Text No Tooltip in Notes Grid
 - [x] Add `Tooltip(message: note.title)` wrapping title `Text`
@@ -201,7 +201,7 @@ Generated from full codebase audit (2026-07-10). All issues categorized by sever
 - [x] Invalidate cache on save/delete
 
 ### L6: Calculator `%` Only Post-Number
-- [ ] Update parser `_factor()` to handle `%` after `)` or function calls
+- [x] Update parser `_factor()` to handle `%` after `)` or function calls
 - [x] Treat `%` as postfix operator with precedence like `^`
 - [x] Test: `(1+2)%`, `sin(30)%`, `50%` all work
 
@@ -262,14 +262,15 @@ Generated from full codebase audit (2026-07-10). All issues categorized by sever
 ## 🔐 Security & Privacy
 
 ### S1: No Database Encryption
-- [ ] Evaluate: Add `sqflite_sqlcipher` for encrypted DB
-- [x] Or use `flutter_secure_storage` for sensitive fields only (DOB, maybe)
-- [x] Document decision in `SECURITY.md`
+- [x] Add `sqflite_sqlcipher` for encrypted DB (AES-256-CBC)
+- [x] Migrate plaintext DB to encrypted on first launch (migration version 5)
+- [x] Key stored in `flutter_secure_storage` (platform secure enclave)
+- [x] Document migration in `SECURITY.md`
 
 ### S2: No Local Auth for Sensitive Data
 - [x] Add `local_auth` dependency
 - [x] Require biometric/PIN to open Life screen (optional, in Settings)
-- [ ] Use secure storage for any tokens/secrets
+- [x] Use secure storage for encryption key (SQLCipher key via flutter_secure_storage)
 
 ### S3: Notification Permission Not Requested at Runtime
 - [x] Covered in C5
@@ -286,13 +287,13 @@ Generated from full codebase audit (2026-07-10). All issues categorized by sever
 - [x] Upload coverage report as artifact
 
 ### CI2: No Code Coverage Enforcement
-- [ ] Add `very_good_analysis` or `coverage` badge
-- [ ] Set minimum coverage threshold (e.g., 80%)
+- [x] Add `coverage` check in CI workflow
+- [x] Set minimum coverage threshold (80%)
 
 ### CI3: Only Debug APK Built
 - [x] Add `flutter build apk --release` and `flutter build appbundle` steps
 - [x] Upload both as separate artifacts
-- [ ] Sign release builds (configure keystore in GitHub Secrets)
+- [x] Sign release builds (configure keystore in GitHub Secrets)
 
 ### CI4: Lint Rules Not Strict Enough
 - [x] Covered in L8
@@ -306,37 +307,37 @@ Generated from full codebase audit (2026-07-10). All issues categorized by sever
 ## 📋 Phase-Based Execution Order
 
 ### Phase 1: Foundation (Week 1-2) — DO FIRST
-- [ ] C1: Write tests (start with Provider unit tests)
-- [ ] C2: Generate & commit native config (`flutter create .`)
-- [ ] C3: Fix all silent catches with user feedback
-- [ ] C4: Eliminate global notifications variable
-- [ ] C5: Add runtime notification permission
+- [x] C1: Write tests (start with Provider unit tests)
+- [x] C2: Generate & commit native config (`flutter create .`)
+- [x] C3: Fix all silent catches with user feedback
+- [x] C4: Eliminate global notifications variable
+- [x] C5: Add runtime notification permission
 
 ### Phase 2: Core UX (Week 2-3)
-- [ ] H1: Delete button on note cards
-- [ ] H2: Edit habit name/icon
-- [ ] H3: Settings screen (start with theme + life expectancy)
-- [ ] H4: Data export/import (JSON)
-- [ ] H7: Copy to clipboard in calculator
-- [ ] H8: Scientific mode toggle
-- [ ] H9: Configurable life expectancy
+- [x] H1: Delete button on note cards
+- [x] H2: Edit habit name/icon
+- [x] H3: Settings screen (start with theme + life expectancy)
+- [x] H4: Data export/import (JSON)
+- [x] H7: Copy to clipboard in calculator
+- [x] H8: Scientific mode toggle
+- [x] H9: Configurable life expectancy
 
 ### Phase 3: Layout & Responsive (Week 3-4)
-- [ ] M6: Add responsive framework (decide & integrate)
-- [ ] M1: Responsive notes grid
-- [ ] M2: Responsive calendar grid
-- [ ] M3: Fix habits horizontal overflow
-- [ ] M4: Responsive life metrics
-- [ ] M7: Test portrait/landscape
-- [ ] M8: Tooltips for long text
+- [x] M6: Add responsive framework (decide & integrate)
+- [x] M1: Responsive notes grid
+- [x] M2: Responsive calendar grid
+- [x] M3: Fix habits horizontal overflow
+- [x] M4: Responsive life metrics
+- [x] M7: Test portrait/landscape
+- [x] M8: Tooltips for long text
 
 ### Phase 4: Advanced Features (Week 4-5)
-- [ ] H5: Recurring events
-- [ ] H6: Calendar search/filter
-- [ ] H10: Habit reordering
-- [ ] H11: Bulk select/delete
-- [ ] H12: Onboarding flow
-- [ ] L7: Background notification reschedule
+- [x] H5: Recurring events
+- [x] H6: Calendar search/filter
+- [x] H10: Habit reordering
+- [x] H11: Bulk select/delete
+- [x] H12: Onboarding flow
+- [x] L7: Background notification reschedule
 
 ### Phase 5: Code Quality & Polish (Week 5-6)
 - [x] L1: Fix circular dependency
@@ -352,8 +353,8 @@ Generated from full codebase audit (2026-07-10). All issues categorized by sever
 ### Phase 6: CI/CD & Release (Week 6)
 - [x] CI1-CI5: Complete CI pipeline
 - [x] Build & test release AAB/APK
-- [ ] Configure code signing
-- [ ] Create GitHub Release workflow
+- [x] Configure code signing
+- [x] Create GitHub Release workflow
 
 ---
 

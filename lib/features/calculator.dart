@@ -223,7 +223,7 @@ class CalculatorProvider extends ChangeNotifier {
     }
     if (_pos < _input.length && _input[_pos] == '%') {
       _pos++;
-      result = result % _factor();
+      result = result / 100;
     }
     return result;
   }
@@ -468,14 +468,13 @@ class _MemoryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    String semanticLabel;
-    switch (label) {
-      case 'MC': return 'Memory Clear';
-      case 'MR': return 'Memory Recall';
-      case 'M+': return 'Memory Add';
-      case 'M-': return 'Memory Subtract';
-      default: return label;
-    }
+    final semanticLabel = switch (label) {
+      'MC' => 'Memory Clear',
+      'MR' => 'Memory Recall',
+      'M+' => 'Memory Add',
+      'M-' => 'Memory Subtract',
+      _ => label,
+    };
 
     return Semantics(
       label: semanticLabel,
@@ -495,7 +494,6 @@ class _ResponsiveButtonGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isScientific = calc.scientificMode;
 
     final standardRows = [
@@ -516,7 +514,6 @@ class _ResponsiveButtonGrid extends StatelessWidget {
     ];
 
     final rows = isScientific ? scientificRows : standardRows;
-    final crossAxisCount = isScientific ? 6 : 4;
 
     return Column(
       children: rows.map((row) => Row(
@@ -574,7 +571,6 @@ class _CalcButton extends StatelessWidget {
         case '=': return 'Equals';
         case '^': return 'Power';
         case '√': return 'Square root';
-        case 'sqrt': return 'Square root';
         case 'π': return 'Pi';
         case 'e': return 'Euler\'s number';
         case 'sin': return 'Sine';
@@ -582,7 +578,6 @@ class _CalcButton extends StatelessWidget {
         case 'tan': return 'Tangent';
         case 'log': return 'Logarithm base 10';
         case 'ln': return 'Natural logarithm';
-        case 'sqrt': return 'Square root';
         default: return label;
       }
     }
@@ -599,7 +594,7 @@ class _CalcButton extends StatelessWidget {
             label: getSemanticLabel(),
             button: true,
             child: Container(
-              height: 52,
+              height: MediaQuery.of(context).orientation == Orientation.landscape ? 44 : 52,
               alignment: Alignment.center,
               child: Text(label, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: getTextColor())),
             ),

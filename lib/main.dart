@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
-import 'package:responsive_framework/responsive_framework.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:get_it/get_it.dart';
 import 'package:workmanager/workmanager.dart';
+import 'package:timezone/data/latest.dart' as tz;
 
-import 'database.dart';
 import 'features/notes.dart';
 import 'features/habits.dart';
 import 'features/calendar.dart';
 import 'features/calculator.dart';
 import 'features/life.dart';
 import 'features/settings.dart';
+import 'features/settings_provider.dart';
 import 'services/notification_service.dart';
 import 'services/service_locator.dart';
 import 'services/workmanager_callback.dart';
-import 'utils/snackbar_utils.dart';
 
 const _onboardingCompleteKey = 'onboarding_complete_v1';
 
@@ -28,20 +28,16 @@ void main() async {
     'rescheduleNotifications',
     'rescheduleNotifications',
     frequency: const Duration(hours: 24),
-    constraints: Constraints(networkType: NetworkType.notRequired),
+    constraints: Constraints(networkType: NetworkType.unmetered),
   );
-  
-  // Request notification permission (Android 13+)
-  if (await Permission.notification.isDenied) {
-    await Permission.notification.request();
-  }
-  
-  final prefs = serviceLocator<SharedPreferences>();
+
+  final prefs = await SharedPreferences.getInstance();
   final onboardingComplete = prefs.getBool(_onboardingCompleteKey) ?? false;
-  
-  runApp(PersonalApp(
-    showOnboarding: !onboardingComplete,
-  ));
+
+  // Request notification permission for Android 13+
+  // Moved to MainScreen._requestNotificationPermission with rationale dialog
+
+  runApp(PersonalApp(showOnboarding: !onboardingComplete));
 }
 
 class PersonalApp extends StatelessWidget {
@@ -52,11 +48,12 @@ class PersonalApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => serviceLocator<NotesProvider>()),
-        ChangeNotifierProvider(create: (_) => serviceLocator<CalendarProvider>()),
-        ChangeNotifierProvider(create: (_) => serviceLocator<CalculatorProvider>()),
-        ChangeNotifierProvider(create: (_) => serviceLocator<HabitsProvider>()),
-        ChangeNotifierProvider(create: (_) => serviceLocator<LifeProvider>()),
+        ChangeNotifierProvider(create: (_) => NotesProvider()),
+        ChangeNotifierProvider(create: (_) => CalendarProvider(serviceLocator<NotificationService>())),
+        ChangeNotifierProvider(create: (_) => CalculatorProvider()),
+        ChangeNotifierProvider(create: (_) => HabitsProvider(serviceLocator<NotificationService>())),
+        ChangeNotifierProvider(create: (_) => LifeProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ],
       child: MaterialApp(
         title: 'Personal App',
@@ -68,15 +65,6 @@ class PersonalApp extends StatelessWidget {
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
         ],
-        builder: (context, child) => ResponsiveBreakpoints.builder(
-          child: child!,
-          breakpoints: [
-            const Breakpoint(start: 0, end: 450, name: MOBILE),
-            const Breakpoint(start: 451, end: 800, name: TABLET),
-            const Breakpoint(start: 801, end: 1920, name: DESKTOP),
-            const Breakpoint(start: 1921, end: double.infinity, name: '4K'),
-          ],
-        ),
         home: showOnboarding ? const OnboardingScreen() : const MainScreen(),
       ),
     );
@@ -133,35 +121,40 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     OnboardingPage(
       icon: Icons.calendar_month_rounded,
       title: 'Calendar',
-      description: 'Schedule events, set reminders, and see your habits and notes in a unified calendar view. Never miss an appointment.',
+      description: 'Schedule events, set reminders, and see your habits and notes in a unified calendar view.',
     ),
     OnboardingPage(
       icon: Icons.calculate_rounded,
       title: 'Calculator',
-      description: 'A powerful calculator with history, memory functions, and scientific mode for advanced calculations.',
+      description: 'A powerful calculator with history, memory functions, and scientific mode for all your calculations.',
     ),
     OnboardingPage(
       icon: Icons.hourglass_empty_rounded,
       title: 'Life Tracker',
-      description: 'See your life in perspective. Track days lived, set life expectancy, and visualize your journey.',
+      description: 'See your life in perspective. Track days, weeks, months, and years since birth with a live progress meter.',
+    ),
+    OnboardingPage(
+      icon: Icons.settings_rounded,
+      title: 'Settings',
+      description: 'Customize your experience with themes, notification preferences, data export/import, and more.',
     ),
   ];
 
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
   Future<void> _completeOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_onboardingCompleteKey, true);
+    await prefs.setBool('onboarding_complete_v1', true);
     if (mounted) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const MainScreen()),
       );
     }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
@@ -293,6 +286,41 @@ class _MainScreenState extends State<MainScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _requestNotificationPermission();
+    });
+  }
+
+  Future<void> _requestNotificationPermission() async {
+    if (await Permission.notification.isDenied) {
+      if (!mounted) return;
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: Icon(Icons.notifications_active_outlined, color: Theme.of(ctx).colorScheme.primary, size: 32),
+          title: const Text('Enable Notifications?'),
+          content: const Text(
+            'We\'d like to send you notifications for habit reminders and calendar events. '
+            'You can change this anytime in Settings.',
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Not now')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Enable')),
+          ],
+        ),
+      );
+      if (proceed == true && mounted) {
+        final status = await Permission.notification.request();
+        if (status.isPermanentlyDenied && mounted) {
+          await openAppSettings();
+        }
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _tab, children: _screens),
@@ -300,12 +328,36 @@ class _MainScreenState extends State<MainScreen> {
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.note_alt_outlined), selectedIcon: Icon(Icons.note_alt_rounded), label: 'Notes'),
-          NavigationDestination(icon: Icon(Icons.checklist_rtl_outlined), selectedIcon: Icon(Icons.checklist_rtl_rounded), label: 'Habits'),
-          NavigationDestination(icon: Icon(Icons.calendar_month_outlined), selectedIcon: Icon(Icons.calendar_month_rounded), label: 'Calendar'),
-          NavigationDestination(icon: Icon(Icons.calculate_outlined), selectedIcon: Icon(Icons.calculate_rounded), label: 'Calculator'),
-          NavigationDestination(icon: Icon(Icons.hourglass_empty_outlined), selectedIcon: Icon(Icons.hourglass_full_rounded), label: 'Life'),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings_rounded), label: 'Settings'),
+          NavigationDestination(
+            icon: Icon(Icons.note_alt_outlined),
+            selectedIcon: Icon(Icons.note_alt_rounded),
+            label: 'Notes',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.checklist_rtl_outlined),
+            selectedIcon: Icon(Icons.checklist_rtl_rounded),
+            label: 'Habits',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calendar_month_outlined),
+            selectedIcon: Icon(Icons.calendar_month_rounded),
+            label: 'Calendar',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calculate_outlined),
+            selectedIcon: Icon(Icons.calculate_rounded),
+            label: 'Calculator',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.hourglass_empty_outlined),
+            selectedIcon: Icon(Icons.hourglass_full_rounded),
+            label: 'Life',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings_rounded),
+            label: 'Settings',
+          ),
         ],
       ),
     );

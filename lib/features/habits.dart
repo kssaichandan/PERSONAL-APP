@@ -212,17 +212,17 @@ class HabitsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void clearHabitSelection() {
+  void clearSelection() {
     _selectedHabits.clear();
     notifyListeners();
   }
 
-  void selectAllHabits() {
+  void selectAll() {
     _selectedHabits.addAll(_habits.map((h) => h.id!).toSet());
     notifyListeners();
   }
 
-  Future<void> deleteMultipleHabits(Set<int> ids, [BuildContext? context]) async {
+  Future<void> deleteMultiple(Set<int> ids, [BuildContext? context]) async {
     try {
       final db = await AppDatabase.instance.database;
       for (final id in ids) {
@@ -241,39 +241,6 @@ class HabitsProvider extends ChangeNotifier {
       return;
     }
     await load();
-  }
-
-  // Selection mode methods
-  void toggleHabitSelection(int habitId) {
-    if (_selectedHabits.contains(habitId)) {
-      _selectedHabits.remove(habitId);
-    } else {
-      _selectedHabits.add(habitId);
-    }
-    notifyListeners();
-  }
-
-  void clearHabitSelection() {
-    _selectedHabits.clear();
-    notifyListeners();
-  }
-
-  void selectAllHabits() {
-    _selectedHabits.addAll(_habits.map((h) => h.id!).toSet());
-    notifyListeners();
-  }
-
-  void _scheduleHabitNotification(Habit habit) {
-        final h = _habits[i];
-        if (h.displayOrder != i) {
-          await db.update('habits', {'display_order': i}, where: 'id = ?', whereArgs: [h.id]);
-        }
-      }
-    } catch (e) {
-      debugLog('Failed to update habit order: $e');
-    }
-    
-    notifyListeners();
   }
 
   void _scheduleHabitNotification(Habit habit) {
@@ -430,7 +397,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                   ),
                 ),
               SizedBox(
-                height: 110,
+                height: MediaQuery.of(context).orientation == Orientation.landscape ? 90 : 110,
                 child: ReorderableListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -441,8 +408,9 @@ class _HabitsScreenState extends State<HabitsScreen> {
                     final isSel = h.id == _selectedHabit?.id;
                     final streaks = provider.getStreaks(h.id!);
                     final currentStreak = streaks['current'] ?? 0;
-return ReorderableDragStartListener(
+                    return ReorderableDragStartListener(
                       key: ValueKey(h.id),
+                      index: index,
                       child: GestureDetector(
                         onTap: provider.isSelectionMode
                             ? () => provider.toggleHabitSelection(h.id!)
@@ -515,8 +483,9 @@ return ReorderableDragStartListener(
                             ],
                           ),
                         ),
-                      );
-                  },
+                      ),
+                    );
+                    },
                 ),
               ),
               const Divider(height: 1),

@@ -6,10 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:intl/intl.dart';
-import 'package:local_auth/local_auth.dart';
 
 import '../database.dart';
 import '../utils/snackbar_utils.dart';
+import '../features/settings_provider.dart';
 import 'notes.dart';
 import 'habits.dart';
 import 'calendar.dart';
@@ -49,6 +49,24 @@ class _AppearanceSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final settings = context.watch<SettingsProvider>();
+
+    if (settings.loading) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Appearance', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              const Center(child: CircularProgressIndicator()),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -62,7 +80,7 @@ class _AppearanceSection extends StatelessWidget {
               title: const Text('Theme'),
               subtitle: const Text('Choose light, dark, or system default'),
               trailing: DropdownButton<ThemeMode>(
-                value: ThemeMode.system,
+                value: settings.themeMode,
                 underline: const SizedBox(),
                 items: const [
                   DropdownMenuItem(value: ThemeMode.light, child: Text('Light')),
@@ -70,7 +88,7 @@ class _AppearanceSection extends StatelessWidget {
                   DropdownMenuItem(value: ThemeMode.system, child: Text('System')),
                 ],
                 onChanged: (value) {
-                  // TODO: Implement theme persistence
+                  if (value != null) settings.setThemeMode(value);
                 },
               ),
             ),
@@ -78,7 +96,16 @@ class _AppearanceSection extends StatelessWidget {
               leading: const Icon(Icons.color_lens_rounded),
               title: const Text('Color Seed'),
               subtitle: const Text('Change the app accent color'),
-              onTap: () => _showColorPicker(context),
+              trailing: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: settings.colorSeed,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: theme.colorScheme.outline, width: 2),
+                ),
+              ),
+              onTap: () => _showColorPicker(context, settings),
             ),
           ],
         ),
@@ -86,7 +113,7 @@ class _AppearanceSection extends StatelessWidget {
     );
   }
 
-  void _showColorPicker(BuildContext context) {
+  void _showColorPicker(BuildContext context, SettingsProvider settings) {
     final theme = Theme.of(context);
     final colors = [
       Colors.deepPurple, Colors.blue, Colors.teal, Colors.green,
@@ -107,7 +134,7 @@ class _AppearanceSection extends StatelessWidget {
               runSpacing: 12,
               children: colors.map((color) => GestureDetector(
                 onTap: () {
-                  // TODO: Save color preference
+                  settings.setColorSeed(color);
                   Navigator.pop(ctx);
                 },
                 child: Container(
@@ -116,7 +143,10 @@ class _AppearanceSection extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: color,
                     shape: BoxShape.circle,
-                    border: Border.all(color: theme.colorScheme.outline, width: 2),
+                    border: Border.all(
+                      color: settings.colorSeed == color ? theme.colorScheme.primary : theme.colorScheme.outline,
+                      width: settings.colorSeed == color ? 3 : 2,
+                    ),
                   ),
                 ),
               )).toList(),
@@ -133,6 +163,8 @@ class _NotificationsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final settings = context.watch<SettingsProvider>();
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -145,24 +177,22 @@ class _NotificationsSection extends StatelessWidget {
               secondary: const Icon(Icons.notifications_rounded),
               title: const Text('Enable Notifications'),
               subtitle: const Text('Receive habit reminders and event alerts'),
-              value: true, // TODO: Read from settings
-              onChanged: (value) {
-                // TODO: Save to settings
-              },
+              value: settings.notificationsEnabled,
+              onChanged: settings.setNotificationsEnabled,
             ),
             SwitchListTile(
               secondary: const Icon(Icons.alarm_rounded),
               title: const Text('Habit Reminders'),
               subtitle: const Text('Get notified at habit reminder times'),
-              value: true,
-              onChanged: (value) {},
+              value: settings.habitRemindersEnabled,
+              onChanged: settings.setHabitRemindersEnabled,
             ),
             SwitchListTile(
               secondary: const Icon(Icons.event_rounded),
               title: const Text('Event Reminders'),
               subtitle: const Text('Get notified before calendar events'),
-              value: true,
-              onChanged: (value) {},
+              value: settings.eventRemindersEnabled,
+              onChanged: settings.setEventRemindersEnabled,
             ),
           ],
         ),
@@ -238,7 +268,6 @@ class _DataSection extends StatelessWidget {
       await Share.share(
         jsonString,
         subject: 'Personal App Backup - ${DateFormat('yyyy-MM-dd').format(DateTime.now())}',
-        mimeType: 'application/json',
       );
       
       if (context.mounted) {
@@ -394,72 +423,68 @@ class _LifeTrackerSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final provider = context.watch<LifeProvider>();
-    
+
+    final children = <Widget>[
+      Text('Life Tracker', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+      const SizedBox(height: 16),
+      if (provider.dob == null) ...[
+        Text('Set your date of birth to enable life tracking', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        const SizedBox(height: 12),
+        ElevatedButton.icon(
+          onPressed: () => _pickDate(context, provider),
+          icon: const Icon(Icons.calendar_today),
+          label: const Text('Enter Date of Birth'),
+        ),
+      ] else ...[
+        ListTile(
+          leading: const Icon(Icons.cake_rounded),
+          title: const Text('Date of Birth'),
+          subtitle: Text(DateFormat('MMMM d, yyyy').format(provider.dob!)),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () => _pickDate(context, provider),
+        ),
+        ListTile(
+          leading: const Icon(Icons.settings_rounded),
+          title: const Text('Life Expectancy'),
+          subtitle: Text('${provider.lifeExpectancy} years (default: 80)'),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () => _showLifeExpectancyDialog(context, provider),
+        ),
+        if (provider.biometricsAvailable != false)
+          SwitchListTile(
+            secondary: const Icon(Icons.fingerprint_rounded),
+            title: const Text('Biometric Lock'),
+            subtitle: const Text('Require fingerprint/face ID to view Life Tracker'),
+            value: provider.biometricEnabled,
+            onChanged: (value) => provider.setBiometricEnabled(value, context),
+          ),
+        if (provider.biometricsAvailable == false)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              'Biometric authentication not available on this device',
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ),
+        ListTile(
+          leading: Icon(Icons.delete_rounded, color: theme.colorScheme.error),
+          title: Text('Reset Life Tracker', style: TextStyle(color: theme.colorScheme.error)),
+          subtitle: const Text('Remove your date of birth and start over'),
+          onTap: () => _confirmReset(context, provider),
+        ),
+      ],
+    ];
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Life Tracker', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            if (provider.dob == null) ...[
-              Text('Set your date of birth to enable life tracking', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                onPressed: () => _pickDate(context, provider),
-                icon: const Icon(Icons.calendar_today),
-                label: const Text('Enter Date of Birth'),
-              ),
-            ] else ...[
-              ListTile(
-                leading: const Icon(Icons.cake_rounded),
-                title: const Text('Date of Birth'),
-                subtitle: Text(DateFormat('MMMM d, yyyy').format(provider.dob!)),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => _pickDate(context, provider),
-              ),
-              ListTile(
-                leading: const Icon(Icons.settings_rounded),
-                title: const Text('Life Expectancy'),
-                subtitle: Text('${provider.lifeExpectancy} years (default: 80)'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => _showLifeExpectancyDialog(context, provider),
-              ),
-              if (provider.biometricsAvailable != false)
-                SwitchListTile(
-                  secondary: const Icon(Icons.fingerprint_rounded),
-                  title: const Text('Biometric Lock'),
-                  subtitle: const Text('Require fingerprint/face ID to view Life Tracker'),
-                  value: provider.biometricEnabled,
-                  onChanged: (value) => provider.setBiometricEnabled(value, context),
-                ),
-              if (provider.biometricsAvailable == false)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Text(
-                    'Biometric authentication not available on this device',
-                    style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                  ),
-                ),
-              ListTile(
-                leading: Icon(Icons.delete_rounded, color: theme.colorScheme.error),
-                title: Text('Reset Life Tracker', style: TextStyle(color: theme.colorScheme.error)),
-                subtitle: const Text('Remove your date of birth and start over'),
-                onTap: () => _confirmReset(context, provider),
-              ),
-                    leading: Icon(Icons.delete_rounded, color: theme.colorScheme.error),
-                    title: Text('Reset Life Tracker', style: TextStyle(color: theme.colorScheme.error)),
-                    subtitle: const Text('Remove your date of birth and start over'),
-                    onTap: () => _confirmReset(context, provider),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        );
-      },
+          children: children,
+        ),
+      ),
     );
+  }
 
   Future<void> _pickDate(BuildContext context, LifeProvider provider) async {
     final picked = await showDatePicker(
@@ -530,6 +555,8 @@ class _CalculatorSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final settings = context.watch<SettingsProvider>();
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -542,17 +569,15 @@ class _CalculatorSection extends StatelessWidget {
               secondary: const Icon(Icons.functions_rounded),
               title: const Text('Scientific Mode'),
               subtitle: const Text('Show advanced functions (sin, cos, log, π, e, etc.)'),
-              value: false, // TODO: Read from settings
-              onChanged: (value) {
-                // TODO: Save to settings
-              },
+              value: settings.scientificMode,
+              onChanged: settings.setScientificMode,
             ),
             SwitchListTile(
               secondary: const Icon(Icons.content_copy_rounded),
               title: const Text('Copy Result on Tap'),
               subtitle: const Text('Tap result to copy to clipboard'),
-              value: true,
-              onChanged: (value) {},
+              value: settings.copyOnTap,
+              onChanged: settings.setCopyOnTap,
             ),
             ListTile(
               leading: const Icon(Icons.delete_sweep_rounded),

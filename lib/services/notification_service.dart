@@ -59,4 +59,30 @@ class NotificationService {
     if (scheduledDate.isBefore(now)) scheduledDate = scheduledDate.add(const Duration(days: 1));
     return scheduledDate;
   }
+
+  Future<void> cancel(int id) async {
+    await _notifications.cancel(id);
+  }
+
+  Future<void> zonedSchedule(
+    int id,
+    String title,
+    String body,
+    tz.TZDateTime scheduledDate,
+    NotificationDetails details, {
+    AndroidScheduleMode androidScheduleMode = AndroidScheduleMode.exactAllowWhileIdle,
+    DateTimeComponents? matchDateTimeComponents,
+    UILocalNotificationDateInterpretation uiLocalNotificationDateInterpretation = UILocalNotificationDateInterpretation.absoluteTime,
+  }) async {
+    await _notifications.zonedSchedule(
+      id,
+      title,
+      body,
+      scheduledDate,
+      details,
+      androidScheduleMode: androidScheduleMode,
+      matchDateTimeComponents: matchDateTimeComponents,
+      uiLocalNotificationDateInterpretation: uiLocalNotificationDateInterpretation,
+    );
+  }
 }

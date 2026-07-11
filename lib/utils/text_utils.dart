@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 // Shared utility functions
 
 /// Strips HTML tags and normalizes whitespace from text content
@@ -29,9 +27,4 @@ String formatDuration(int milliseconds) {
   if (minutes < 60) return '${minutes}m ${seconds % 60}s';
   final hours = minutes ~/ 60;
   return '${hours}h ${minutes % 60}m';
-}
-
-/// Logs a message in debug mode only
-void debugLog(String message) {
-  if (kDebugMode) debugPrint(message);
 }

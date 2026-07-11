@@ -9,7 +9,6 @@ import 'habits.dart';
 import 'notes.dart';
 import '../services/notification_service.dart';
 import '../utils/snackbar_utils.dart';
-import '../utils/text_utils.dart';
 
 class CalendarEvent {
   final int? id;
@@ -258,6 +257,20 @@ Future<void> deleteMultiple(Set<int> ids, [BuildContext? context]) async {
     final parts = event.time!.split(':');
     final scheduled = DateTime(event.date.year, event.date.month, event.date.day, int.parse(parts[0]), int.parse(parts[1]));
     if (scheduled.isBefore(DateTime.now())) return;
+
+    // For recurring events, use matchDateTimeComponents
+    DateTimeComponents? matchComponents;
+    if (event.recurrence == 'daily') {
+      matchComponents = DateTimeComponents.time;
+    } else if (event.recurrence == 'weekly') {
+      matchComponents = DateTimeComponents.dayOfWeekAndTime;
+    } else if (event.recurrence == 'monthly') {
+      matchComponents = DateTimeComponents.dayOfMonthAndTime;
+    } else if (event.recurrence == 'yearly') {
+      // yearly not supported by matchDateTimeComponents, will be handled by WorkManager rescheduling
+      matchComponents = null;
+    }
+
     unawaited(_notificationService.zonedSchedule(
       event.id!,
       event.title,
@@ -265,6 +278,7 @@ Future<void> deleteMultiple(Set<int> ids, [BuildContext? context]) async {
       tz.TZDateTime.from(scheduled, tz.local),
       const NotificationDetails(android: AndroidNotificationDetails('events', 'Event Reminders')),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      matchDateTimeComponents: matchComponents,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
     ).catchError((_) {}));
   }
@@ -277,6 +291,17 @@ Color categoryColor(String cat) {
     case 'Urgent': return Colors.red;
     default: return Colors.orange;
   }
+}
+
+String plainText(String html) {
+  return html
+      .replaceAll(RegExp(r'<[^>]*>'), '')
+      .replaceAll('&nbsp;', ' ')
+      .replaceAll('&', '&')
+      .replaceAll('<', '<')
+      .replaceAll('>', '>')
+      .replaceAll('"', '"')
+      .trim();
 }
 
 class CalendarScreen extends StatelessWidget {
@@ -355,8 +380,8 @@ class CalendarScreen extends StatelessWidget {
             ),
           ],
         ],
-      );
-    }
+      ),
+    );
   }
 
   void _showSearchDialog(BuildContext context) {
@@ -385,6 +410,15 @@ class CalendarScreen extends StatelessWidget {
     );
   }
 
+  void _showEventEditor(BuildContext context, {CalendarEvent? event}) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => EventEditor(event: event),
+    );
+  }
+
   void _filterByCategory(BuildContext context, String category) {
     final provider = context.read<CalendarProvider>();
     if (category == 'all') {
@@ -393,6 +427,7 @@ class CalendarScreen extends StatelessWidget {
       provider.setCategoryFilter(category);
     }
   }
+}
 
 class _MonthHeader extends StatelessWidget {
   final CalendarProvider provider;
@@ -494,8 +529,7 @@ class _MonthGrid extends StatelessWidget {
                           )).toList(),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
                 ),
               ),
             ),
@@ -507,10 +541,11 @@ class _MonthGrid extends StatelessWidget {
       builder: (context, constraints) {
         final crossAxisCount = 7;
         final cellWidth = constraints.maxWidth / crossAxisCount;
+        final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
         return GridView.count(
           crossAxisCount: crossAxisCount,
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          childAspectRatio: cellWidth / (cellWidth + 16),
+          childAspectRatio: cellWidth / (cellWidth + (isLandscape ? 8 : 16)),
           children: cells,
         );
       },

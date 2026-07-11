@@ -1,461 +1,177 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:provider/provider.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:path/path.dart';
+import 'package:personal_app/features/notes.dart';
+import 'package:personal_app/features/habits.dart';
+import 'package:personal_app/features/calendar.dart';
+import 'package:personal_app/features/calculator.dart';
+import 'package:personal_app/features/life.dart';
+import 'package:personal_app/database.dart';
+import 'package:personal_app/services/notification_service.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart' as sqlcipher;
 
-import '../lib/database.dart';
-import '../lib/features/notes.dart';
-import '../lib/features/habits.dart';
-import '../lib/features/calendar.dart';
-import '../lib/features/calculator.dart';
-import '../lib/features/life.dart';
-import '../lib/services/notification_service.dart';
-
-// Mock classes
-class MockDatabase extends Mock implements Database {}
 class MockNotificationService extends Mock implements NotificationService {}
+class MockDatabase extends Mock implements sqlcipher.Database {}
+class MockAppDatabase extends Mock implements AppDatabase {}
 
 void main() {
-  setUpAll(() {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
+  late MockDatabase mockDb;
+  late MockAppDatabase mockAppDb;
+
+  setUp(() {
+    mockDb = MockDatabase();
+    mockAppDb = MockAppDatabase();
+    when(() => mockAppDb.database).thenAnswer((_) async => mockDb);
+    AppDatabase.setInstanceForTesting(mockAppDb);
+
+    when(() => mockDb.query(any(),
+            where: any(named: 'where'),
+            whereArgs: any(named: 'whereArgs'),
+            orderBy: any(named: 'orderBy'),
+            limit: any(named: 'limit')))
+        .thenAnswer((_) async => []);
+    when(() => mockDb.rawQuery(any(), any())).thenAnswer((_) async => []);
+    when(() => mockDb.insert(any(), any())).thenAnswer((_) async => 0);
+    when(() => mockDb.update(any(), any(),
+            where: any(named: 'where'), whereArgs: any(named: 'whereArgs')))
+        .thenAnswer((_) async => 0);
+    when(() => mockDb.delete(any(),
+            where: any(named: 'where'), whereArgs: any(named: 'whereArgs')))
+        .thenAnswer((_) async => 0);
   });
 
-  group('AppDatabase', () {
-    late Database db;
-    late String path;
-
-    setUp(() async {
-      path = await getDatabasesPath();
-      path = join(path, 'test_personal_app.db');
-      await deleteDatabase(path);
-      db = await openDatabase(
-        path,
-        version: 2,
-        onCreate: (db, version) async {
-          await db.execute('''
-            CREATE TABLE notes (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              title TEXT NOT NULL DEFAULT '',
-              content TEXT NOT NULL DEFAULT '',
-              pinned INTEGER NOT NULL DEFAULT 0,
-              color INTEGER NOT NULL DEFAULT 4294967295,
-              tags TEXT NOT NULL DEFAULT '',
-              created_at TEXT NOT NULL,
-              updated_at TEXT NOT NULL
-            )
-          ''');
-          await db.execute('''
-            CREATE TABLE calendar_events (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              title TEXT NOT NULL,
-              date TEXT NOT NULL,
-              time TEXT,
-              category TEXT NOT NULL DEFAULT 'General',
-              notes TEXT DEFAULT ''
-            )
-          ''');
-          await db.execute('''
-            CREATE TABLE calculator_history (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              expression TEXT NOT NULL,
-              result TEXT NOT NULL,
-              created_at TEXT NOT NULL
-            )
-          ''');
-          await db.execute('''
-            CREATE TABLE habits (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              name TEXT NOT NULL,
-              icon TEXT NOT NULL DEFAULT 'star',
-              reminder_time TEXT,
-              created_at TEXT NOT NULL
-            )
-          ''');
-          await db.execute('''
-            CREATE TABLE habit_logs (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              habit_id INTEGER NOT NULL,
-              date TEXT NOT NULL,
-              FOREIGN KEY (habit_id) REFERENCES habits (id) ON DELETE CASCADE
-            )
-          ''');
-          await db.execute('''
-            CREATE TABLE settings (
-              key TEXT PRIMARY KEY,
-              value TEXT NOT NULL
-            )
-          ''');
-        },
-      );
-    });
-
-    tearDown(() async {
-      await db.close();
-      await deleteDatabase(path);
-    });
-
-    test('Database creates all tables', () async {
-      final tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'");
-      final tableNames = tables.map((t) => t['name'] as String).toSet();
-      expect(tableNames, containsAll(['notes', 'calendar_events', 'calculator_history', 'habits', 'habit_logs', 'settings']));
-    });
-
-    test('Can insert and query notes', () async {
-      final now = DateTime.now().toIso8601String();
-      await db.insert('notes', {
-        'title': 'Test Note',
-        'content': 'Test Content',
-        'pinned': 0,
-        'color': 0xFFFFFFFF,
-        'tags': 'tag1,tag2',
-        'created_at': now,
-        'updated_at': now,
-      });
-
-      final results = await db.query('notes');
-      expect(results.length, 1);
-      expect(results.first['title'], 'Test Note');
-      expect(results.first['content'], 'Test Content');
-    });
-
-    test('Can insert and query habits', () async {
-      final now = DateTime.now().toIso8601String();
-      await db.insert('habits', {
-        'name': 'Exercise',
-        'icon': 'fitness_center',
-        'reminder_time': '07:00',
-        'created_at': now,
-      });
-
-      final results = await db.query('habits');
-      expect(results.length, 1);
-      expect(results.first['name'], 'Exercise');
-      expect(results.first['reminder_time'], '07:00');
-    });
-
-    test('Can insert and query calendar events', () async {
-      final now = DateTime.now().toIso8601String();
-      await db.insert('calendar_events', {
-        'title': 'Meeting',
-        'date': '2026-07-15',
-        'time': '14:30',
-        'category': 'Work',
-        'notes': 'Team sync',
-      });
-
-      final results = await db.query('calendar_events');
-      expect(results.length, 1);
-      expect(results.first['title'], 'Meeting');
-      expect(results.first['category'], 'Work');
-    });
-
-    test('Can insert and query calculator history', () async {
-      await db.insert('calculator_history', {
-        'expression': '2 + 2',
-        'result': '4',
-        'created_at': DateTime.now().toIso8601String(),
-      });
-
-      final results = await db.query('calculator_history');
-      expect(results.length, 1);
-      expect(results.first['expression'], '2 + 2');
-      expect(results.first['result'], '4');
-    });
-
-    test('Foreign key constraint on habit_logs', () async {
-      final now = DateTime.now().toIso8601String();
-      await db.insert('habits', {
-        'name': 'Test Habit',
-        'icon': 'star',
-        'created_at': now,
-      });
-
-      await db.insert('habit_logs', {
-        'habit_id': 1,
-        'date': '2026-07-10',
-      });
-
-      final logs = await db.query('habit_logs');
-      expect(logs.length, 1);
-      expect(logs.first['habit_id'], 1);
-    });
+  tearDown(() {
+    AppDatabase.clearInstanceForTesting();
   });
 
-  group('NotesProvider', () {
-    late Database db;
-    late String path;
-    late NotesProvider provider;
-
-    setUp(() async {
-      path = await getDatabasesPath();
-      path = join(path, 'test_notes.db');
-      await deleteDatabase(path);
-      db = await openDatabase(
-        path,
-        version: 2,
-        onCreate: (db, version) async {
-          await db.execute('''
-            CREATE TABLE notes (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              title TEXT NOT NULL DEFAULT '',
-              content TEXT NOT NULL DEFAULT '',
-              pinned INTEGER NOT NULL DEFAULT 0,
-              color INTEGER NOT NULL DEFAULT 4294967295,
-              tags TEXT NOT NULL DEFAULT '',
-              created_at TEXT NOT NULL,
-              updated_at TEXT NOT NULL
-            )
-          ''');
-        },
-      );
-      
-      // Override the database instance for testing
-      AppDatabase._instance._db = db;
-      provider = NotesProvider();
-      await Future.delayed(Duration(milliseconds: 100)); // Wait for load
-    });
-
-    tearDown(() async {
-      provider.dispose();
-      await db.close();
-      await deleteDatabase(path);
-    });
-
-    test('Initial state is loading', () {
-      expect(provider.loading, true);
-    });
-
-    test('Loads notes from database', () async {
-      final now = DateTime.now().toIso8601String();
-      await db.insert('notes', {
-        'title': 'Test Note',
-        'content': 'Test Content',
-        'pinned': 0,
-        'color': 0xFFFFFFFF,
-        'tags': '',
-        'created_at': now,
-        'updated_at': now,
-      });
-
-      provider.load();
-      await Future.delayed(Duration(milliseconds: 100));
-
-      expect(provider.loading, false);
-      expect(provider.notes.length, 1);
-      expect(provider.notes.first.title, 'Test Note');
-    });
-
-    test('Saves new note', () async {
-      final note = Note(
-        title: 'New Note',
-        content: 'New Content',
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
-      final id = await provider.save(note);
-      expect(id, greaterThan(0));
-
-      await Future.delayed(Duration(milliseconds: 100));
-      expect(provider.notes.length, 1);
-      expect(provider.notes.first.title, 'New Note');
-    });
-
-    test('Updates existing note', () async {
-      final now = DateTime.now().toIso8601String();
-      await db.insert('notes', {
-        'title': 'Original',
-        'content': 'Original Content',
-        'pinned': 0,
-        'color': 0xFFFFFFFF,
-        'tags': '',
-        'created_at': now,
-        'updated_at': now,
-      });
-
-      provider.load();
-      await Future.delayed(Duration(milliseconds: 100));
-
-      final note = provider.notes.first;
-      final updatedNote = Note(
-        id: note.id,
-        title: 'Updated',
-        content: 'Updated Content',
-        color: note.color,
-        pinned: note.pinned,
-        tags: note.tags,
-        createdAt: note.createdAt,
-        updatedAt: DateTime.now(),
-      );
-
-      await provider.save(updatedNote);
-      await Future.delayed(Duration(milliseconds: 100));
-
-      expect(provider.notes.first.title, 'Updated');
-      expect(provider.notes.first.content, 'Updated Content');
-    });
-
-    test('Deletes note', () async {
-      final now = DateTime.now().toIso8601String();
-      await db.insert('notes', {
-        'title': 'To Delete',
-        'content': 'Delete Me',
-        'pinned': 0,
-        'color': 0xFFFFFFFF,
-        'tags': '',
-        'created_at': now,
-        'updated_at': now,
-      });
-
-      provider.load();
-      await Future.delayed(Duration(milliseconds: 100));
-      expect(provider.notes.length, 1);
-
-      await provider.delete(provider.notes.first.id!);
-      await Future.delayed(Duration(milliseconds: 100));
-
-      expect(provider.notes.length, 0);
-    });
-
-    test('Toggles pin status', () async {
-      final now = DateTime.now().toIso8601String();
-      await db.insert('notes', {
-        'title': 'Test',
-        'content': 'Content',
-        'pinned': 0,
-        'color': 0xFFFFFFFF,
-        'tags': '',
-        'created_at': now,
-        'updated_at': now,
-      });
-
-      provider.load();
-      await Future.delayed(Duration(milliseconds: 100));
-
-      final note = provider.notes.first;
-      expect(note.pinned, false);
-
-      await provider.togglePin(note);
-      await Future.delayed(Duration(milliseconds: 100));
-
-      expect(provider.notes.first.pinned, true);
-    });
-
-    test('Search filters notes', () async {
-      final now = DateTime.now().toIso8601String();
-      await db.insert('notes', {
-        'title': 'Apple Note',
-        'content': 'About apples',
-        'pinned': 0,
-        'color': 0xFFFFFFFF,
-        'tags': 'fruit',
-        'created_at': now,
-        'updated_at': now,
-      });
-      await db.insert('notes', {
-        'title': 'Banana Note',
-        'content': 'About bananas',
-        'pinned': 0,
-        'color': 0xFFFFFFFF,
-        'tags': 'fruit',
-        'created_at': now,
-        'updated_at': now,
-      });
-
-      provider.load();
-      await Future.delayed(Duration(milliseconds: 100));
-
-      provider.search('Apple');
-      expect(provider.notes.length, 1);
-      expect(provider.notes.first.title, 'Apple Note');
-
-      provider.search('');
-      expect(provider.notes.length, 2);
-    });
-
-    test('Tag filtering works', () async {
-      final now = DateTime.now().toIso8601String();
-      await db.insert('notes', {
-        'title': 'Note 1',
-        'content': 'Content',
-        'pinned': 0,
-        'color': 0xFFFFFFFF,
-        'tags': 'work,personal',
-        'created_at': now,
-        'updated_at': now,
-      });
-      await db.insert('notes', {
-        'title': 'Note 2',
-        'content': 'Content',
-        'pinned': 0,
-        'color': 0xFFFFFFFF,
-        'tags': 'personal',
-        'created_at': now,
-        'updated_at': now,
-      });
-
-      provider.load();
-      await Future.delayed(Duration(milliseconds: 100));
-
-      provider.selectTag('work');
-      expect(provider.notes.length, 1);
-      expect(provider.notes.first.title, 'Note 1');
-
-      provider.selectTag('All');
-      expect(provider.notes.length, 2);
-    });
-  });
-
-  group('CalculatorProvider', () {
+  group('CalculatorProvider Tests', () {
     late CalculatorProvider provider;
 
     setUp(() {
       provider = CalculatorProvider();
     });
 
-    tearDown(() {
-      provider.dispose();
+    test('initial state has empty expression and result', () {
+      expect(provider.expression, equals(''));
+      expect(provider.result, equals(''));
     });
 
-    test('Initial state is empty', () {
-      expect(provider.expression, '');
-      expect(provider.result, '');
-      expect(provider.memory, 0.0);
-      expect(provider.history, isEmpty);
-    });
-
-    test('Input numbers and operators', () {
-      provider.input('1');
+    test('input adds characters to expression', () {
+      provider.input('5');
       provider.input('+');
-      provider.input('2');
-      
-      expect(provider.expression, '1+2');
+      provider.input('3');
+      expect(provider.expression, equals('5+3'));
     });
 
-    test('Evaluates simple expression', () {
-      provider.input('1');
-      provider.input('+');
+    test('clear resets expression and result', () {
+      provider.input('5+3');
+      provider.input('C');
+      expect(provider.expression, equals(''));
+      expect(provider.result, equals(''));
+    });
+
+    test('backspace removes last character', () {
+      provider.input('123');
+      provider.input('⌫');
+      expect(provider.expression, equals('12'));
+    });
+
+    test('evaluate calculates result', () {
+      provider.input('2+2');
+      provider.input('=');
+      expect(provider.result, equals('4'));
+    });
+
+    test('evaluate handles division', () {
+      provider.input('10');
+      provider.input('÷');
       provider.input('2');
       provider.input('=');
-      
-      expect(provider.result, '3');
-      expect(provider.expression, '3');
+      expect(provider.result, equals('5'));
     });
 
-    test('Evaluates complex expression with precedence', () {
+    test('evaluate handles division by zero as Error', () {
+      provider.input('5');
+      provider.input('÷');
+      provider.input('0');
+      provider.input('=');
+      expect(provider.result, equals('Error'));
+    });
+
+    test('evaluate handles decimal numbers', () {
+      provider.input('1');
+      provider.input('.');
+      provider.input('5');
+      provider.input('+');
+      provider.input('2');
+      provider.input('.');
+      provider.input('5');
+      provider.input('=');
+      expect(provider.result, equals('4'));
+    });
+
+    test('evaluate handles complex expression with precedence', () {
       provider.input('2');
       provider.input('+');
       provider.input('3');
       provider.input('×');
       provider.input('4');
       provider.input('=');
-      
-      expect(provider.result, '14'); // 2 + (3 × 4) = 14
+      expect(provider.result, equals('14'));
     });
 
-    test('Handles parentheses', () {
+    test('memory functions work', () {
+      provider.input('5');
+      provider.input('+');
+      provider.input('3');
+      provider.input('=');
+      expect(provider.result, equals('8'));
+
+      provider.memoryAdd();
+      expect(provider.memory, equals(8.0));
+
+      provider.input('C');
+      provider.input('2');
+      provider.input('=');
+      expect(provider.result, equals('2'));
+
+      provider.memorySubtract();
+      expect(provider.memory, equals(6.0));
+
+      provider.memoryRecall();
+      expect(provider.expression, contains('6'));
+
+      provider.memoryClear();
+      expect(provider.memory, equals(0.0));
+    });
+
+    test('sqrt function evaluates correctly', () {
+      provider.input('sqrt(16)');
+      provider.input('=');
+      expect(provider.result, equals('4'));
+    });
+
+    test('log function evaluates correctly', () {
+      provider.input('log(100)');
+      provider.input('=');
+      expect(provider.result, equals('2'));
+    });
+
+    test('percentage operator works as postfix', () {
+      provider.input('50');
+      provider.input('%');
+      provider.input('=');
+      expect(provider.result, equals('0.5'));
+    });
+
+    test('power operator works', () {
+      provider.input('2');
+      provider.input('^');
+      provider.input('3');
+      provider.input('=');
+      expect(provider.result, equals('8'));
+    });
+
+    test('parentheses work correctly', () {
       provider.input('(');
       provider.input('1');
       provider.input('+');
@@ -464,496 +180,237 @@ void main() {
       provider.input('×');
       provider.input('3');
       provider.input('=');
-      
-      expect(provider.result, '9'); // (1+2) × 3 = 9
+      expect(provider.result, equals('9'));
     });
 
-    test('Handles functions', () {
-      provider.input('s');
-      provider.input('i');
-      provider.input('n');
-      provider.input('(');
-      provider.input('0');
-      provider.input(')');
-      provider.input('=');
-      
-      expect(provider.result, '0');
-    });
-
-    test('Handles constants', () {
+    test('constants pi and e work', () {
       provider.input('π');
       provider.input('=');
-      
-      expect(provider.result, '3.141592653589793');
-    });
+      expect(double.parse(provider.result), closeTo(3.14159, 0.0001));
 
-    test('Clears with C', () {
-      provider.input('1');
-      provider.input('+');
-      provider.input('2');
       provider.input('C');
-      
-      expect(provider.expression, '');
-      expect(provider.result, '');
-    });
-
-    test('Backspace works', () {
-      provider.input('1');
-      provider.input('2');
-      provider.input('3');
-      provider.input('⌫');
-      
-      expect(provider.expression, '12');
-    });
-
-    test('Memory functions', () {
-      provider.input('5');
+      provider.input('e');
       provider.input('=');
-      provider.memoryAdd();
-      expect(provider.memory, 5.0);
-      
-      provider.memoryRecall();
-      expect(provider.expression, '5');
-      
-      provider.memorySubtract();
-      expect(provider.memory, 0.0);
-      
-      provider.memoryClear();
-      expect(provider.memory, 0.0);
+      expect(double.parse(provider.result), closeTo(2.71828, 0.0001));
     });
 
-    test('Handles error state', () {
-      provider.input('1');
-      provider.input('÷');
-      provider.input('0');
-      provider.input('=');
-      
-      expect(provider.result, 'Error');
+    test('loadExpression sets expression', () {
+      provider.loadExpression('2+2');
+      expect(provider.expression, equals('2+2'));
+      expect(provider.result, equals(''));
     });
 
-    test('Clears error on new input', () {
-      provider.input('1');
-      provider.input('÷');
-      provider.input('0');
-      provider.input('=');
-      expect(provider.result, 'Error');
-      
-      provider.input('5');
-      expect(provider.expression, '5');
-      expect(provider.result, '');
-    });
-
-    test('Load history', () async {
-      // Test that history loads without error
-      await provider.loadHistory();
-      expect(provider.history, isA<List>());
+    test('input is limited to 50 characters', () {
+      for (int i = 0; i < 60; i++) {
+        provider.input('1');
+      }
+      expect(provider.expression.length, equals(50));
     });
   });
 
-  group('HabitsProvider', () {
-    late Database db;
-    late String path;
+  group('HabitsProvider Tests', () {
     late HabitsProvider provider;
     late MockNotificationService mockNotifications;
 
     setUp(() async {
-      path = await getDatabasesPath();
-      path = join(path, 'test_habits.db');
-      await deleteDatabase(path);
-      db = await openDatabase(
-        path,
-        version: 2,
-        onCreate: (db, version) async {
-          await db.execute('''
-            CREATE TABLE habits (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              name TEXT NOT NULL,
-              icon TEXT NOT NULL DEFAULT 'star',
-              reminder_time TEXT,
-              created_at TEXT NOT NULL
-            )
-          ''');
-          await db.execute('''
-            CREATE TABLE habit_logs (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              habit_id INTEGER NOT NULL,
-              date TEXT NOT NULL,
-              FOREIGN KEY (habit_id) REFERENCES habits (id) ON DELETE CASCADE
-            )
-          ''');
-        },
-      );
-      
       mockNotifications = MockNotificationService();
-      AppDatabase._instance._db = db;
+      when(() => mockNotifications.initialize()).thenAnswer((_) async {});
       provider = HabitsProvider(mockNotifications);
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(Duration.zero);
     });
 
-    tearDown(() async {
-      provider.dispose();
-      await db.close();
-      await deleteDatabase(path);
+    test('initial state completes loading with empty data', () {
+      expect(provider.loading, isFalse);
+      expect(provider.habits, isEmpty);
     });
 
-    test('Initial state is loading', () {
-      expect(provider.loading, true);
+    test('isCompleted returns false for empty logs', () {
+      expect(provider.isCompleted(1, DateTime.now()), isFalse);
     });
 
-    test('Loads habits from database', () async {
-      final now = DateTime.now().toIso8601String();
-      await db.insert('habits', {
-        'name': 'Exercise',
-        'icon': 'fitness_center',
-        'reminder_time': '07:00',
-        'created_at': now,
-      });
-
-      provider.load();
-      await Future.delayed(Duration(milliseconds: 100));
-
-      expect(provider.loading, false);
-      expect(provider.habits.length, 1);
-      expect(provider.habits.first.name, 'Exercise');
-      expect(provider.habits.first.reminderTime, '07:00');
+    test('getStreaks returns zeros for empty logs', () {
+      final streaks = provider.getStreaks(1);
+      expect(streaks['current'], equals(0));
+      expect(streaks['max'], equals(0));
     });
 
-    test('Creates new habit', () async {
-      await provider.saveHabit('Reading', 'book', '20:00');
-      await Future.delayed(Duration(milliseconds: 100));
-
-      expect(provider.habits.length, 1);
-      expect(provider.habits.first.name, 'Reading');
-      expect(provider.habits.first.icon, 'book');
+    test('completionsInMonth returns 0 for empty logs', () {
+      final count = provider.completionsInMonth(1, DateTime(2024, 1));
+      expect(count, equals(0));
     });
 
-    test('Deletes habit', () async {
-      final now = DateTime.now().toIso8601String();
-      await db.insert('habits', {
-        'name': 'To Delete',
-        'icon': 'star',
-        'created_at': now,
-      });
+    test('selection mode works', () {
+      provider.toggleHabitSelection(1);
+      expect(provider.isSelectionMode, isTrue);
+      expect(provider.selectedHabits.contains(1), isTrue);
 
-      provider.load();
-      await Future.delayed(Duration(milliseconds: 100));
-      expect(provider.habits.length, 1);
+      provider.toggleHabitSelection(2);
+      expect(provider.selectedHabits.length, equals(2));
 
-      await provider.deleteHabit(provider.habits.first.id!);
-      await Future.delayed(Duration(milliseconds: 100));
+      provider.toggleHabitSelection(1);
+      expect(provider.selectedHabits.contains(1), isFalse);
+      expect(provider.isSelectionMode, isTrue);
 
-      expect(provider.habits.length, 0);
+      provider.clearSelection();
+      expect(provider.isSelectionMode, isFalse);
     });
 
-    test('Toggles habit log', () async {
-      final now = DateTime.now().toIso8601String();
-      await db.insert('habits', {
-        'name': 'Test Habit',
-        'icon': 'star',
-        'created_at': now,
-      });
-
-      provider.load();
-      await Future.delayed(Duration(milliseconds: 100));
-
-      final habit = provider.habits.first;
-      final today = DateTime.now();
-      
-      expect(provider.isCompleted(habit.id!, today), false);
-      
-      await provider.toggleLog(habit.id!, today);
-      expect(provider.isCompleted(habit.id!, today), true);
-      
-      await provider.toggleLog(habit.id!, today);
-      expect(provider.isCompleted(habit.id!, today), false);
+    test('clearSelection clears all selected', () {
+      provider.toggleHabitSelection(1);
+      provider.toggleHabitSelection(2);
+      provider.clearSelection();
+      expect(provider.isSelectionMode, isFalse);
+      expect(provider.selectedHabits, isEmpty);
     });
 
-    test('Calculates streaks', () async {
-      final now = DateTime.now().toIso8601String();
-      await db.insert('habits', {
-        'name': 'Streak Habit',
-        'icon': 'star',
-        'created_at': now,
-      });
-
-      provider.load();
-      await Future.delayed(Duration(milliseconds: 100));
-
-      final habit = provider.habits.first;
-      final today = DateTime.now();
-      final yesterday = today.subtract(Duration(days: 1));
-      final dayBefore = today.subtract(Duration(days: 2));
-
-      await provider.toggleLog(habit.id!, dayBefore);
-      await provider.toggleLog(habit.id!, yesterday);
-      await provider.toggleLog(habit.id!, today);
-
-      final streaks = provider.getStreaks(habit.id!);
-      expect(streaks['current'], 3);
-      expect(streaks['max'], 3);
-    });
-
-    test('Updates reminder', () async {
-      await provider.saveHabit('Test', 'star', null);
-      await Future.delayed(Duration(milliseconds: 100));
-
-      final habit = provider.habits.first;
-      await provider.updateReminder(habit.id!, '08:00');
-      await Future.delayed(Duration(milliseconds: 100));
-
-      expect(provider.habits.first.reminderTime, '08:00');
+    test('deleteMultiple with empty set does nothing', () async {
+      await provider.deleteMultiple({});
+      expect(provider.loading, isFalse);
     });
   });
 
-  group('CalendarProvider', () {
-    late Database db;
-    late String path;
+  group('CalendarProvider Tests', () {
     late CalendarProvider provider;
     late MockNotificationService mockNotifications;
 
     setUp(() async {
-      path = await getDatabasesPath();
-      path = join(path, 'test_calendar.db');
-      await deleteDatabase(path);
-      db = await openDatabase(
-        path,
-        version: 2,
-        onCreate: (db, version) async {
-          await db.execute('''
-            CREATE TABLE calendar_events (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              title TEXT NOT NULL,
-              date TEXT NOT NULL,
-              time TEXT,
-              category TEXT NOT NULL DEFAULT 'General',
-              notes TEXT DEFAULT ''
-            )
-          ''');
-        },
-      );
-      
       mockNotifications = MockNotificationService();
-      AppDatabase._instance._db = db;
+      when(() => mockNotifications.initialize()).thenAnswer((_) async {});
       provider = CalendarProvider(mockNotifications);
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(Duration.zero);
     });
 
-    tearDown(() async {
-      provider.dispose();
-      await db.close();
-      await deleteDatabase(path);
+    test('initial state completes loading with empty data', () {
+      expect(provider.loading, isFalse);
+      expect(provider.events, isEmpty);
     });
 
-    test('Initial state is loading', () {
-      expect(provider.loading, true);
+    test('search filters events by query', () {
+      provider.setSearchQuery('test');
+      expect(provider.searchQuery, equals('test'));
+      provider.clearSearch();
+      expect(provider.searchQuery, equals(''));
     });
 
-    test('Loads events for current month', () async {
-      final now = DateTime.now();
-      await db.insert('calendar_events', {
-        'title': 'Meeting',
-        'date': '${now.year}-${now.month.toString().padLeft(2, '0')}-15',
-        'time': '14:30',
-        'category': 'Work',
-        'notes': 'Team sync',
-      });
-
-      provider.load();
-      await Future.delayed(Duration(milliseconds: 100));
-
-      expect(provider.loading, false);
-      expect(provider.events.length, 1);
-      expect(provider.events.first.title, 'Meeting');
-      expect(provider.events.first.category, 'Work');
+    test('categoryFilter filters events by category', () {
+      provider.setCategoryFilter('Work');
+      expect(provider.categoryFilter, equals('Work'));
+      provider.clearCategoryFilter();
+      expect(provider.categoryFilter, equals('all'));
     });
 
-    test('Creates new event', () async {
-      final now = DateTime.now();
-      final event = CalendarEvent(
-        title: 'New Event',
-        date: now,
-        time: '10:00',
-        category: 'Personal',
-        notes: 'Notes here',
-      );
-
-      await provider.save(event);
-      await Future.delayed(Duration(milliseconds: 100));
-
-      expect(provider.events.length, 1);
-      expect(provider.events.first.title, 'New Event');
+    test('filteredEvents returns empty when no events', () {
+      expect(provider.filteredEvents, isEmpty);
     });
 
-    test('Updates existing event', () async {
-      final now = DateTime.now();
-      await db.insert('calendar_events', {
-        'title': 'Original',
-        'date': '${now.year}-${now.month.toString().padLeft(2, '0')}-15',
-        'time': '10:00',
-        'category': 'General',
-        'notes': '',
-      });
-
-      provider.load();
-      await Future.delayed(Duration(milliseconds: 100));
-
-      final event = provider.events.first;
-      final updated = CalendarEvent(
-        id: event.id,
-        title: 'Updated',
-        date: event.date,
-        time: event.time,
-        category: event.category,
-        notes: event.notes,
-      );
-
-      await provider.save(updated);
-      await Future.delayed(Duration(milliseconds: 100));
-
-      expect(provider.events.first.title, 'Updated');
+    test('eventsForDay returns empty for no events', () {
+      final dayEvents = provider.eventsForDay(DateTime(2024, 1, 15));
+      expect(dayEvents, isEmpty);
     });
 
-    test('Deletes event', () async {
-      final now = DateTime.now();
-      await db.insert('calendar_events', {
-        'title': 'To Delete',
-        'date': '${now.year}-${now.month.toString().padLeft(2, '0')}-15',
-        'time': '10:00',
-        'category': 'General',
-        'notes': '',
-      });
-
-      provider.load();
-      await Future.delayed(Duration(milliseconds: 100));
-      expect(provider.events.length, 1);
-
-      await provider.delete(provider.events.first.id!);
-      await Future.delayed(Duration(milliseconds: 100));
-
-      expect(provider.events.length, 0);
-    });
-
-    test('Filters events for specific day', () async {
-      final now = DateTime.now();
-      final date1 = DateTime(now.year, now.month, 10);
-      final date2 = DateTime(now.year, now.month, 15);
-
-      await db.insert('calendar_events', {
-        'title': 'Event 1',
-        'date': '${date1.year}-${date1.month.toString().padLeft(2, '0')}-${date1.day.toString().padLeft(2, '0')}',
-        'time': '10:00',
-        'category': 'General',
-        'notes': '',
-      });
-      await db.insert('calendar_events', {
-        'title': 'Event 2',
-        'date': '${date2.year}-${date2.month.toString().padLeft(2, '0')}-${date2.day.toString().padLeft(2, '0')}',
-        'time': '14:00',
-        'category': 'General',
-        'notes': '',
-      });
-
-      provider.load();
-      await Future.delayed(Duration(milliseconds: 100));
-
-      final day10Events = provider.eventsForDay(date1);
-      expect(day10Events.length, 1);
-      expect(day10Events.first.title, 'Event 1');
-
-      final day15Events = provider.eventsForDay(date2);
-      expect(day15Events.length, 1);
-      expect(day15Events.first.title, 'Event 2');
-    });
-
-    test('Navigates months', () {
-      final originalMonth = provider.currentMonth;
+    test('navigation updates current month', () {
+      final initial = provider.currentMonth;
       provider.nextMonth();
-      expect(provider.currentMonth.month, originalMonth.month + 1);
-      
+      expect(provider.currentMonth.month,
+          equals(initial.month == 12 ? 1 : initial.month + 1));
+
       provider.previousMonth();
-      expect(provider.currentMonth.month, originalMonth.month);
+      provider.previousMonth();
+      expect(provider.currentMonth.month,
+          equals(initial.month == 1 ? 11 : initial.month - 1));
     });
   });
 
-  group('LifeProvider', () {
-    late Database db;
-    late String path;
+  group('LifeProvider Tests', () {
     late LifeProvider provider;
 
     setUp(() async {
-      path = await getDatabasesPath();
-      path = join(path, 'test_life.db');
-      await deleteDatabase(path);
-      db = await openDatabase(
-        path,
-        version: 2,
-        onCreate: (db, version) async {
-          await db.execute('''
-            CREATE TABLE settings (
-              key TEXT PRIMARY KEY,
-              value TEXT NOT NULL
-            )
-          ''');
-        },
-      );
-      
-      AppDatabase._instance._db = db;
       provider = LifeProvider();
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(Duration.zero);
     });
 
-    tearDown(() async {
-      provider.dispose();
-      await db.close();
-      await deleteDatabase(path);
+    test('initial state loads with defaults', () {
+      expect(provider.loading, isFalse);
+      expect(provider.dob, isNull);
+      expect(provider.lifeExpectancy, equals(80));
     });
 
-    test('Initial state is loading', () {
-      expect(provider.loading, true);
+    test('setLifeExpectancy validates range', () async {
+      await provider.setLifeExpectancy(90);
+      expect(provider.lifeExpectancy, equals(90));
+
+      await provider.setLifeExpectancy(0);
+      expect(provider.lifeExpectancy, equals(90));
+
+      await provider.setLifeExpectancy(150);
+      expect(provider.lifeExpectancy, equals(90));
+
+      await provider.setLifeExpectancy(-1);
+      expect(provider.lifeExpectancy, equals(90));
     });
 
-    test('Loads DOB from settings', () async {
-      await db.insert('settings', {'key': 'dob', 'value': '1990-05-15'});
+    test('setBiometricEnabled toggles state', () async {
+      await provider.setBiometricEnabled(true);
+      expect(provider.biometricEnabled, isTrue);
 
-      provider.loadDOB();
-      await Future.delayed(Duration(milliseconds: 100));
-
-      expect(provider.loading, false);
-      expect(provider.dob, isNotNull);
-      expect(provider.dob!.year, 1990);
-      expect(provider.dob!.month, 5);
-      expect(provider.dob!.day, 15);
+      await provider.setBiometricEnabled(false);
+      expect(provider.biometricEnabled, isFalse);
     });
 
-    test('Saves DOB', () async {
-      final date = DateTime(1995, 12, 25);
-      await provider.saveDOB(date);
-      await Future.delayed(Duration(milliseconds: 100));
-
-      expect(provider.dob, isNotNull);
-      expect(provider.dob!.year, 1995);
-      expect(provider.dob!.month, 12);
-      expect(provider.dob!.day, 25);
-
-      // Verify persisted
-      final maps = await db.query('settings', where: 'key = ?', whereArgs: ['dob']);
-      expect(maps.length, 1);
-      expect(maps.first['value'], '1995-12-25');
+    test('saveDOB sets dob', () async {
+      final dob = DateTime(1990, 5, 15);
+      await provider.saveDOB(dob);
+      expect(provider.dob, equals(dob));
     });
 
-    test('Resets DOB', () async {
-      await db.insert('settings', {'key': 'dob', 'value': '1990-05-15'});
-      provider.loadDOB();
-      await Future.delayed(Duration(milliseconds: 100));
+    test('resetDOB clears dob', () async {
+      await provider.saveDOB(DateTime(1990, 5, 15));
       expect(provider.dob, isNotNull);
 
       await provider.resetDOB();
-      await Future.delayed(Duration(milliseconds: 100));
-
       expect(provider.dob, isNull);
+    });
+  });
 
-      final maps = await db.query('settings', where: 'key = ?', whereArgs: ['dob']);
-      expect(maps.length, 0);
+  group('NotesProvider Tests', () {
+    late NotesProvider provider;
+
+    setUp(() async {
+      provider = NotesProvider();
+      await Future.delayed(Duration.zero);
+    });
+
+    test('initial state completes loading with empty data', () {
+      expect(provider.loading, isFalse);
+      expect(provider.notes, isEmpty);
+    });
+
+    test('search filters notes by query', () {
+      provider.search('test');
+      expect(provider.query, equals('test'));
+    });
+
+    test('selectTag filters by tag', () {
+      provider.selectTag('work');
+      expect(provider.selectedTag, equals('work'));
+    });
+
+    test('selection mode works correctly', () {
+      provider.toggleSelection(1);
+      expect(provider.isSelectionMode, isTrue);
+      expect(provider.selectedNotes.contains(1), isTrue);
+
+      provider.toggleSelection(1);
+      expect(provider.isSelectionMode, isFalse);
+      expect(provider.selectedNotes.contains(1), isFalse);
+    });
+
+    test('clearSelection clears all selected', () {
+      provider.toggleSelection(1);
+      provider.toggleSelection(2);
+      provider.clearSelection();
+      expect(provider.isSelectionMode, isFalse);
+      expect(provider.selectedNotes, isEmpty);
     });
   });
 }

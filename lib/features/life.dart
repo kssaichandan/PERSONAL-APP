@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:local_auth/local_auth.dart';
 import '../database.dart';
 import '../utils/snackbar_utils.dart';
-import '../services/biometric_service.dart';
 
 class LifeProvider extends ChangeNotifier {
   DateTime? _dob;
@@ -36,12 +35,23 @@ class LifeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _loadBiometricSetting() async {
+  Future<void> _loadLifeExpectancy() async {
     try {
       final db = await AppDatabase.instance.database;
       final maps = await db.query('settings', where: 'key = ?', whereArgs: ['life_expectancy']);
       if (maps.isNotEmpty) {
         _lifeExpectancy = int.parse(maps.first['value'] as String);
+      }
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  Future<void> _loadBiometricSetting() async {
+    try {
+      final db = await AppDatabase.instance.database;
+      final maps = await db.query('settings', where: 'key = ?', whereArgs: ['biometric_enabled']);
+      if (maps.isNotEmpty) {
+        _biometricEnabled = maps.first['value'] == 'true';
       }
     } catch (_) {}
     notifyListeners();
@@ -68,17 +78,6 @@ class LifeProvider extends ChangeNotifier {
         showErrorSnackBar(context, 'Failed to save life expectancy');
       }
     }
-  }
-
-  Future<void> _loadBiometricSetting() async {
-    try {
-      final db = await AppDatabase.instance.database;
-      final maps = await db.query('settings', where: 'key = ?', whereArgs: ['biometric_enabled']);
-      if (maps.isNotEmpty) {
-        _biometricEnabled = maps.first['value'] == 'true';
-      }
-    } catch (_) {}
-    notifyListeners();
   }
 
   Future<void> setBiometricEnabled(bool enabled, [BuildContext? context]) async {
@@ -156,10 +155,24 @@ class LifeProvider extends ChangeNotifier {
       }
     }
   }
-}
 
-/// A stream that emits the current time every second
-Stream<DateTime> _tickStream() => Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now());
+  Future<bool> authenticate() async {
+    if (!_biometricEnabled || !_biometricsAvailable) return true;
+    final auth = LocalAuthentication();
+    try {
+      return await auth.authenticate(
+        localizedReason: 'Authenticate to view Life Tracker',
+        options: const AuthenticationOptions(
+          biometricOnly: true,
+          useErrorDialogs: true,
+          stickyAuth: true,
+        ),
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+}
 
 class LifeScreen extends StatelessWidget {
   const LifeScreen({super.key});
@@ -230,7 +243,84 @@ class LifeScreen extends StatelessWidget {
 
     return _LifeScreenContent(dob: dob, expectedYears: expectedYears, provider: provider);
   }
+
+  Future<void> _pickDate(BuildContext context, LifeProvider provider) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: provider.dob ?? DateTime(2000, 1, 1),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && context.mounted) {
+      await provider.saveDOB(picked, context);
+    }
+  }
 }
+
+class _BiometricGuard extends StatefulWidget {
+  final Widget child;
+  const _BiometricGuard({required this.child});
+
+  @override
+  State<_BiometricGuard> createState() => _BiometricGuardState();
+}
+
+class _BiometricGuardState extends State<_BiometricGuard> {
+  bool _authenticated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _authenticate();
+  }
+
+  Future<void> _authenticate() async {
+    final provider = context.read<LifeProvider>();
+    final authenticated = await provider.authenticate();
+    if (mounted) {
+      setState(() => _authenticated = authenticated);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_authenticated) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text('Authenticating...', style: Theme.of(context).textTheme.bodyLarge),
+            ],
+          ),
+        ),
+      );
+    }
+    return widget.child;
+  }
+}
+
+class _LifeScreenContent extends StatelessWidget {
+  final DateTime dob;
+  final int expectedYears;
+  final LifeProvider provider;
+
+  const _LifeScreenContent({
+    required this.dob,
+    required this.expectedYears,
+    required this.provider,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dob = this.dob;
+    final expectedYears = this.expectedYears;
+    final provider = this.provider;
+
+    return Scaffold(
       appBar: AppBar(
         title: Text('Life Journey', style: theme.textTheme.titleLarge),
         actions: [
@@ -247,7 +337,7 @@ class LifeScreen extends StatelessWidget {
         ],
       ),
       body: StreamBuilder<DateTime>(
-        stream: _tickStream(),
+        stream: Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now()),
         initialData: DateTime.now(),
         builder: (context, snapshot) {
           final now = snapshot.data!;
@@ -285,18 +375,21 @@ class LifeScreen extends StatelessWidget {
                       children: [
                         Text('TIME ELAPSED SINCE BIRTH', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: theme.colorScheme.primary)),
                         const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Text('$years', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
-                            Text(' yrs  ', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                            Text('$months', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
-                            Text(' mos  ', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                            Text('$days', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
-                            Text(' days', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                          ],
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text('$years', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
+                              Text(' yrs  ', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                              Text('$months', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
+                              Text(' mos  ', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                              Text('$days', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
+                              Text(' days', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -333,7 +426,7 @@ class LifeScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Based on an average life expectancy of $expectedYears years.',
+                          'Based on an average life expectancy of \$expectedYears years.',
                           style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                           textAlign: TextAlign.center,
                         ),
@@ -402,7 +495,9 @@ class LifeScreen extends StatelessWidget {
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
     );
-    if (picked != null) await provider.saveDOB(picked, context);
+    if (picked != null && context.mounted) {
+      await provider.saveDOB(picked, context);
+    }
   }
 
   Future<void> _confirmReset(BuildContext context, LifeProvider provider) async {
@@ -440,6 +535,7 @@ class _MetricCard extends StatelessWidget {
       label: '$title: $value',
       child: Card(
         elevation: 0,
+        color: color.withValues(alpha: 0.08),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -453,7 +549,7 @@ class _MetricCard extends StatelessWidget {
                   Icon(icon, color: color, size: 18),
                 ],
               ),
-              Text(value, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+              Text(value, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: color)),
             ],
           ),
         ),
@@ -461,83 +557,3 @@ class _MetricCard extends StatelessWidget {
     );
   }
 }
-
-class _BiometricGuard extends StatefulWidget {
-  final Widget child;
-  const _BiometricGuard({required this.child});
-
-  @override
-  State<_BiometricGuard> createState() => _BiometricGuardState();
-}
-
-class _BiometricGuardState extends State<_BiometricGuard> {
-  bool _authenticated = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _authenticate();
-  }
-
-  Future<void> _authenticate() async {
-    final provider = context.read<LifeProvider>();
-    final authenticated = await provider.authenticate();
-    if (mounted) {
-      setState(() => _authenticated = authenticated);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!_authenticated) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              Text('Authenticating...', style: Theme.of(context).textTheme.bodyLarge),
-            ],
-          ),
-        ),
-      );
-    }
-    return widget.child;
-  }
-}
-
-class _LifeScreenContent extends StatelessWidget {
-  final DateTime dob;
-  final int expectedYears;
-  final LifeProvider provider;
-
-  const _LifeScreenContent({
-    required this.dob,
-    required this.expectedYears,
-    required this.provider,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Life Journey', style: theme.textTheme.titleLarge),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_backup_restore_rounded),
-            tooltip: 'Reset date of birth',
-            onPressed: () => _confirmReset(context, provider),
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit_calendar_rounded),
-            tooltip: 'Change date of birth',
-            onPressed: () => _pickDate(context, provider),
-          ),
-        ],
-      ),
-      body: StreamBuilder<DateTime>(
-        stream: _tickStream(),
-        initialData: DateTime.now(),
-        builder: (context, snapshot) {

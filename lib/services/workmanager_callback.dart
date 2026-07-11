@@ -47,20 +47,22 @@ Future<bool> _rescheduleAllNotifications() async {
       if (time == null) continue;
       
       final parts = time.split(':');
+      final eventDate = DateTime.parse(event['date'] as String);
       final scheduled = DateTime(
-        DateTime.parse(event['date'] as String).year,
-        DateTime.parse(event['date'] as String).month,
-        DateTime.parse(event['date'] as String).day,
+        eventDate.year,
+        eventDate.month,
+        eventDate.day,
         int.parse(parts[0]),
         int.parse(parts[1]),
       );
       
       if (scheduled.isAfter(now)) {
+        final notes = event['notes'] as String?;
         await notificationService.zonedSchedule(
           event['id'] as int,
           event['title'] as String,
-          event['notes']?.isNotEmpty == true 
-            ? event['notes'] as String 
+          (notes != null && notes.isNotEmpty) 
+            ? notes 
             : 'Reminder for your scheduled event',
           tz.TZDateTime.from(scheduled, tz.local),
           const NotificationDetails(

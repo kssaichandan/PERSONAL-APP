@@ -121,6 +121,9 @@ class NotesProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void selectAllNotes() => selectAll();
+  void toggleNoteSelection(int noteId) => toggleSelection(noteId);
+
   Future<void> load() async {
     _loading = true;
     _error = null;
@@ -294,6 +297,26 @@ class NotesScreen extends StatelessWidget {
                   ),
                 ),
               Expanded(child: _buildGrid(context, provider)),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildGrid(BuildContext context, NotesProvider provider) {
+    final theme = Theme.of(context);
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: isLandscape ? 250 : 300,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: isLandscape ? 1.2 : 0.85,
+      ),
+      itemCount: provider.notes.length,
+      itemBuilder: (context, i) {
         final note = provider.notes[i];
         final color = Color(note.color);
         final isDarkNote = color.computeLuminance() < 0.5;
@@ -317,21 +340,21 @@ class NotesScreen extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-Expanded(
-                        child: Tooltip(
-                          message: note.title.isEmpty ? 'Untitled' : note.title,
-                          child: Text(
-                            note.title.isEmpty ? 'Untitled' : note.title,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: isDarkNote ? Colors.white : Colors.black,
+                          Expanded(
+                            child: Tooltip(
+                              message: note.title.isEmpty ? 'Untitled' : note.title,
+                              child: Text(
+                                note.title.isEmpty ? 'Untitled' : note.title,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDarkNote ? Colors.white : Colors.black,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ),
                           if (note.pinned)
                             Icon(Icons.push_pin, size: 14, color: isDarkNote ? Colors.white70 : Colors.black54),
                           if (!provider.isSelectionMode)

@@ -1,13 +1,13 @@
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'database.dart';
-import 'features/notes.dart';
-import 'features/habits.dart';
-import 'features/calendar.dart';
-import 'features/calculator.dart';
-import 'features/life.dart';
-import 'services/notification_service.dart';
+import 'package:personal_app/database.dart';
+import 'package:personal_app/features/notes.dart';
+import 'package:personal_app/features/habits.dart';
+import 'package:personal_app/features/calendar.dart';
+import 'package:personal_app/features/calculator.dart';
+import 'package:personal_app/features/life.dart';
+import 'package:personal_app/services/notification_service.dart';
 
 final serviceLocator = GetIt.instance;
 
