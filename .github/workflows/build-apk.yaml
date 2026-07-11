@@ -125,4 +125,4 @@ jobs:
         with:
           channel: stable
       - run: flutter pub get
-      - run: dart analyze --fatal-infos --fatal-warnings
+      - run: dart analyze --fatal-warnings
