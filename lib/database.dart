@@ -1,5 +1,26 @@
 import 'package:sqflite/sqflite.dart';
 
+/// Database migration strategy and version history:
+///
+/// Version 1 (Initial): Basic tables for notes, calendar_events, calculator_history
+/// Version 2: Added habits, habit_logs, settings tables. Added color/tags to notes, category to calendar_events
+/// Version 3: Added recurrence support to calendar_events (recurrence, recurrence_end columns)
+/// Version 4: Added display_order column to habits for reordering
+///
+/// Migration Strategy:
+/// - Use ALTER TABLE for additive schema changes (new columns with defaults)
+/// - Use CREATE TABLE IF NOT EXISTS for new tables (idempotent)
+/// - Wrap ALTER TABLE in try-catch to handle cases where column already exists
+/// - Always increment version number when schema changes
+/// - Test migrations by installing old version, then upgrading
+///
+/// Future migration guidelines:
+/// - For breaking changes: create new table, migrate data, drop old table
+/// - For new columns: ALTER TABLE ADD COLUMN with DEFAULT value
+/// - For new tables: CREATE TABLE IF NOT EXISTS in onUpgrade
+/// - Never delete columns in SQLite (not supported), mark as deprecated instead
+/// - Keep onUpgrade handlers idempotent (use IF NOT EXISTS, try-catch)
+
 class AppDatabase {
   static final AppDatabase _instance = AppDatabase._();
   static Database? _db;
@@ -18,7 +39,7 @@ class AppDatabase {
     final path = '$dbPath/personal_app.db';
     return openDatabase(
       path,
-      version: 2,
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE notes (
@@ -39,7 +60,9 @@ class AppDatabase {
             date TEXT NOT NULL,
             time TEXT,
             category TEXT NOT NULL DEFAULT 'General',
-            notes TEXT DEFAULT ''
+            notes TEXT DEFAULT '',
+            recurrence TEXT DEFAULT 'none',
+            recurrence_end TEXT
           )
         ''');
         await db.execute('''
@@ -56,6 +79,7 @@ class AppDatabase {
             name TEXT NOT NULL,
             icon TEXT NOT NULL DEFAULT 'star',
             reminder_time TEXT,
+            display_order INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL
           )
         ''');
@@ -122,6 +146,17 @@ class AppDatabase {
             await db.insert('habits', {'name': 'Playing', 'icon': 'sports_esports', 'created_at': now});
             await db.insert('habits', {'name': 'Exercise', 'icon': 'fitness_center', 'created_at': now});
           }
+        }
+        if (oldVersion < 3) {
+          try {
+            await db.execute("ALTER TABLE calendar_events ADD COLUMN recurrence TEXT DEFAULT 'none'");
+            await db.execute("ALTER TABLE calendar_events ADD COLUMN recurrence_end TEXT");
+          } catch (_) {}
+        }
+        if (oldVersion < 4) {
+          try {
+            await db.execute("ALTER TABLE habits ADD COLUMN display_order INTEGER NOT NULL DEFAULT 0");
+          } catch (_) {}
         }
       },
     );

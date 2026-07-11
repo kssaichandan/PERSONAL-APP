@@ -1,17 +1,107 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:local_auth/local_auth.dart';
 import '../database.dart';
+import '../utils/snackbar_utils.dart';
+import '../services/biometric_service.dart';
 
 class LifeProvider extends ChangeNotifier {
   DateTime? _dob;
   bool _loading = true;
+  int _lifeExpectancy = 80;
+  bool _biometricEnabled = false;
+  bool _biometricsAvailable = true;
 
   DateTime? get dob => _dob;
   bool get loading => _loading;
+  int get lifeExpectancy => _lifeExpectancy;
+  bool get biometricEnabled => _biometricEnabled;
+  bool get biometricsAvailable => _biometricsAvailable;
 
-  LifeProvider() { loadDOB(); }
+  LifeProvider() { 
+    loadDOB();
+    _loadLifeExpectancy();
+    _loadBiometricSetting();
+    _checkBiometricsAvailable();
+  }
+
+  Future<void> _checkBiometricsAvailable() async {
+    try {
+      final auth = LocalAuthentication();
+      _biometricsAvailable = await auth.canCheckBiometrics && await auth.isDeviceSupported();
+    } catch (_) {
+      _biometricsAvailable = false;
+    }
+    notifyListeners();
+  }
+
+  Future<void> _loadBiometricSetting() async {
+    try {
+      final db = await AppDatabase.instance.database;
+      final maps = await db.query('settings', where: 'key = ?', whereArgs: ['life_expectancy']);
+      if (maps.isNotEmpty) {
+        _lifeExpectancy = int.parse(maps.first['value'] as String);
+      }
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  Future<void> setLifeExpectancy(int years, [BuildContext? context]) async {
+    if (years < 1 || years > 120) return;
+    _lifeExpectancy = years;
+    try {
+      final db = await AppDatabase.instance.database;
+      final maps = await db.query('settings', where: 'key = ?', whereArgs: ['life_expectancy']);
+      if (maps.isEmpty) {
+        await db.insert('settings', {'key': 'life_expectancy', 'value': years.toString()});
+      } else {
+        await db.update('settings', {'value': years.toString()}, where: 'key = ?', whereArgs: ['life_expectancy']);
+      }
+      notifyListeners();
+      if (context != null && context.mounted) {
+        showSuccessSnackBar(context, 'Life expectancy updated');
+      }
+    } catch (e) {
+      debugLog('Failed to save life expectancy: $e');
+      if (context != null && context.mounted) {
+        showErrorSnackBar(context, 'Failed to save life expectancy');
+      }
+    }
+  }
+
+  Future<void> _loadBiometricSetting() async {
+    try {
+      final db = await AppDatabase.instance.database;
+      final maps = await db.query('settings', where: 'key = ?', whereArgs: ['biometric_enabled']);
+      if (maps.isNotEmpty) {
+        _biometricEnabled = maps.first['value'] == 'true';
+      }
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  Future<void> setBiometricEnabled(bool enabled, [BuildContext? context]) async {
+    _biometricEnabled = enabled;
+    try {
+      final db = await AppDatabase.instance.database;
+      final maps = await db.query('settings', where: 'key = ?', whereArgs: ['biometric_enabled']);
+      if (maps.isEmpty) {
+        await db.insert('settings', {'key': 'biometric_enabled', 'value': enabled.toString()});
+      } else {
+        await db.update('settings', {'value': enabled.toString()}, where: 'key = ?', whereArgs: ['biometric_enabled']);
+      }
+      notifyListeners();
+      if (context != null && context.mounted) {
+        showSuccessSnackBar(context, enabled ? 'Biometric lock enabled' : 'Biometric lock disabled');
+      }
+    } catch (e) {
+      debugLog('Failed to save biometric setting: $e');
+      if (context != null && context.mounted) {
+        showErrorSnackBar(context, 'Failed to save biometric setting');
+      }
+    }
+  }
 
   Future<void> loadDOB() async {
     _loading = true;
@@ -20,12 +110,14 @@ class LifeProvider extends ChangeNotifier {
       final db = await AppDatabase.instance.database;
       final maps = await db.query('settings', where: 'key = ?', whereArgs: ['dob']);
       if (maps.isNotEmpty) _dob = DateTime.parse(maps.first['value'] as String);
-    } catch (_) {}
+    } catch (e) {
+      debugLog('Failed to load DOB: $e');
+    }
     _loading = false;
     notifyListeners();
   }
 
-  Future<void> saveDOB(DateTime date) async {
+  Future<void> saveDOB(DateTime date, [BuildContext? context]) async {
     try {
       final db = await AppDatabase.instance.database;
       final val = DateFormat('yyyy-MM-dd').format(date);
@@ -37,42 +129,40 @@ class LifeProvider extends ChangeNotifier {
       }
       _dob = DateTime(date.year, date.month, date.day);
       notifyListeners();
-    } catch (_) {}
+      if (context != null && context.mounted) {
+        showSuccessSnackBar(context, 'Date of birth saved');
+      }
+    } catch (e) {
+      debugLog('Failed to save DOB: $e');
+      if (context != null && context.mounted) {
+        showErrorSnackBar(context, 'Failed to save date of birth');
+      }
+    }
   }
 
-  Future<void> resetDOB() async {
+  Future<void> resetDOB([BuildContext? context]) async {
     try {
       final db = await AppDatabase.instance.database;
       await db.delete('settings', where: 'key = ?', whereArgs: ['dob']);
       _dob = null;
       notifyListeners();
-    } catch (_) {}
+      if (context != null && context.mounted) {
+        showSuccessSnackBar(context, 'Date of birth reset');
+      }
+    } catch (e) {
+      debugLog('Failed to reset DOB: $e');
+      if (context != null && context.mounted) {
+        showErrorSnackBar(context, 'Failed to reset date of birth');
+      }
+    }
   }
 }
 
-class LifeScreen extends StatefulWidget {
+/// A stream that emits the current time every second
+Stream<DateTime> _tickStream() => Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now());
+
+class LifeScreen extends StatelessWidget {
   const LifeScreen({super.key});
-
-  @override
-  State<LifeScreen> createState() => _LifeScreenState();
-}
-
-class _LifeScreenState extends State<LifeScreen> {
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) setState(() {});
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -129,28 +219,308 @@ class _LifeScreenState extends State<LifeScreen> {
     }
 
     final dob = provider.dob!;
-    final now = DateTime.now();
-    final difference = now.difference(dob);
-    int years = now.year - dob.year;
-    int months = now.month - dob.month;
-    int days = now.day - dob.day;
-    if (days < 0) {
-      months--;
-      final prevMonth = DateTime(now.year, now.month, 0);
-      days += prevMonth.day;
+    final expectedYears = provider.lifeExpectancy;
+
+    // Check biometric lock
+    if (provider.biometricEnabled) {
+      return _BiometricGuard(
+        child: _LifeScreenContent(dob: dob, expectedYears: expectedYears, provider: provider),
+      );
     }
-    if (months < 0) { years--; months += 12; }
 
-    final totalDays = difference.inDays;
-    final totalHours = difference.inHours;
-    final totalMinutes = difference.inMinutes;
-    final totalSeconds = difference.inSeconds;
-    final totalMillis = difference.inMilliseconds;
-    const expectedYears = 80;
-    const totalExpectedDays = expectedYears * 365.25;
-    final lifePercentage = (totalDays / totalExpectedDays) * 100;
-    final formattedPercentage = lifePercentage.toStringAsFixed(2);
+    return _LifeScreenContent(dob: dob, expectedYears: expectedYears, provider: provider);
+  }
+}
+      appBar: AppBar(
+        title: Text('Life Journey', style: theme.textTheme.titleLarge),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_backup_restore_rounded),
+            tooltip: 'Reset date of birth',
+            onPressed: () => _confirmReset(context, provider),
+          ),
+          IconButton(
+            icon: const Icon(Icons.edit_calendar_rounded),
+            tooltip: 'Change date of birth',
+            onPressed: () => _pickDate(context, provider),
+          ),
+        ],
+      ),
+      body: StreamBuilder<DateTime>(
+        stream: _tickStream(),
+        initialData: DateTime.now(),
+        builder: (context, snapshot) {
+          final now = snapshot.data!;
+          final difference = now.difference(dob);
+          int years = now.year - dob.year;
+          int months = now.month - dob.month;
+          int days = now.day - dob.day;
+          if (days < 0) {
+            months--;
+            final prevMonth = DateTime(now.year, now.month, 0);
+            days += prevMonth.day;
+          }
+          if (months < 0) { years--; months += 12; }
 
+          final totalDays = difference.inDays;
+          final totalHours = difference.inHours;
+          final totalMinutes = difference.inMinutes;
+          final totalSeconds = difference.inSeconds;
+          final totalMillis = difference.inMilliseconds;
+          final totalExpectedDays = expectedYears * 365.25;
+          final lifePercentage = (totalDays / totalExpectedDays) * 100;
+          final formattedPercentage = lifePercentage.toStringAsFixed(2);
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Card(
+                  elevation: 0,
+                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        Text('TIME ELAPSED SINCE BIRTH', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: theme.colorScheme.primary)),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text('$years', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
+                            Text(' yrs  ', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                            Text('$months', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
+                            Text(' mos  ', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                            Text('$days', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
+                            Text(' days', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Born on ${DateFormat('MMMM d, yyyy').format(dob)}',
+                          style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Card(
+                  elevation: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Life Progress Meter', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                            Text('$formattedPercentage%', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: (lifePercentage / 100).clamp(0.0, 1.0),
+                            minHeight: 14,
+                            backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                            valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Based on an average life expectancy of $expectedYears years.',
+                          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text('REAL-TIME LIFE METRICS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1, color: theme.colorScheme.outline)),
+                const SizedBox(height: 8),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final crossAxisCount = constraints.maxWidth < 400 ? 1 : 2;
+                    final childAspectRatio = crossAxisCount == 1 ? 3.0 : 1.4;
+                    return GridView.count(
+                      crossAxisCount: crossAxisCount,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      childAspectRatio: childAspectRatio,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      children: [
+                        _MetricCard(title: 'Total Days', value: NumberFormat.compact().format(totalDays), icon: Icons.today_rounded, color: Colors.teal),
+                        _MetricCard(title: 'Total Hours', value: NumberFormat.compact().format(totalHours), icon: Icons.watch_later_rounded, color: Colors.blue),
+                        _MetricCard(title: 'Total Minutes', value: NumberFormat.compact().format(totalMinutes), icon: Icons.timer_rounded, color: Colors.indigo),
+                        _MetricCard(title: 'Total Seconds', value: NumberFormat.compact().format(totalSeconds), icon: Icons.hourglass_full_rounded, color: Colors.amber.shade800),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                Card(
+                  elevation: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.bolt, color: Colors.purple),
+                            SizedBox(width: 8),
+                            Text('Ticking milliseconds:', style: TextStyle(fontSize: 12)),
+                          ],
+                        ),
+                        Text(
+                          NumberFormat('#,###').format(totalMillis),
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.purple),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _pickDate(BuildContext context, LifeProvider provider) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: provider.dob ?? DateTime(2000, 1, 1),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) await provider.saveDOB(picked, context);
+  }
+
+  Future<void> _confirmReset(BuildContext context, LifeProvider provider) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reset DOB'),
+        content: const Text('Are you sure you want to delete your Date of Birth? This will reset the Life Tracker.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Reset', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      await provider.resetDOB(context);
+    }
+  }
+}
+
+class _MetricCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+  const _MetricCard({required this.title, required this.value, required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      label: '$title: $value',
+      child: Card(
+        elevation: 0,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(title, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                  Icon(icon, color: color, size: 18),
+                ],
+              ),
+              Text(value, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BiometricGuard extends StatefulWidget {
+  final Widget child;
+  const _BiometricGuard({required this.child});
+
+  @override
+  State<_BiometricGuard> createState() => _BiometricGuardState();
+}
+
+class _BiometricGuardState extends State<_BiometricGuard> {
+  bool _authenticated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _authenticate();
+  }
+
+  Future<void> _authenticate() async {
+    final provider = context.read<LifeProvider>();
+    final authenticated = await provider.authenticate();
+    if (mounted) {
+      setState(() => _authenticated = authenticated);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_authenticated) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text('Authenticating...', style: Theme.of(context).textTheme.bodyLarge),
+            ],
+          ),
+        ),
+      );
+    }
+    return widget.child;
+  }
+}
+
+class _LifeScreenContent extends StatelessWidget {
+  final DateTime dob;
+  final int expectedYears;
+  final LifeProvider provider;
+
+  const _LifeScreenContent({
+    required this.dob,
+    required this.expectedYears,
+    required this.provider,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text('Life Journey', style: theme.textTheme.titleLarge),
@@ -167,182 +537,7 @@ class _LifeScreenState extends State<LifeScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Card(
-              elevation: 0,
-              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    Text('TIME ELAPSED SINCE BIRTH', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: theme.colorScheme.primary)),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text('$years', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
-                        Text(' yrs  ', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                        Text('$months', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
-                        Text(' mos  ', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                        Text('$days', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
-                        Text(' days', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Born on ${DateFormat('MMMM d, yyyy').format(dob)}',
-                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                    )
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              elevation: 0,
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Life Progress Meter', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                        Text('$formattedPercentage%', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: LinearProgressIndicator(
-                        value: (lifePercentage / 100).clamp(0.0, 1.0),
-                        minHeight: 14,
-                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                        valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Based on an average life expectancy of $expectedYears years.',
-                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text('REAL-TIME LIFE METRICS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1, color: theme.colorScheme.outline)),
-            const SizedBox(height: 8),
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 1.4,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              children: [
-                _MetricCard(title: 'Total Days', value: NumberFormat('#,###').format(totalDays), icon: Icons.today_rounded, color: Colors.teal),
-                _MetricCard(title: 'Total Hours', value: NumberFormat('#,###').format(totalHours), icon: Icons.watch_later_rounded, color: Colors.blue),
-                _MetricCard(title: 'Total Minutes', value: NumberFormat('#,###').format(totalMinutes), icon: Icons.timer_rounded, color: Colors.indigo),
-                _MetricCard(title: 'Total Seconds', value: NumberFormat('#,###').format(totalSeconds), icon: Icons.hourglass_full_rounded, color: Colors.amber.shade800),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Card(
-              elevation: 0,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.bolt, color: Colors.purple),
-                        SizedBox(width: 8),
-                        Text('Ticking milliseconds:', style: TextStyle(fontSize: 12)),
-                      ],
-                    ),
-                    Text(
-                      NumberFormat('#,###').format(totalMillis),
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.purple),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _pickDate(BuildContext context, LifeProvider provider) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: provider.dob ?? DateTime(2000, 1, 1),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null) await provider.saveDOB(picked);
-  }
-
-  void _confirmReset(BuildContext context, LifeProvider provider) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Reset DOB'),
-        content: const Text('Are you sure you want to delete your Date of Birth? This will reset the Life Tracker.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              provider.resetDOB();
-              Navigator.pop(ctx);
-            },
-            child: const Text('Reset', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MetricCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
-  const _MetricCard({required this.title, required this.value, required this.icon, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(title, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                Icon(icon, color: color, size: 18),
-              ],
-            ),
-            Text(value, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ),
-    );
-  }
-}
+      body: StreamBuilder<DateTime>(
+        stream: _tickStream(),
+        initialData: DateTime.now(),
+        builder: (context, snapshot) {

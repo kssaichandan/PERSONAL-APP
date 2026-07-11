@@ -4,4 +4,16 @@ linter:
   rules:
     prefer_const_constructors: true
     prefer_const_declarations: true
-    avoid_print: false
+    avoid_print: true
+    prefer_final_locals: true
+    prefer_final_fields: true
+    avoid_unused_constructor_parameters: true
+    no_leading_underscores_for_local_identifiers: true
+    always_specify_types: true
+    avoid_returning_null_for_void: true
+    avoid_relative_lib_imports: true
+    avoid_slow_async_io: true
+    cancel_subscriptions: true
+    close_sinks: true
+    control_flow_in_finally: true
+    unawaited_futures: true

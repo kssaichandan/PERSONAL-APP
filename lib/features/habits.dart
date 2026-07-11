@@ -5,7 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:timezone/timezone.dart' as tz;
 import '../database.dart';
-final notifications = FlutterLocalNotificationsPlugin();
+import '../services/notification_service.dart';
+import '../utils/snackbar_utils.dart';
 
 class Habit {
   final int? id;
@@ -13,8 +14,9 @@ class Habit {
   final String icon;
   final String? reminderTime;
   final DateTime createdAt;
+  final int displayOrder;
 
-  Habit({this.id, required this.name, required this.icon, this.reminderTime, required this.createdAt});
+  Habit({this.id, required this.name, required this.icon, this.reminderTime, required this.createdAt, this.displayOrder = 0});
 
   Map<String, dynamic> toMap() => {
     'id': id,
@@ -22,6 +24,7 @@ class Habit {
     'icon': icon,
     'reminder_time': reminderTime,
     'created_at': createdAt.toIso8601String(),
+    'display_order': displayOrder,
   };
 
   factory Habit.fromMap(Map<String, dynamic> m) => Habit(
@@ -30,6 +33,7 @@ class Habit {
     icon: m['icon'] ?? 'star',
     reminderTime: m['reminder_time'],
     createdAt: DateTime.parse(m['created_at']),
+    displayOrder: m['display_order'] ?? 0,
   );
 }
 
@@ -38,12 +42,16 @@ class HabitsProvider extends ChangeNotifier {
   final Map<int, Set<String>> _habitLogsByHabitId = {};
   bool _loading = true;
   String? _error;
+  final NotificationService _notificationService;
+  final Set<int> _selectedHabits = {};
 
   List<Habit> get habits => _habits;
   bool get loading => _loading;
   String? get error => _error;
+  Set<int> get selectedHabits => _selectedHabits;
+  bool get isSelectionMode => _selectedHabits.isNotEmpty;
 
-  HabitsProvider() { load(); }
+  HabitsProvider(this._notificationService) { load(); }
 
   Future<void> load() async {
     _loading = true;
@@ -51,7 +59,7 @@ class HabitsProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final db = await AppDatabase.instance.database;
-      final habitMaps = await db.query('habits', orderBy: 'created_at ASC');
+      final habitMaps = await db.query('habits', orderBy: 'display_order ASC, created_at ASC');
       _habits = habitMaps.map((m) => Habit.fromMap(m)).toList();
       final logMaps = await db.query('habit_logs');
       _habitLogsByHabitId.clear();
@@ -72,7 +80,7 @@ class HabitsProvider extends ChangeNotifier {
     return _habitLogsByHabitId[habitId]?.contains(dateStr) ?? false;
   }
 
-  Future<void> toggleLog(int habitId, DateTime date) async {
+  Future<void> toggleLog(int habitId, DateTime date, [BuildContext? context]) async {
     final dateStr = DateFormat('yyyy-MM-dd').format(date);
     try {
       final db = await AppDatabase.instance.database;
@@ -85,39 +93,187 @@ class HabitsProvider extends ChangeNotifier {
         _habitLogsByHabitId.putIfAbsent(habitId, () => {}).add(dateStr);
       }
       notifyListeners();
-    } catch (_) {}
+    } catch (e) {
+      debugLog('Failed to toggle habit log: $e');
+      if (context != null && context.mounted) {
+        showErrorSnackBar(context, 'Failed to update habit');
+      }
+    }
   }
 
-  Future<void> saveHabit(String name, String icon, String? reminderTime) async {
+  Future<void> saveHabit(String name, String icon, String? reminderTime, [BuildContext? context]) async {
     try {
       final db = await AppDatabase.instance.database;
-      final habit = Habit(name: name, icon: icon, reminderTime: reminderTime, createdAt: DateTime.now());
+      // Get max display_order
+      final maxOrderResult = await db.rawQuery('SELECT MAX(display_order) as max_order FROM habits');
+      final maxOrder = maxOrderResult.isNotEmpty ? (maxOrderResult.first['max_order'] as int? ?? 0) : 0;
+      
+      final habit = Habit(name: name, icon: icon, reminderTime: reminderTime, createdAt: DateTime.now(), displayOrder: maxOrder + 1);
       final id = await db.insert('habits', habit.toMap()..remove('id'));
-      final savedHabit = Habit(id: id, name: name, icon: icon, reminderTime: reminderTime, createdAt: habit.createdAt);
+      final savedHabit = Habit(id: id, name: name, icon: icon, reminderTime: reminderTime, createdAt: habit.createdAt, displayOrder: maxOrder + 1);
       if (reminderTime != null) _scheduleHabitNotification(savedHabit);
-    } catch (_) {}
+      if (context != null && context.mounted) {
+        showSuccessSnackBar(context, 'Habit created');
+      }
+    } catch (e) {
+      debugLog('Failed to save habit: $e');
+      if (context != null && context.mounted) {
+        showErrorSnackBar(context, 'Failed to create habit');
+      }
+    }
     await load();
   }
 
-  Future<void> deleteHabit(int id) async {
+  Future<void> deleteHabit(int id, [BuildContext? context]) async {
     try {
       final db = await AppDatabase.instance.database;
       await db.delete('habits', where: 'id = ?', whereArgs: [id]);
-      await notifications.cancel(1000 + id);
-    } catch (_) {}
+      await _notificationService.cancel(1000 + id);
+      if (context != null && context.mounted) {
+        showSuccessSnackBar(context, 'Habit deleted');
+      }
+    } catch (e) {
+      debugLog('Failed to delete habit: $e');
+      if (context != null && context.mounted) {
+        showErrorSnackBar(context, 'Failed to delete habit');
+      }
+    }
     await load();
   }
 
-  Future<void> updateReminder(int habitId, String? reminderTime) async {
+  Future<void> updateReminder(int habitId, String? reminderTime, [BuildContext? context]) async {
     try {
       final db = await AppDatabase.instance.database;
       final current = _habits.firstWhere((h) => h.id == habitId);
       final updated = Habit(id: current.id, name: current.name, icon: current.icon, reminderTime: reminderTime, createdAt: current.createdAt);
       await db.update('habits', updated.toMap(), where: 'id = ?', whereArgs: [habitId]);
-      await notifications.cancel(1000 + habitId);
+      await _notificationService.cancel(1000 + habitId);
       if (reminderTime != null) _scheduleHabitNotification(updated);
-    } catch (_) {}
+      if (context != null && context.mounted) {
+        showSuccessSnackBar(context, 'Reminder updated');
+      }
+    } catch (e) {
+      debugLog('Failed to update reminder: $e');
+      if (context != null && context.mounted) {
+        showErrorSnackBar(context, 'Failed to update reminder');
+      }
+    }
     await load();
+  }
+
+  Future<void> updateHabit(int habitId, String name, String icon, String? reminderTime, [BuildContext? context]) async {
+    try {
+      final db = await AppDatabase.instance.database;
+      final current = _habits.firstWhere((h) => h.id == habitId);
+      final updated = Habit(id: current.id, name: name, icon: icon, reminderTime: reminderTime, createdAt: current.createdAt, displayOrder: current.displayOrder);
+      await db.update('habits', updated.toMap(), where: 'id = ?', whereArgs: [habitId]);
+      await _notificationService.cancel(1000 + habitId);
+      if (reminderTime != null) _scheduleHabitNotification(updated);
+      if (context != null && context.mounted) {
+        showSuccessSnackBar(context, 'Habit updated');
+      }
+    } catch (e) {
+      debugLog('Failed to update habit: $e');
+      if (context != null && context.mounted) {
+        showErrorSnackBar(context, 'Failed to update habit');
+      }
+    }
+    await load();
+  }
+
+  Future<void> reorderHabits(int oldIndex, int newIndex) async {
+    if (oldIndex < newIndex) newIndex--;
+    final habit = _habits.removeAt(oldIndex);
+    _habits.insert(newIndex, habit);
+    
+    // Update display_order in database
+    try {
+      final db = await AppDatabase.instance.database;
+      for (int i = 0; i < _habits.length; i++) {
+        final h = _habits[i];
+        if (h.displayOrder != i) {
+          await db.update('habits', {'display_order': i}, where: 'id = ?', whereArgs: [h.id]);
+        }
+      }
+    } catch (e) {
+      debugLog('Failed to update habit order: $e');
+    }
+    
+    notifyListeners();
+  }
+
+  // Selection mode methods
+  void toggleHabitSelection(int habitId) {
+    if (_selectedHabits.contains(habitId)) {
+      _selectedHabits.remove(habitId);
+    } else {
+      _selectedHabits.add(habitId);
+    }
+    notifyListeners();
+  }
+
+  void clearHabitSelection() {
+    _selectedHabits.clear();
+    notifyListeners();
+  }
+
+  void selectAllHabits() {
+    _selectedHabits.addAll(_habits.map((h) => h.id!).toSet());
+    notifyListeners();
+  }
+
+  Future<void> deleteMultipleHabits(Set<int> ids, [BuildContext? context]) async {
+    try {
+      final db = await AppDatabase.instance.database;
+      for (final id in ids) {
+        await db.delete('habits', where: 'id = ?', whereArgs: [id]);
+        await _notificationService.cancel(1000 + id);
+      }
+      _selectedHabits.clear();
+      if (context != null && context.mounted) {
+        showSuccessSnackBar(context, '${ids.length} habits deleted');
+      }
+    } catch (e) {
+      debugLog('Failed to delete habits: $e');
+      if (context != null && context.mounted) {
+        showErrorSnackBar(context, 'Failed to delete habits');
+      }
+      return;
+    }
+    await load();
+  }
+
+  // Selection mode methods
+  void toggleHabitSelection(int habitId) {
+    if (_selectedHabits.contains(habitId)) {
+      _selectedHabits.remove(habitId);
+    } else {
+      _selectedHabits.add(habitId);
+    }
+    notifyListeners();
+  }
+
+  void clearHabitSelection() {
+    _selectedHabits.clear();
+    notifyListeners();
+  }
+
+  void selectAllHabits() {
+    _selectedHabits.addAll(_habits.map((h) => h.id!).toSet());
+    notifyListeners();
+  }
+
+  void _scheduleHabitNotification(Habit habit) {
+        final h = _habits[i];
+        if (h.displayOrder != i) {
+          await db.update('habits', {'display_order': i}, where: 'id = ?', whereArgs: [h.id]);
+        }
+      }
+    } catch (e) {
+      debugLog('Failed to update habit order: $e');
+    }
+    
+    notifyListeners();
   }
 
   void _scheduleHabitNotification(Habit habit) {
@@ -125,7 +281,7 @@ class HabitsProvider extends ChangeNotifier {
     final parts = habit.reminderTime!.split(':');
     final hour = int.parse(parts[0]);
     final minute = int.parse(parts[1]);
-    unawaited(notifications.zonedSchedule(
+    unawaited(_notificationService.zonedSchedule(
       1000 + habit.id!,
       'Habit Reminder: ${habit.name}',
       'Time to complete your habit! Tap to log it.',
@@ -245,55 +401,121 @@ class _HabitsScreenState extends State<HabitsScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (provider.isSelectionMode)
+                Container(
+                  color: theme.colorScheme.primaryContainer,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      Text('${provider.selectedHabits.length} selected', style: theme.textTheme.titleMedium),
+                      const Spacer(),
+                      TextButton.icon(
+                        icon: const Icon(Icons.select_all_rounded),
+                        label: const Text('Select All'),
+                        onPressed: () => provider.habits.forEach((h) => provider.selectedHabits.add(h.id!)),
+                      ),
+                      TextButton.icon(
+                        icon: const Icon(Icons.clear_rounded),
+                        label: const Text('Clear'),
+                        onPressed: provider.clearSelection,
+                      ),
+                      TextButton.icon(
+                        icon: Icon(Icons.delete_rounded, color: theme.colorScheme.error),
+                        label: Text('Delete', style: TextStyle(color: theme.colorScheme.error)),
+                        onPressed: () async {
+                          await provider.deleteMultiple(provider.selectedHabits, context);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
               SizedBox(
                 height: 110,
-                child: ListView.builder(
+                child: ReorderableListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: provider.habits.length,
+                  onReorder: (oldIndex, newIndex) => provider.reorderHabits(oldIndex, newIndex),
                   itemBuilder: (context, index) {
                     final h = provider.habits[index];
                     final isSel = h.id == _selectedHabit?.id;
                     final streaks = provider.getStreaks(h.id!);
                     final currentStreak = streaks['current'] ?? 0;
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedHabit = h),
-                      child: Container(
-                        width: 90,
-                        margin: const EdgeInsets.only(right: 12),
-                        decoration: BoxDecoration(
-                          color: isSel ? theme.colorScheme.primaryContainer : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: isSel ? theme.colorScheme.primary : Colors.transparent, width: 2),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(_getIconData(h.icon), color: isSel ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant),
-                            const SizedBox(height: 4),
-                            Text(
-                              h.name,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
-                                color: isSel ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.onSurfaceVariant,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            if (currentStreak > 0) ...[
-                              const SizedBox(height: 2),
-                              Row(
+return ReorderableDragStartListener(
+                      key: ValueKey(h.id),
+                      child: GestureDetector(
+                        onTap: provider.isSelectionMode
+                            ? () => provider.toggleHabitSelection(h.id!)
+                            : () => setState(() => _selectedHabit = h),
+                        onLongPress: () => provider.toggleHabitSelection(h.id!),
+                        child: Container(
+                          width: 90,
+                          margin: const EdgeInsets.only(right: 12),
+                          decoration: BoxDecoration(
+                            color: isSel || provider.selectedHabits.contains(h.id)
+                                ? theme.colorScheme.primaryContainer
+                                : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color: isSel || provider.selectedHabits.contains(h.id)
+                                    ? theme.colorScheme.primary
+                                    : Colors.transparent,
+                                width: 2),
+                          ),
+                          child: Stack(
+                            children: [
+                              Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.local_fire_department, color: Colors.orange, size: 12),
-                                  Text('$currentStreak', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange)),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.drag_indicator_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
+                                      const SizedBox(width: 4),
+                                    ],
+                                  ),
+                                  Icon(_getIconData(h.icon), color: isSel || provider.selectedHabits.contains(h.id) ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    h.name,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: isSel || provider.selectedHabits.contains(h.id) ? FontWeight.bold : FontWeight.normal,
+                                      color: isSel || provider.selectedHabits.contains(h.id) ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  if (currentStreak > 0) ...[
+                                    const SizedBox(height: 2),
+                                    Semantics(
+                                      label: 'Current streak: $currentStreak days',
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(Icons.local_fire_department, color: Colors.orange, size: 12),
+                                          Text('$currentStreak', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange)),
+                                        ],
+                                      ),
+                                    )
+                                  ]
                                 ],
-                              )
-                            ]
-                          ],
+                              ),
+                              if (provider.isSelectionMode)
+                                Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: Checkbox(
+                                    value: provider.selectedHabits.contains(h.id),
+                                    onChanged: (_) => provider.toggleHabitSelection(h.id!),
+                                    fillColor: WidgetStateProperty.resolveWith<Color>(
+                                      (states) => states.contains(WidgetState.selected) ? theme.colorScheme.primary : theme.colorScheme.surfaceContainer,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
+                      );
                   },
                 ),
               ),
@@ -323,6 +545,11 @@ class _HabitsScreenState extends State<HabitsScreen> {
                       ),
                       Row(
                         children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit_rounded),
+                            tooltip: 'Edit habit',
+                            onPressed: () => _showEditHabitDialog(context, _selectedHabit!, provider),
+                          ),
                           IconButton(
                             icon: const Icon(Icons.alarm),
                             tooltip: 'Set reminder',
@@ -424,7 +651,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
             TextButton(
               onPressed: () {
                 if (titleCtrl.text.trim().isNotEmpty) {
-                  provider.saveHabit(titleCtrl.text.trim(), selectedIcon, null);
+                  provider.saveHabit(titleCtrl.text.trim(), selectedIcon, null, ctx);
                   Navigator.pop(ctx);
                 }
               },
@@ -446,7 +673,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
     final picked = await showTimePicker(context: context, initialTime: initial ?? now);
     if (picked != null) {
       final formatted = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
-      await provider.updateReminder(habit.id!, formatted);
+      await provider.updateReminder(habit.id!, formatted, context);
     }
   }
 
@@ -460,12 +687,101 @@ class _HabitsScreenState extends State<HabitsScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
             onPressed: () {
-              provider.deleteHabit(habit.id!);
+              provider.deleteHabit(habit.id!, context);
               Navigator.pop(ctx);
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showEditHabitDialog(BuildContext context, Habit habit, HabitsProvider provider) {
+    final titleCtrl = TextEditingController(text: habit.name);
+    String selectedIcon = habit.icon;
+    String? selectedReminder = habit.reminderTime;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Edit Habit'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleCtrl,
+                decoration: const InputDecoration(labelText: 'Habit Name', border: OutlineInputBorder()),
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              const Text('Select Icon'),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: ['bathtub', 'sports_esports', 'fitness_center', 'book', 'water_drop', 'bed', 'school', 'star'].map((iconName) {
+                  final isSel = selectedIcon == iconName;
+                  return GestureDetector(
+                    onTap: () => setDialogState(() => selectedIcon = iconName),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isSel ? Theme.of(context).colorScheme.primaryContainer : Colors.transparent,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: isSel ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline),
+                      ),
+                      child: Icon(_getIconData(iconName), color: isSel ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+              const Text('Reminder Time (optional)'),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: () async {
+                  TimeOfDay? initial;
+                  if (selectedReminder != null) {
+                    final parts = selectedReminder!.split(':');
+                    initial = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+                  }
+                  final picked = await showTimePicker(context: context, initialTime: initial ?? TimeOfDay.now());
+                  if (picked != null) {
+                    setDialogState(() => selectedReminder = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}');
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Theme.of(context).colorScheme.outline),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(selectedReminder ?? 'No reminder set'),
+                      const Icon(Icons.access_time_rounded),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () {
+                if (titleCtrl.text.trim().isNotEmpty) {
+                  provider.updateHabit(habit.id!, titleCtrl.text.trim(), selectedIcon, selectedReminder, context);
+                  Navigator.pop(ctx);
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -688,13 +1004,16 @@ class _StatBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Column(
-      children: [
-        Icon(icon, color: color, size: 24),
-        const SizedBox(height: 4),
-        Text(title, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-        Text(value, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
-      ],
+    return Semantics(
+      label: '$title: $value',
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 4),
+          Text(title, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          Text(value, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
+        ],
+      ),
     );
   }
 }

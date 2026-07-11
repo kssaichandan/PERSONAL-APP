@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../database.dart';
+import '../utils/snackbar_utils.dart';
 
 class Note {
   final int? id;
@@ -54,6 +55,7 @@ class NotesProvider extends ChangeNotifier {
   String? _error;
   String _query = '';
   String _selectedTag = 'All';
+  final Set<int> _selectedNotes = {};
 
   List<Note> get notes {
     List<Note> source = _query.isNotEmpty ? _filtered : _notes;
@@ -65,6 +67,8 @@ class NotesProvider extends ChangeNotifier {
   String? get error => _error;
   String get query => _query;
   String get selectedTag => _selectedTag;
+  Set<int> get selectedNotes => _selectedNotes;
+  bool get isSelectionMode => _selectedNotes.isNotEmpty;
 
   List<String> get allTags {
     final tagsSet = {'All'};
@@ -98,6 +102,25 @@ class NotesProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void toggleSelection(int noteId) {
+    if (_selectedNotes.contains(noteId)) {
+      _selectedNotes.remove(noteId);
+    } else {
+      _selectedNotes.add(noteId);
+    }
+    notifyListeners();
+  }
+
+  void clearSelection() {
+    _selectedNotes.clear();
+    notifyListeners();
+  }
+
+  void selectAll() {
+    _selectedNotes.addAll(notes.map((n) => n.id!));
+    notifyListeners();
+  }
+
   Future<void> load() async {
     _loading = true;
     _error = null;
@@ -113,31 +136,64 @@ class NotesProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<int> save(Note note) async {
+  Future<int> save(Note note, [BuildContext? context]) async {
     int noteId = note.id ?? 0;
     try {
       final db = await AppDatabase.instance.database;
       if (note.id == null) {
         noteId = await db.insert('notes', note.toMap()..remove('id'));
+        if (context != null && context.mounted) {
+          showSuccessSnackBar(context, 'Note saved');
+        }
       } else {
         await db.update('notes', note.toMap(), where: 'id = ?', whereArgs: [note.id]);
+        if (context != null && context.mounted) {
+          showSuccessSnackBar(context, 'Note updated');
+        }
       }
     } catch (e) {
-      _error = 'Failed to save note';
-      notifyListeners();
+      debugLog('Failed to save note: $e');
+      if (context != null && context.mounted) {
+        showErrorSnackBar(context, 'Failed to save note');
+      }
       return noteId;
     }
     await load();
     return noteId;
   }
 
-  Future<void> delete(int id) async {
+  Future<void> delete(int id, [BuildContext? context]) async {
     try {
       final db = await AppDatabase.instance.database;
       await db.delete('notes', where: 'id = ?', whereArgs: [id]);
+      if (context != null && context.mounted) {
+        showSuccessSnackBar(context, 'Note deleted');
+      }
     } catch (e) {
-      _error = 'Failed to delete note';
-      notifyListeners();
+      debugLog('Failed to delete note: $e');
+      if (context != null && context.mounted) {
+        showErrorSnackBar(context, 'Failed to delete note');
+      }
+      return;
+    }
+    await load();
+  }
+
+  Future<void> deleteMultiple(Set<int> ids, [BuildContext? context]) async {
+    try {
+      final db = await AppDatabase.instance.database;
+      for (final id in ids) {
+        await db.delete('notes', where: 'id = ?', whereArgs: [id]);
+      }
+      _selectedNotes.clear();
+      if (context != null && context.mounted) {
+        showSuccessSnackBar(context, '${ids.length} notes deleted');
+      }
+    } catch (e) {
+      debugLog('Failed to delete notes: $e');
+      if (context != null && context.mounted) {
+        showErrorSnackBar(context, 'Failed to delete notes');
+      }
       return;
     }
     await load();
@@ -167,6 +223,34 @@ class NotesScreen extends StatelessWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (provider.isSelectionMode)
+                Container(
+                  color: theme.colorScheme.primaryContainer,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      Text('${provider.selectedNotes.length} selected', style: theme.textTheme.titleMedium),
+                      const Spacer(),
+                      TextButton.icon(
+                        icon: const Icon(Icons.select_all_rounded),
+                        label: const Text('Select All'),
+                        onPressed: provider.selectAllNotes,
+                      ),
+                      TextButton.icon(
+                        icon: const Icon(Icons.clear_rounded),
+                        label: const Text('Clear'),
+                        onPressed: provider.clearSelection,
+                      ),
+                      TextButton.icon(
+                        icon: Icon(Icons.delete_rounded, color: theme.colorScheme.error),
+                        label: Text('Delete', style: TextStyle(color: theme.colorScheme.error)),
+                        onPressed: () async {
+                          await provider.deleteMultiple(provider.selectedNotes, context);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 child: TextField(
@@ -210,102 +294,113 @@ class NotesScreen extends StatelessWidget {
                   ),
                 ),
               Expanded(child: _buildGrid(context, provider)),
-            ],
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add),
-        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NoteEditorScreen())),
-      ),
-    );
-  }
-
-  Widget _buildGrid(BuildContext context, NotesProvider provider) {
-    final theme = Theme.of(context);
-    if (provider.error != null) {
-      return Center(child: Text(provider.error!, style: TextStyle(color: theme.colorScheme.error)));
-    }
-    if (provider.loading) return const Center(child: CircularProgressIndicator());
-    if (provider.notes.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.notes_rounded, size: 80, color: theme.colorScheme.primary.withValues(alpha: 0.4)),
-            const SizedBox(height: 16),
-            Text(
-              provider.query.isNotEmpty ? 'No matching notes' : 'No notes yet',
-              style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.9,
-      ),
-      itemCount: provider.notes.length,
-      itemBuilder: (context, i) {
         final note = provider.notes[i];
         final color = Color(note.color);
         final isDarkNote = color.computeLuminance() < 0.5;
+        final isSelected = provider.selectedNotes.contains(note.id);
 
         return GestureDetector(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note))),
-          child: Card(
-            elevation: 1,
-            color: color,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          onLongPress: () => provider.toggleNoteSelection(note.id!),
+          onTap: provider.isSelectionMode
+              ? () => provider.toggleNoteSelection(note.id!)
+              : () => Navigator.push(context, MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note))),
+          child: Stack(
+            children: [
+              Card(
+                elevation: 1,
+                color: color,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          note.title.isEmpty ? 'Untitled' : note.title,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isDarkNote ? Colors.white : Colors.black,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+Expanded(
+                        child: Tooltip(
+                          message: note.title.isEmpty ? 'Untitled' : note.title,
+                          child: Text(
+                            note.title.isEmpty ? 'Untitled' : note.title,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: isDarkNote ? Colors.white : Colors.black,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (note.pinned)
-                        Icon(Icons.push_pin, size: 14, color: isDarkNote ? Colors.white70 : Colors.black54),
+                          if (note.pinned)
+                            Icon(Icons.push_pin, size: 14, color: isDarkNote ? Colors.white70 : Colors.black54),
+                          if (!provider.isSelectionMode)
+                            PopupMenuButton<String>(
+                              icon: Icon(Icons.more_vert, size: 18, color: isDarkNote ? Colors.white70 : Colors.black54),
+                              onSelected: (value) {
+                                if (value == 'delete') {
+                                  showDialog(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: Text('Delete Note'),
+                                      content: Text('Are you sure you want to delete this note?'),
+                                      actions: [
+                                        TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel')),
+                                        TextButton(
+                                          onPressed: () {
+                                            provider.delete(note.id!, context);
+                                            Navigator.pop(ctx);
+                                          },
+                                          child: Text('Delete', style: TextStyle(color: Colors.red)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete_outline, size: 18), SizedBox(width: 8), Text('Delete')])),
+                              ],
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: Tooltip(
+                          message: note.content,
+                          child: Text(
+                            note.content,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDarkNote ? Colors.white70 : Colors.black87,
+                            ),
+                            maxLines: 4,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        DateFormat('MMM d').format(note.updatedAt),
+                        style: TextStyle(fontSize: 10, color: isDarkNote ? Colors.white38 : Colors.black38),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: Text(
-                      note.content,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDarkNote ? Colors.white70 : Colors.black87,
-                      ),
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (provider.isSelectionMode)
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Checkbox(
+                    value: isSelected,
+                    onChanged: (_) => provider.toggleNoteSelection(note.id!),
+                    fillColor: WidgetStateProperty.resolveWith<Color>(
+                      (states) => states.contains(WidgetState.selected) ? theme.colorScheme.primary : theme.colorScheme.surfaceContainer,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    DateFormat('MMM d').format(note.updatedAt),
-                    style: TextStyle(fontSize: 10, color: isDarkNote ? Colors.white38 : Colors.black38),
-                  ),
-                ],
-              ),
-            ),
+                ),
+            ],
           ),
         );
       },
@@ -356,7 +451,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       updatedAt: DateTime.now(),
     );
     if (!mounted) return 0;
-    return context.read<NotesProvider>().save(note);
+    return context.read<NotesProvider>().save(note, context);
   }
 
   void _save() async {
@@ -392,6 +487,32 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         actions: [
+          if (widget.note != null)
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: 'Delete note',
+              onPressed: () {
+                final provider = context.read<NotesProvider>();
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: Text('Delete Note'),
+                    content: Text('Are you sure you want to delete this note?'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel')),
+                      TextButton(
+                        onPressed: () {
+                          provider.delete(widget.note!.id!, context);
+                          Navigator.pop(ctx);
+                          Navigator.pop(context);
+                        },
+                        child: Text('Delete', style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.palette_outlined),
             tooltip: 'Change color',

@@ -1,7 +1,9 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 import '../database.dart';
+import '../utils/snackbar_utils.dart';
 
 class CalculatorProvider extends ChangeNotifier {
   String _expression = '';
@@ -9,14 +11,47 @@ class CalculatorProvider extends ChangeNotifier {
   double _memory = 0.0;
   List<Map<String, String>> _history = [];
   String? _error;
+  bool _scientificMode = false;
 
   String get expression => _expression;
   String get result => _result;
   double get memory => _memory;
   List<Map<String, String>> get history => _history;
   String? get error => _error;
+  bool get scientificMode => _scientificMode;
 
-  CalculatorProvider() { loadHistory(); }
+  CalculatorProvider() { 
+    loadHistory();
+    _loadScientificMode();
+  }
+
+  Future<void> _loadScientificMode() async {
+    try {
+      final db = await AppDatabase.instance.database;
+      final maps = await db.query('settings', where: 'key = ?', whereArgs: ['calculator_scientific_mode']);
+      if (maps.isNotEmpty) {
+        _scientificMode = maps.first['value'] == 'true';
+      }
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  Future<void> toggleScientificMode([BuildContext? context]) async {
+    _scientificMode = !_scientificMode;
+    try {
+      final db = await AppDatabase.instance.database;
+      final maps = await db.query('settings', where: 'key = ?', whereArgs: ['calculator_scientific_mode']);
+      if (maps.isEmpty) {
+        await db.insert('settings', {'key': 'calculator_scientific_mode', 'value': _scientificMode.toString()});
+      } else {
+        await db.update('settings', {'value': _scientificMode.toString()}, where: 'key = ?', whereArgs: ['calculator_scientific_mode']);
+      }
+    } catch (_) {}
+    notifyListeners();
+    if (context != null && context.mounted) {
+      showSuccessSnackBar(context, _scientificMode ? 'Scientific mode enabled' : 'Scientific mode disabled');
+    }
+  }
 
   Future<void> loadHistory() async {
     try {
@@ -33,19 +68,35 @@ class CalculatorProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> clearHistory() async {
+  Future<void> clearHistory([BuildContext? context]) async {
     try {
       final db = await AppDatabase.instance.database;
       await db.delete('calculator_history');
-    } catch (_) {}
+      if (context != null && context.mounted) {
+        showSuccessSnackBar(context, 'History cleared');
+      }
+    } catch (e) {
+      debugLog('Failed to clear history: $e');
+      if (context != null && context.mounted) {
+        showErrorSnackBar(context, 'Failed to clear history');
+      }
+    }
     await loadHistory();
   }
 
-  Future<void> deleteHistoryEntry(int id) async {
+  Future<void> deleteHistoryEntry(int id, [BuildContext? context]) async {
     try {
       final db = await AppDatabase.instance.database;
       await db.delete('calculator_history', where: 'id = ?', whereArgs: [id]);
-    } catch (_) {}
+      if (context != null && context.mounted) {
+        showSuccessSnackBar(context, 'Entry deleted');
+      }
+    } catch (e) {
+      debugLog('Failed to delete history entry: $e');
+      if (context != null && context.mounted) {
+        showErrorSnackBar(context, 'Failed to delete entry');
+      }
+    }
     await loadHistory();
   }
 
@@ -170,6 +221,10 @@ class CalculatorProvider extends ChangeNotifier {
       _pos++;
       result = pow(result, _factor()).toDouble();
     }
+    if (_pos < _input.length && _input[_pos] == '%') {
+      _pos++;
+      result = result % _factor();
+    }
     return result;
   }
 
@@ -245,6 +300,20 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       appBar: AppBar(
         title: Text('Calculator', style: theme.textTheme.titleLarge),
         actions: [
+          if (calc.expression.isNotEmpty || calc.result.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.content_copy_rounded),
+              tooltip: 'Copy result',
+              onPressed: () {
+                final text = calc.result.isNotEmpty ? calc.result : calc.expression;
+                _copyToClipboard(context, text, 'Copied to clipboard');
+              },
+            ),
+          IconButton(
+            icon: Icon(calc.scientificMode ? Icons.functions_rounded : Icons.functions_outlined),
+            tooltip: calc.scientificMode ? 'Disable scientific mode' : 'Enable scientific mode',
+            onPressed: () => calc.toggleScientificMode(context),
+          ),
           if (calc.history.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.history_rounded),
@@ -264,21 +333,37 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      reverse: true,
-                      child: Text(
-                        calc.expression.isEmpty ? '0' : calc.expression,
-                        style: theme.textTheme.titleLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    GestureDetector(
+                      onLongPress: () => _copyToClipboard(context, calc.expression.isEmpty ? '0' : calc.expression, 'Expression copied'),
+                      child: Tooltip(
+                        message: calc.expression.isEmpty ? '0' : calc.expression,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          reverse: true,
+                          child: Text(
+                            calc.expression.isEmpty ? '0' : calc.expression,
+                            style: theme.textTheme.titleLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      reverse: true,
-                      child: Text(
-                        calc.result.isEmpty ? '0' : calc.result,
-                        style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+                    GestureDetector(
+                      onLongPress: () => _copyToClipboard(context, calc.result.isEmpty ? '0' : calc.result, 'Result copied'),
+                      child: Tooltip(
+                        message: calc.result.isEmpty ? '0' : calc.result,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          reverse: true,
+                          child: Text(
+                            calc.result.isEmpty ? '0' : calc.result,
+                            style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -307,7 +392,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeInOut,
               padding: const EdgeInsets.all(8),
-              child: _StandardButtonGrid(calc: calc),
+              child: _ResponsiveButtonGrid(calc: calc),
             ),
           ],
         ),
@@ -331,7 +416,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Calculation History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  TextButton(onPressed: provider.clearHistory, child: const Text('Clear All')),
+                  TextButton(onPressed: () => provider.clearHistory(context), child: const Text('Clear All')),
                 ],
               ),
               const Divider(),
@@ -346,7 +431,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                       trailing: IconButton(
                         icon: const Icon(Icons.delete_outline, size: 18),
                         tooltip: 'Delete entry',
-                        onPressed: () => provider.deleteHistoryEntry(int.parse(item['id']!)),
+                        onPressed: () => provider.deleteHistoryEntry(int.parse(item['id']!), context),
                       ),
                       onTap: () {
                         provider.loadExpression(item['expression']!);
@@ -364,6 +449,17 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 }
 
+void _copyToClipboard(BuildContext context, String text, String message) {
+  Clipboard.setData(ClipboardData(text: text));
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      duration: const Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
+    ),
+  );
+}
+
 class _MemoryButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
@@ -372,36 +468,67 @@ class _MemoryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return TextButton(
-      onPressed: onTap,
-      style: TextButton.styleFrom(minimumSize: const Size(48, 36), padding: EdgeInsets.zero),
-      child: Text(label, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant)),
+    String semanticLabel;
+    switch (label) {
+      case 'MC': return 'Memory Clear';
+      case 'MR': return 'Memory Recall';
+      case 'M+': return 'Memory Add';
+      case 'M-': return 'Memory Subtract';
+      default: return label;
+    }
+
+    return Semantics(
+      label: semanticLabel,
+      button: true,
+      child: TextButton(
+        onPressed: onTap,
+        style: TextButton.styleFrom(minimumSize: const Size(48, 36), padding: EdgeInsets.zero),
+        child: Text(label, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant)),
+      ),
     );
   }
 }
 
-class _StandardButtonGrid extends StatelessWidget {
+class _ResponsiveButtonGrid extends StatelessWidget {
   final CalculatorProvider calc;
-  const _StandardButtonGrid({required this.calc});
+  const _ResponsiveButtonGrid({required this.calc});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isScientific = calc.scientificMode;
+
+    final standardRows = [
+      ['C', '⌫', '%', '÷'],
+      ['7', '8', '9', '×'],
+      ['4', '5', '6', '-'],
+      ['1', '2', '3', '+'],
+      ['0', '.', '=', ''],
+    ];
+
+    final scientificRows = [
+      ['C', '⌫', '%', '÷', '(', ')'],
+      ['sin', 'cos', 'tan', '×', '^', '√'],
+      ['7', '8', '9', '-', 'π', 'e'],
+      ['4', '5', '6', '+', 'log', 'ln'],
+      ['1', '2', '3', '=', '(', ')'],
+      ['0', '.', '', '', '', ''],
+    ];
+
+    final rows = isScientific ? scientificRows : standardRows;
+    final crossAxisCount = isScientific ? 6 : 4;
+
     return Column(
-      children: [
-        ['C', '⌫', '%', '÷'],
-        ['7', '8', '9', '×'],
-        ['4', '5', '6', '-'],
-        ['1', '2', '3', '+'],
-        ['0', '.', '=', ''],
-      ].map((row) => Row(
+      children: rows.map((row) => Row(
         children: row.map((label) {
-          if (label.isEmpty) return const Expanded(child: SizedBox());
+          if (label.isEmpty) return Expanded(child: const SizedBox());
           return Expanded(
             child: _CalcButton(
               label: label,
               onTap: () => calc.input(label),
-              isOperator: ['÷', '×', '-', '+', '='].contains(label),
+              isOperator: ['÷', '×', '-', '+', '=', '^'].contains(label),
               isAction: ['C', '⌫', '%'].contains(label),
+              isScientific: ['sin', 'cos', 'tan', 'log', 'ln', '√', 'π', 'e', '^'].contains(label),
             ),
           );
         }).toList(),
@@ -415,7 +542,8 @@ class _CalcButton extends StatelessWidget {
   final VoidCallback onTap;
   final bool isOperator;
   final bool isAction;
-  const _CalcButton({required this.label, required this.onTap, this.isOperator = false, this.isAction = false});
+  final bool isScientific;
+  const _CalcButton({required this.label, required this.onTap, this.isOperator = false, this.isAction = false, this.isScientific = false});
 
   @override
   Widget build(BuildContext context) {
@@ -423,13 +551,40 @@ class _CalcButton extends StatelessWidget {
     Color getBgColor() {
       if (isOperator) return label == '=' ? theme.colorScheme.primary : theme.colorScheme.primaryContainer;
       if (isAction) return theme.colorScheme.errorContainer.withValues(alpha: 0.4);
+      if (isScientific) return theme.colorScheme.secondaryContainer;
       return theme.colorScheme.surfaceContainer;
     }
 
     Color getTextColor() {
       if (isOperator) return label == '=' ? theme.colorScheme.onPrimary : theme.colorScheme.onPrimaryContainer;
       if (isAction) return theme.colorScheme.onErrorContainer;
+      if (isScientific) return theme.colorScheme.onSecondaryContainer;
       return theme.colorScheme.onSurface;
+    }
+
+    String getSemanticLabel() {
+      switch (label) {
+        case 'C': return 'Clear';
+        case '⌫': return 'Backspace';
+        case '%': return 'Percent';
+        case '÷': return 'Divide';
+        case '×': return 'Multiply';
+        case '-': return 'Subtract';
+        case '+': return 'Add';
+        case '=': return 'Equals';
+        case '^': return 'Power';
+        case '√': return 'Square root';
+        case 'sqrt': return 'Square root';
+        case 'π': return 'Pi';
+        case 'e': return 'Euler\'s number';
+        case 'sin': return 'Sine';
+        case 'cos': return 'Cosine';
+        case 'tan': return 'Tangent';
+        case 'log': return 'Logarithm base 10';
+        case 'ln': return 'Natural logarithm';
+        case 'sqrt': return 'Square root';
+        default: return label;
+      }
     }
 
     return Padding(
@@ -440,10 +595,14 @@ class _CalcButton extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
-          child: Container(
-            height: 52,
-            alignment: Alignment.center,
-            child: Text(label, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: getTextColor())),
+          child: Semantics(
+            label: getSemanticLabel(),
+            button: true,
+            child: Container(
+              height: 52,
+              alignment: Alignment.center,
+              child: Text(label, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: getTextColor())),
+            ),
           ),
         ),
       ),

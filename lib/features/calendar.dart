@@ -7,7 +7,9 @@ import 'package:timezone/timezone.dart' as tz;
 import '../database.dart';
 import 'habits.dart';
 import 'notes.dart';
-final notifications = FlutterLocalNotificationsPlugin();
+import '../services/notification_service.dart';
+import '../utils/snackbar_utils.dart';
+import '../utils/text_utils.dart';
 
 class CalendarEvent {
   final int? id;
@@ -16,6 +18,8 @@ class CalendarEvent {
   final String? time;
   final String category;
   final String notes;
+  final String recurrence; // 'none', 'daily', 'weekly', 'monthly', 'yearly'
+  final String? recurrenceEnd; // ISO date string
 
   CalendarEvent({
     this.id,
@@ -24,6 +28,8 @@ class CalendarEvent {
     this.time,
     this.category = 'General',
     this.notes = '',
+    this.recurrence = 'none',
+    this.recurrenceEnd,
   });
 
   Map<String, dynamic> toMap() => {
@@ -33,6 +39,8 @@ class CalendarEvent {
     'time': time,
     'category': category,
     'notes': notes,
+    'recurrence': recurrence,
+    'recurrence_end': recurrenceEnd,
   };
 
   factory CalendarEvent.fromMap(Map<String, dynamic> m) => CalendarEvent(
@@ -42,6 +50,8 @@ class CalendarEvent {
     time: m['time'],
     category: m['category'] ?? 'General',
     notes: m['notes'] ?? '',
+    recurrence: m['recurrence'] ?? 'none',
+    recurrenceEnd: m['recurrence_end'],
   );
 }
 
@@ -50,14 +60,128 @@ class CalendarProvider extends ChangeNotifier {
   DateTime _currentMonth = DateTime(DateTime.now().year, DateTime.now().month);
   bool _loading = true;
   String? _error;
+  final NotificationService _notificationService;
+  String _searchQuery = '';
+  String _categoryFilter = 'all';
+  
+  // Cache for events by month
+  final Map<String, List<CalendarEvent>> _eventsCache = {};
 
   List<CalendarEvent> get events => _events;
   DateTime get currentMonth => _currentMonth;
   bool get loading => _loading;
   String? get error => _error;
+  String get searchQuery => _searchQuery;
+  String get categoryFilter => _categoryFilter;
 
-  CalendarProvider() { load(); }
+  CalendarProvider(this._notificationService) { load(); }
 
+  void setSearchQuery(String query) {
+    _searchQuery = query;
+    notifyListeners();
+  }
+
+  void clearSearch() {
+    _searchQuery = '';
+    notifyListeners();
+  }
+
+  void setCategoryFilter(String category) {
+    _categoryFilter = category;
+    notifyListeners();
+  }
+
+  void clearCategoryFilter() {
+    _categoryFilter = 'all';
+    notifyListeners();
+  }
+
+  List<CalendarEvent> get filteredEvents {
+    var result = _events;
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      result = result.where((e) => 
+        e.title.toLowerCase().contains(q) || 
+        e.notes.toLowerCase().contains(q) ||
+        e.category.toLowerCase().contains(q)
+      ).toList();
+    }
+    if (_categoryFilter != 'all') {
+      result = result.where((e) => e.category == _categoryFilter).toList();
+    }
+    return result;
+  }
+
+  List<CalendarEvent> eventsForDay(DateTime day) {
+    return filteredEvents.where((e) => _eventOccursOnDay(e, day)).toList();
+  }
+
+  bool _eventOccursOnDay(CalendarEvent event, DateTime day) {
+    // Direct match
+    if (event.date.year == day.year && event.date.month == day.month && event.date.day == day.day) {
+      return true;
+    }
+
+    // No recurrence
+    if (event.recurrence == 'none') return false;
+    
+    // Check if day is before event start date
+    if (day.isBefore(event.date)) return false;
+    
+    // Check recurrence end
+    if (event.recurrenceEnd != null) {
+      final endDate = DateTime.parse(event.recurrenceEnd!);
+      if (day.isAfter(endDate)) return false;
+    }
+    
+    final diff = day.difference(event.date);
+    
+    switch (event.recurrence) {
+      case 'daily':
+        return true;
+      case 'weekly':
+        return diff.inDays % 7 == 0;
+      case 'monthly':
+        return day.day == event.date.day && day.month >= event.date.month;
+      case 'yearly':
+        return day.month == event.date.month && day.day == event.date.day;
+      default:
+        return false;
+    }
+  }
+
+  Future<void> load() async {
+    _loading = true;
+    _error = null;
+    notifyListeners();
+    
+    final cacheKey = '${_currentMonth.year}-${_currentMonth.month.toString().padLeft(2, '0')}';
+    
+    // Return cached events if available
+    if (_eventsCache.containsKey(cacheKey)) {
+      _events = _eventsCache[cacheKey]!;
+      _loading = false;
+      notifyListeners();
+      return;
+    }
+    
+    try {
+      final db = await AppDatabase.instance.database;
+      final start = DateFormat('yyyy-MM-dd').format(DateTime(_currentMonth.year, _currentMonth.month, 1));
+      final end = DateFormat('yyyy-MM-dd').format(DateTime(_currentMonth.year, _currentMonth.month + 1, 0));
+      final maps = await db.query('calendar_events', where: 'date >= ? AND date <= ?', whereArgs: [start, end], orderBy: 'date, time');
+      _events = maps.map((m) => CalendarEvent.fromMap(m)).toList();
+      
+      // Cache the events for this month
+      _eventsCache[cacheKey] = _events;
+    } catch (e) {
+      _error = 'Failed to load events';
+    }
+    _loading = false;
+    notifyListeners();
+  }
+
+  // Navigation methods with cache invalidation
   void previousMonth() {
     _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
     load();
@@ -68,27 +192,7 @@ class CalendarProvider extends ChangeNotifier {
     load();
   }
 
-  List<CalendarEvent> eventsForDay(DateTime day) =>
-    _events.where((e) => e.date.year == day.year && e.date.month == day.month && e.date.day == day.day).toList();
-
-  Future<void> load() async {
-    _loading = true;
-    _error = null;
-    notifyListeners();
-    try {
-      final db = await AppDatabase.instance.database;
-      final start = DateFormat('yyyy-MM-dd').format(DateTime(_currentMonth.year, _currentMonth.month, 1));
-      final end = DateFormat('yyyy-MM-dd').format(DateTime(_currentMonth.year, _currentMonth.month + 1, 0));
-      final maps = await db.query('calendar_events', where: 'date >= ? AND date <= ?', whereArgs: [start, end], orderBy: 'date, time');
-      _events = maps.map((m) => CalendarEvent.fromMap(m)).toList();
-    } catch (e) {
-      _error = 'Failed to load events';
-    }
-    _loading = false;
-    notifyListeners();
-  }
-
-  Future<void> save(CalendarEvent event) async {
+  Future<void> save(CalendarEvent event, [BuildContext? context]) async {
     try {
       final db = await AppDatabase.instance.database;
       if (event.id == null) {
@@ -98,22 +202,52 @@ class CalendarProvider extends ChangeNotifier {
         await db.update('calendar_events', event.toMap(), where: 'id = ?', whereArgs: [event.id]);
         _scheduleNotification(event);
       }
+      if (context != null && context.mounted) {
+        showSuccessSnackBar(context, event.id == null ? 'Event created' : 'Event updated');
+      }
     } catch (e) {
-      _error = 'Failed to save event';
-      notifyListeners();
+      debugLog('Failed to save event: $e');
+      if (context != null && context.mounted) {
+        showErrorSnackBar(context, 'Failed to save event');
+      }
       return;
     }
     await load();
   }
 
-  Future<void> delete(int id) async {
+  Future<void> delete(int id, [BuildContext? context]) async {
     try {
       final db = await AppDatabase.instance.database;
       await db.delete('calendar_events', where: 'id = ?', whereArgs: [id]);
-      await notifications.cancel(id);
+      await _notificationService.cancel(id);
+      if (context != null && context.mounted) {
+        showSuccessSnackBar(context, 'Event deleted');
+      }
     } catch (e) {
-      _error = 'Failed to delete event';
-      notifyListeners();
+      debugLog('Failed to delete event: $e');
+      if (context != null && context.mounted) {
+        showErrorSnackBar(context, 'Failed to delete event');
+      }
+      return;
+    }
+    await load();
+  }
+
+Future<void> deleteMultiple(Set<int> ids, [BuildContext? context]) async {
+    try {
+      final db = await AppDatabase.instance.database;
+      for (final id in ids) {
+        await db.delete('calendar_events', where: 'id = ?', whereArgs: [id]);
+        await _notificationService.cancel(id);
+      }
+      if (context != null && context.mounted) {
+        showSuccessSnackBar(context, '${ids.length} events deleted');
+      }
+    } catch (e) {
+      debugLog('Failed to delete events: $e');
+      if (context != null && context.mounted) {
+        showErrorSnackBar(context, 'Failed to delete events');
+      }
       return;
     }
     await load();
@@ -124,7 +258,7 @@ class CalendarProvider extends ChangeNotifier {
     final parts = event.time!.split(':');
     final scheduled = DateTime(event.date.year, event.date.month, event.date.day, int.parse(parts[0]), int.parse(parts[1]));
     if (scheduled.isBefore(DateTime.now())) return;
-    unawaited(notifications.zonedSchedule(
+    unawaited(_notificationService.zonedSchedule(
       event.id!,
       event.title,
       event.notes.isEmpty ? 'Reminder for your scheduled event' : event.notes,
@@ -154,6 +288,25 @@ class CalendarScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Calendar & Logs', style: theme.textTheme.titleLarge),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search_rounded),
+            tooltip: 'Search events',
+            onPressed: () => _showSearchDialog(context),
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.filter_list_rounded),
+            tooltip: 'Filter by category',
+            onSelected: (value) => _filterByCategory(context, value),
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'all', child: Text('All Categories')),
+              const PopupMenuItem(value: 'General', child: Text('General')),
+              const PopupMenuItem(value: 'Work', child: Text('Work')),
+              const PopupMenuItem(value: 'Personal', child: Text('Personal')),
+              const PopupMenuItem(value: 'Urgent', child: Text('Urgent')),
+            ],
+          ),
+        ],
       ),
       body: Consumer<CalendarProvider>(
         builder: (context, provider, _) {
@@ -161,6 +314,8 @@ class CalendarScreen extends StatelessWidget {
           if (provider.loading) return const Center(child: CircularProgressIndicator());
           return Column(
             children: [
+              if (provider.searchQuery.isNotEmpty || provider.categoryFilter != 'all')
+                _buildFilterBar(context, provider),
               _MonthHeader(provider: provider),
               _DayNames(),
               Expanded(child: _MonthGrid(provider: provider)),
@@ -175,15 +330,69 @@ class CalendarScreen extends StatelessWidget {
     );
   }
 
-  void _showEventEditor(BuildContext context, {CalendarEvent? event}) {
-    showModalBottomSheet(
+  Widget _buildFilterBar(BuildContext context, CalendarProvider provider) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: theme.colorScheme.surfaceContainer,
+      child: Row(
+        children: [
+          if (provider.searchQuery.isNotEmpty) ...[
+            Text('Search: "${provider.searchQuery}"', style: theme.textTheme.bodySmall),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.clear, size: 18),
+              tooltip: 'Clear search',
+              onPressed: () => provider.clearSearch(),
+            ),
+          ],
+          if (provider.categoryFilter != 'all') ...[
+            if (provider.searchQuery.isNotEmpty) const SizedBox(width: 8),
+            Chip(
+              label: Text(provider.categoryFilter),
+              deleteIcon: const Icon(Icons.close, size: 16),
+              onDeleted: () => provider.clearCategoryFilter(),
+            ),
+          ],
+        ],
+      );
+    }
+  }
+
+  void _showSearchDialog(BuildContext context) {
+    final provider = context.read<CalendarProvider>();
+    final controller = TextEditingController(text: provider.searchQuery);
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => EventEditor(event: event),
+      builder: (ctx) => AlertDialog(
+        title: const Text('Search Events'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Search by title, notes...', border: OutlineInputBorder()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              provider.setSearchQuery(controller.text);
+              Navigator.pop(ctx);
+            },
+            child: const Text('Search'),
+          ),
+        ],
+      ),
     );
   }
-}
+
+  void _filterByCategory(BuildContext context, String category) {
+    final provider = context.read<CalendarProvider>();
+    if (category == 'all') {
+      provider.clearCategoryFilter();
+    } else {
+      provider.setCategoryFilter(category);
+    }
+  }
 
 class _MonthHeader extends StatelessWidget {
   final CalendarProvider provider;
@@ -246,51 +455,65 @@ class _MonthGrid extends StatelessWidget {
         }
       }
       cells.add(
-        GestureDetector(
-          onTap: () => _showDayDetail(context, date, provider),
-          child: Container(
-            margin: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              color: isToday ? theme.colorScheme.primaryContainer : (habitCompleted ? theme.colorScheme.primary.withValues(alpha: 0.06) : null),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: isToday ? theme.colorScheme.primary : (habitCompleted ? theme.colorScheme.primary.withValues(alpha: 0.3) : Colors.transparent),
-                width: 1,
+        Semantics(
+          label: habitCompleted ? 'Habit completed on this day' : '',
+          child: GestureDetector(
+            onTap: () => _showDayDetail(context, date, provider),
+            child: Container(
+              margin: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: isToday ? theme.colorScheme.primaryContainer : (habitCompleted ? theme.colorScheme.primary.withValues(alpha: 0.06) : null),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isToday ? theme.colorScheme.primary : (habitCompleted ? theme.colorScheme.primary.withValues(alpha: 0.3) : Colors.transparent),
+                  width: 1,
+                ),
               ),
-            ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '$day',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: isToday || habitCompleted ? FontWeight.bold : FontWeight.normal,
-                      color: isToday ? theme.colorScheme.onPrimaryContainer : null,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '$day',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: isToday || habitCompleted ? FontWeight.bold : FontWeight.normal,
+                        color: isToday ? theme.colorScheme.onPrimaryContainer : null,
+                      ),
                     ),
-                  ),
-                  if (events.isNotEmpty)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: events.take(3).map((e) => Container(
-                        width: 4,
-                        height: 4,
-                        margin: const EdgeInsets.symmetric(horizontal: 0.5),
-                        decoration: BoxDecoration(color: categoryColor(e.category), shape: BoxShape.circle),
-                      )).toList(),
+                    if (events.isNotEmpty)
+                      Tooltip(
+                        message: '${events.length} event${events.length > 1 ? 's' : ''}',
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: events.take(3).map((e) => Container(
+                            width: 4,
+                            height: 4,
+                            margin: const EdgeInsets.symmetric(horizontal: 0.5),
+                            decoration: BoxDecoration(color: categoryColor(e.category), shape: BoxShape.circle),
+                          )).toList(),
+                        ),
+                      ),
                     ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
         ),
       );
     }
-    return GridView.count(
-      crossAxisCount: 7,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      children: cells,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = 7;
+        final cellWidth = constraints.maxWidth / crossAxisCount;
+        return GridView.count(
+          crossAxisCount: crossAxisCount,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          childAspectRatio: cellWidth / (cellWidth + 16),
+          children: cells,
+        );
+      },
     );
   }
 
@@ -395,7 +618,7 @@ class _DayDetailPanel extends StatelessWidget {
                       IconButton(
                         icon: const Icon(Icons.delete_outline_rounded, size: 18),
                         tooltip: 'Delete event',
-                        onPressed: () => provider.delete(e.id!),
+                        onPressed: () => provider.delete(e.id!, context),
                       ),
                     ],
                   ),
@@ -443,11 +666,6 @@ class _DayDetailPanel extends StatelessWidget {
   }
 }
 
-// ponytail: top-level plain-text extraction, same approach used in NotesProvider
-String plainText(String content) {
-  return content.replaceAll(RegExp(r'<[^>]*>'), '').replaceAll(RegExp(r'\s+'), ' ').trim();
-}
-
 class EventEditor extends StatefulWidget {
   final CalendarEvent? event;
   final DateTime? selectedDate;
@@ -463,6 +681,8 @@ class _EventEditorState extends State<EventEditor> {
   late DateTime _date;
   TimeOfDay? _time;
   late String _selectedCategory;
+  late String _recurrence;
+  String? _recurrenceEnd;
 
   @override
   void initState() {
@@ -471,6 +691,8 @@ class _EventEditorState extends State<EventEditor> {
     _notesCtrl = TextEditingController(text: widget.event?.notes ?? '');
     _date = widget.event?.date ?? widget.selectedDate ?? DateTime.now();
     _selectedCategory = widget.event?.category ?? 'General';
+    _recurrence = widget.event?.recurrence ?? 'none';
+    _recurrenceEnd = widget.event?.recurrenceEnd;
     if (widget.event?.time != null) {
       final parts = widget.event!.time!.split(':');
       _time = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
@@ -504,6 +726,8 @@ class _EventEditorState extends State<EventEditor> {
       time: _time != null ? '${_time!.hour.toString().padLeft(2, '0')}:${_time!.minute.toString().padLeft(2, '0')}' : null,
       category: _selectedCategory,
       notes: _notesCtrl.text,
+      recurrence: _recurrence,
+      recurrenceEnd: _recurrenceEnd,
     );
     await context.read<CalendarProvider>().save(event);
     if (mounted) Navigator.pop(context);
@@ -566,6 +790,53 @@ class _EventEditorState extends State<EventEditor> {
                 );
               }).toList(),
             ),
+            const SizedBox(height: 16),
+            Text('Repeat', style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 4),
+            DropdownButtonFormField<String>(
+              value: _recurrence,
+              items: const [
+                DropdownMenuItem(value: 'none', child: Text('Does not repeat')),
+                DropdownMenuItem(value: 'daily', child: Text('Daily')),
+                DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
+                DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
+                DropdownMenuItem(value: 'yearly', child: Text('Yearly')),
+              ],
+              onChanged: (value) => setState(() => _recurrence = value!),
+              decoration: const InputDecoration(border: OutlineInputBorder()),
+            ),
+            if (_recurrence != 'none') ...[
+              const SizedBox(height: 12),
+              Text('Ends', style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              const SizedBox(height: 4),
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _recurrenceEnd != null ? DateTime.parse(_recurrenceEnd!) : DateTime.now().add(const Duration(days: 365)),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked != null) {
+                    setState(() => _recurrenceEnd = DateFormat('yyyy-MM-dd').format(picked));
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: theme.colorScheme.outline),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(_recurrenceEnd != null ? DateFormat('MMM d, yyyy').format(DateTime.parse(_recurrenceEnd!)) : 'Never'),
+                      const Icon(Icons.calendar_today_rounded, size: 18),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             TextField(
               controller: _notesCtrl,
