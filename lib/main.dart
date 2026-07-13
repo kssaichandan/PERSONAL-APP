@@ -83,6 +83,7 @@ class _MainScreenState extends State<MainScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
+        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
         destinations: const [
           NavigationDestination(icon: Icon(Icons.note_rounded), label: 'Notes'),
           NavigationDestination(icon: Icon(Icons.checklist_rtl_rounded), label: 'Habits'),
