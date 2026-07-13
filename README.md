@@ -1,10 +1,4 @@
 # Personal App
-
-[![Build](https://img.shields.io/github/actions/workflow/status/kssaichandan/PERSONAL-APP/build-apk.yaml?branch=master&label=Build&logo=github)](https://github.com/kssaichandan/PERSONAL-APP/actions/workflows/build-apk.yaml)
-[![Release](https://img.shields.io/github/v/release/kssaichandan/PERSONAL-APP?label=Download&logo=android)](https://github.com/kssaichandan/PERSONAL-APP/releases/latest)
-
-> An all-in-one personal productivity companion built with Flutter — notes, habits, calendar, calculator, and life tracking.
-
 ## Download
 
 | Platform | Link |
