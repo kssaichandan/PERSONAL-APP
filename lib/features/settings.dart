@@ -5,6 +5,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../database.dart';
 import '../utils/snackbar_utils.dart';
@@ -44,6 +47,24 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
+class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  const _SectionHeader({required this.icon, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: theme.colorScheme.primary),
+        const SizedBox(width: 8),
+        Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+}
+
 class _AppearanceSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -57,7 +78,7 @@ class _AppearanceSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Appearance', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              const _SectionHeader(icon: Icons.palette_rounded, title: 'Appearance'),
               const SizedBox(height: 16),
               const Center(child: CircularProgressIndicator()),
             ],
@@ -72,7 +93,7 @@ class _AppearanceSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Appearance', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const _SectionHeader(icon: Icons.palette_rounded, title: 'Appearance'),
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.brightness_6_rounded),
@@ -87,7 +108,10 @@ class _AppearanceSection extends StatelessWidget {
                   DropdownMenuItem(value: ThemeMode.system, child: Text('System')),
                 ],
                 onChanged: (value) {
-                  if (value != null) settings.setThemeMode(value);
+                  if (value != null) {
+                    settings.setThemeMode(value);
+                    showSuccessSnackBar(context, 'Theme updated');
+                  }
                 },
               ),
             ),
@@ -106,18 +130,58 @@ class _AppearanceSection extends StatelessWidget {
               ),
               onTap: () => _showColorPicker(context, settings),
             ),
+            SwitchListTile(
+              secondary: const Icon(Icons.calendar_view_week_rounded),
+              title: const Text('Week starts Monday'),
+              subtitle: const Text('Calendar week starts on Monday instead of Sunday'),
+              value: settings.weekStartsMonday,
+              onChanged: (value) {
+                settings.setWeekStartsMonday(value);
+                showSuccessSnackBar(context, value ? 'Week starts Monday' : 'Week starts Sunday');
+              },
+            ),
+            const Divider(height: 24),
+            ListTile(
+              leading: Icon(Icons.restart_alt_rounded, color: theme.colorScheme.error),
+              title: Text('Reset All Settings', style: TextStyle(color: theme.colorScheme.error)),
+              subtitle: const Text('Restore all settings to defaults'),
+              onTap: () => _confirmResetSettings(context, settings),
+            ),
           ],
         ),
       ),
     );
   }
 
+  Future<void> _confirmResetSettings(BuildContext context, SettingsProvider settings) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reset Settings'),
+        content: const Text('This will reset all settings to their default values. Your data will not be affected.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Reset', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      await settings.resetToDefaults();
+      if (context.mounted) showSuccessSnackBar(context, 'Settings reset to defaults');
+    }
+  }
+
   void _showColorPicker(BuildContext context, SettingsProvider settings) {
     final theme = Theme.of(context);
     final colors = [
-      Colors.deepPurple, Colors.blue, Colors.teal, Colors.green,
-      Colors.orange, Colors.red, Colors.pink, Colors.indigo,
-      Colors.cyan, Colors.amber, Colors.lime, Colors.brown,
+      Colors.deepPurple, Colors.purple, Colors.blue, Colors.lightBlue,
+      Colors.teal, Colors.green, Colors.lightGreen, Colors.lime,
+      Colors.yellow, Colors.amber, Colors.orange, Colors.deepOrange,
+      Colors.red, Colors.pink, Colors.indigo, Colors.cyan,
+      Colors.brown, Colors.blueGrey,
     ];
     showModalBottomSheet(
       context: context,
@@ -127,8 +191,24 @@ class _AppearanceSection extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text('Select Color', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 16),
-            Wrap(
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextButton.icon(
+                icon: Icon(Icons.wallpaper_rounded, color: theme.colorScheme.primary),
+                label: Text('Use system dynamic color (Material You)',
+                  style: TextStyle(color: theme.colorScheme.primary),
+                ),
+                onPressed: () {
+                  settings.setColorSeed(Colors.deepPurple);
+                  Navigator.pop(ctx);
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Wrap(
               spacing: 12,
               runSpacing: 12,
               children: colors.map((color) => GestureDetector(
@@ -137,8 +217,8 @@ class _AppearanceSection extends StatelessWidget {
                   Navigator.pop(ctx);
                 },
                 child: Container(
-                  width: 48,
-                  height: 48,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
                     color: color,
                     shape: BoxShape.circle,
@@ -147,8 +227,12 @@ class _AppearanceSection extends StatelessWidget {
                       width: settings.colorSeed == color ? 3 : 2,
                     ),
                   ),
+                  child: settings.colorSeed == color
+                    ? Icon(Icons.check, color: color.computeLuminance() > 0.5 ? Colors.black54 : Colors.white, size: 20)
+                    : null,
                 ),
               )).toList(),
+            ),
             ),
             const SizedBox(height: 16),
           ],
@@ -161,7 +245,6 @@ class _AppearanceSection extends StatelessWidget {
 class _NotificationsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final settings = context.watch<SettingsProvider>();
 
     return Card(
@@ -170,14 +253,25 @@ class _NotificationsSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Notifications', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const _SectionHeader(icon: Icons.notifications_rounded, title: 'Notifications'),
             const SizedBox(height: 16),
             SwitchListTile(
               secondary: const Icon(Icons.notifications_rounded),
               title: const Text('Enable Notifications'),
               subtitle: const Text('Receive habit reminders and event alerts'),
               value: settings.notificationsEnabled,
-              onChanged: settings.setNotificationsEnabled,
+              onChanged: (value) async {
+                if (value) {
+                  final status = await Permission.notification.request();
+                  if (status.isDenied || status.isPermanentlyDenied) {
+                    if (context.mounted) {
+                      showErrorSnackBar(context, 'Notification permission denied. Enable in system settings.');
+                    }
+                    return;
+                  }
+                }
+                settings.setNotificationsEnabled(value);
+              },
             ),
             SwitchListTile(
               secondary: const Icon(Icons.alarm_rounded),
@@ -200,7 +294,14 @@ class _NotificationsSection extends StatelessWidget {
   }
 }
 
-class _DataSection extends StatelessWidget {
+class _DataSection extends StatefulWidget {
+  @override
+  State<_DataSection> createState() => _DataSectionState();
+}
+
+class _DataSectionState extends State<_DataSection> {
+  bool _loading = false;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -210,30 +311,37 @@ class _DataSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Data Management', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const _SectionHeader(icon: Icons.folder_rounded, title: 'Data Management'),
             const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.download_rounded),
-              title: const Text('Export All Data'),
-              subtitle: const Text('Download JSON backup of notes, habits, events, calculator history, and life data'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => _exportData(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.upload_rounded),
-              title: const Text('Import Data'),
-              subtitle: const Text('Restore from a previously exported JSON file'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => _importData(context),
-            ),
-            const Divider(),
-            ListTile(
-              leading: Icon(Icons.delete_forever_rounded, color: theme.colorScheme.error),
-              title: Text('Clear All Data', style: TextStyle(color: theme.colorScheme.error)),
-              subtitle: const Text('Permanently delete all notes, habits, events, and history'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => _confirmClearAllData(context),
-            ),
+            if (_loading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else ...[
+              ListTile(
+                leading: const Icon(Icons.download_rounded),
+                title: const Text('Export All Data'),
+                subtitle: const Text('Download JSON backup of notes, habits, events, calculator history, and life data'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => _exportData(context),
+              ),
+              ListTile(
+                leading: const Icon(Icons.upload_rounded),
+                title: const Text('Import Data'),
+                subtitle: const Text('Restore from a previously exported JSON file'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => _importData(context),
+              ),
+              const Divider(),
+              ListTile(
+                leading: Icon(Icons.delete_forever_rounded, color: theme.colorScheme.error),
+                title: Text('Clear All Data', style: TextStyle(color: theme.colorScheme.error)),
+                subtitle: const Text('Permanently delete all notes, habits, events, and history'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => _confirmClearAllData(context),
+              ),
+            ],
           ],
         ),
       ),
@@ -241,9 +349,10 @@ class _DataSection extends StatelessWidget {
   }
 
   Future<void> _exportData(BuildContext context) async {
+    setState(() => _loading = true);
     try {
       final db = await AppDatabase.instance.database;
-      
+
       final notes = await db.query('notes');
       final events = await db.query('calendar_events');
       final calcHistory = await db.query('calculator_history');
@@ -263,18 +372,19 @@ class _DataSection extends StatelessWidget {
       };
 
       final jsonString = const JsonEncoder.withIndent('  ').convert(exportData);
-      
-      await SharePlus.instance.share(
-        ShareParams(
-          text: jsonString,
-          subject: 'Personal App Backup - ${DateFormat('yyyy-MM-dd').format(DateTime.now())}',
-        ),
+
+      setState(() => _loading = false);
+
+      await Share.share(
+        jsonString,
+        subject: 'Personal App Backup - ${DateFormat('yyyy-MM-dd').format(DateTime.now())}',
       );
-      
+
       if (context.mounted) {
         showSuccessSnackBar(context, 'Data exported successfully');
       }
     } catch (e) {
+      setState(() => _loading = false);
       debugLog('Export failed: $e');
       if (context.mounted) {
         showErrorSnackBar(context, 'Failed to export data');
@@ -283,35 +393,37 @@ class _DataSection extends StatelessWidget {
   }
 
   Future<void> _importData(BuildContext context) async {
+    setState(() => _loading = true);
     try {
-      final result = await FilePicker.pickFiles(
+      final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['json'],
       );
-      
-      if (result == null || result.files.isEmpty) return;
-      
+
+      if (result == null || result.files.isEmpty) {
+        setState(() => _loading = false);
+        return;
+      }
+
       final file = result.files.first;
-      final content = await file.readAsBytes().then(utf8.decode);
-      
+      final content = utf8.decode(file.bytes!);
+
       final data = jsonDecode(content) as Map<String, dynamic>;
-      
-      // Validate structure
+
       if (data['version'] == null) {
+        setState(() => _loading = false);
         throw FormatException('Invalid backup file');
       }
-      
+
       final db = await AppDatabase.instance.database;
       await db.transaction((txn) async {
-        // Clear existing data
         await txn.delete('notes');
         await txn.delete('calendar_events');
         await txn.delete('calculator_history');
         await txn.delete('habit_logs');
         await txn.delete('habits');
         await txn.delete('settings');
-        
-        // Insert imported data
+
         for (final note in (data['notes'] as List? ?? [])) {
           await txn.insert('notes', Map<String, dynamic>.from(note));
         }
@@ -331,17 +443,20 @@ class _DataSection extends StatelessWidget {
           await txn.insert('settings', Map<String, dynamic>.from(setting));
         }
       });
-      
-      // Reload all providers
+
+      setState(() => _loading = false);
+
       if (context.mounted) {
         context.read<NotesProvider>().load();
         context.read<CalendarProvider>().load();
         context.read<CalculatorProvider>().loadHistory();
         context.read<HabitsProvider>().load();
         context.read<LifeProvider>().loadDOB();
+        await context.read<SettingsProvider>().reload();
         showSuccessSnackBar(context, 'Data imported successfully');
       }
     } catch (e) {
+      setState(() => _loading = false);
       debugLog('Import failed: $e');
       if (context.mounted) {
         showErrorSnackBar(context, 'Failed to import: ${e.toString()}');
@@ -364,23 +479,45 @@ class _DataSection extends StatelessWidget {
         ],
       ),
     );
-    
+
     if (confirmed != true || !context.mounted) return;
-    
-    // Double confirmation
+
+    final deleteController = TextEditingController();
     final doubleConfirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Are You Absolutely Sure?'),
-        content: const Text('Type "DELETE" to confirm.'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('This will permanently delete ALL your data.'),
+            const SizedBox(height: 16),
+            const Text('Type DELETE to confirm:'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: deleteController,
+              autofocus: true,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Type DELETE here',
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, deleteController.text.trim() == 'DELETE'),
+            child: const Text('Confirm', style: TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );
-    
+
     if (doubleConfirmed != true || !context.mounted) return;
-    
+
+    setState(() => _loading = true);
     try {
       final db = await AppDatabase.instance.database;
       await db.transaction((txn) async {
@@ -391,22 +528,25 @@ class _DataSection extends StatelessWidget {
         await txn.delete('habits');
         await txn.delete('settings');
       });
-      
-      // Re-add default habits
+
       final now = DateTime.now().toIso8601String();
       await db.insert('habits', {'name': 'Bathing', 'icon': 'bathtub', 'created_at': now});
       await db.insert('habits', {'name': 'Playing', 'icon': 'sports_esports', 'created_at': now});
       await db.insert('habits', {'name': 'Exercise', 'icon': 'fitness_center', 'created_at': now});
-      
+
+      setState(() => _loading = false);
+
       if (context.mounted) {
         context.read<NotesProvider>().load();
         context.read<CalendarProvider>().load();
         context.read<CalculatorProvider>().loadHistory();
         context.read<HabitsProvider>().load();
         context.read<LifeProvider>().loadDOB();
+        await context.read<SettingsProvider>().reload();
         showSuccessSnackBar(context, 'All data cleared');
       }
     } catch (e) {
+      setState(() => _loading = false);
       debugLog('Clear data failed: $e');
       if (context.mounted) {
         showErrorSnackBar(context, 'Failed to clear data');
@@ -424,7 +564,7 @@ class _LifeTrackerSection extends StatelessWidget {
     final provider = context.watch<LifeProvider>();
 
     final children = <Widget>[
-      Text('Life Tracker', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+      const _SectionHeader(icon: Icons.favorite_rounded, title: 'Life Tracker'),
       const SizedBox(height: 16),
       if (provider.dob == null) ...[
         Text('Set your date of birth to enable life tracking', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
@@ -553,7 +693,6 @@ class _LifeTrackerSection extends StatelessWidget {
 class _CalculatorSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final settings = context.watch<SettingsProvider>();
 
     return Card(
@@ -562,7 +701,7 @@ class _CalculatorSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Calculator', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const _SectionHeader(icon: Icons.calculate_rounded, title: 'Calculator'),
             const SizedBox(height: 16),
             SwitchListTile(
               secondary: const Icon(Icons.functions_rounded),
@@ -607,34 +746,60 @@ class _CalculatorSection extends StatelessWidget {
       ),
     );
     if (confirmed == true && context.mounted) {
-      await context.read<CalculatorProvider>().clearHistory(context);
+      await context.read<CalculatorProvider>().clearHistory();
     }
   }
 }
 
-class _AboutSection extends StatelessWidget {
+class _AboutSection extends StatefulWidget {
+  @override
+  State<_AboutSection> createState() => _AboutSectionState();
+}
+
+class _AboutSectionState extends State<_AboutSection> {
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) setState(() => _version = '${info.version}+${info.buildNumber}');
+    } catch (_) {
+      if (mounted) setState(() => _version = '1.0.0+1');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('About', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const _SectionHeader(icon: Icons.info_outline_rounded, title: 'About'),
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.info_rounded),
               title: const Text('Version'),
-              subtitle: const Text('1.0.0+1'),
+              subtitle: Text(_version.isEmpty ? 'Loading...' : _version),
             ),
             ListTile(
               leading: const Icon(Icons.code_rounded),
               title: const Text('Source Code'),
               subtitle: const Text('github.com/kssaichandan/PERSONAL-APP'),
-              onTap: () {
-                // TODO: Launch URL
+              onTap: () async {
+                final uri = Uri.parse('https://github.com/kssaichandan/PERSONAL-APP');
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                } else if (context.mounted) {
+                  showErrorSnackBar(context, 'Could not open browser');
+                }
               },
             ),
             ListTile(

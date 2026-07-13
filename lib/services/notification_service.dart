@@ -53,6 +53,30 @@ class NotificationService {
     await _notifications.cancel(id);
   }
 
+  Future<void> scheduleNoteNotification(int id, String title, String body, DateTime scheduledDate) async {
+    if (scheduledDate.isBefore(DateTime.now())) return;
+    await _notifications.zonedSchedule(
+      3000 + id,
+      title,
+      body,
+      tz.TZDateTime.from(scheduledDate, tz.local),
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'notes',
+          'Note Reminders',
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+    );
+  }
+
+  Future<void> cancelNoteNotification(int id) async {
+    await _notifications.cancel(3000 + id);
+  }
+
   tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
     final now = tz.TZDateTime.now(tz.local);
     var scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);

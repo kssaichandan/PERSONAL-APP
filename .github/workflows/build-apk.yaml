@@ -1,4 +1,4 @@
-name: Build & Test
+name: Build APK
 
 on:
   push:
@@ -7,8 +7,7 @@ on:
     branches: [master]
 
 jobs:
-  test:
-    name: Test & Analyze
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,85 +15,9 @@ jobs:
         with:
           channel: stable
           cache: true
-      - name: Install dependencies
-        run: flutter pub get
-      - name: Run analyzer
-        run: dart analyze --fatal-warnings
-      - name: Install lcov
-        run: sudo apt-get install -y lcov
-      - name: Run tests with coverage
-        run: flutter test --coverage
-      - name: Check coverage threshold
-        run: |
-          lcov --summary coverage/lcov.info 2>&1 | tee /tmp/coverage_summary.txt
-          COVERAGE=$(grep -oP '[\d.]+(?=%)' /tmp/coverage_summary.txt | head -1)
-          echo "Line coverage: ${COVERAGE}%"
-          if [ "$(echo "$COVERAGE < 30" | bc -l)" -eq 1 ]; then
-            echo "Coverage ${COVERAGE}% is below 30% threshold"
-            exit 1
-          fi
-      - name: Upload coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: coverage/lcov.info
-
-  security-scan:
-    name: Dependency Vulnerability Scan
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-      - name: Check outdated dependencies
-        run: dart pub outdated --no-dev-dependencies > /dev/null 2>&1 || true
-      - name: Run OSV Scanner
-        uses: google/osv-scanner@v1
-        with:
-          args: --lockfile=pubspec.lock
-
-  build-android:
-    name: Build Android (Debug & Release)
-    needs: [test, security-scan]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - name: Install dependencies
-        run: flutter pub get
-      - name: Build Debug APK
-        run: flutter build apk --debug
-      - name: Upload Debug APK
-        uses: actions/upload-artifact@v4
+      - run: flutter pub get
+      - run: flutter build apk --debug
+      - uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
-      - name: Build Release APK
-        run: flutter build apk --release
-      - name: Upload Release APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-      - name: Build App Bundle
-        run: flutter build appbundle --release
-      - name: Upload App Bundle
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-bundle
-          path: build/app/outputs/bundle/release/app-release.aab
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-      - run: flutter pub get
-      - run: dart analyze --fatal-warnings

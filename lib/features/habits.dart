@@ -8,6 +8,114 @@ import '../database.dart';
 import '../services/notification_service.dart';
 import '../utils/snackbar_utils.dart';
 
+// =============================================================================
+// Constants — Icon Map (55 icons), Categories, Color Presets
+// =============================================================================
+
+const int _defaultHabitColor = 0xFF6750A4;
+
+IconData _getIconData(String name) {
+  switch (name) {
+    case 'bathtub': return Icons.bathtub_rounded;
+    case 'sports_esports': return Icons.sports_esports_rounded;
+    case 'fitness_center': return Icons.fitness_center_rounded;
+    case 'book': return Icons.book_rounded;
+    case 'water_drop': return Icons.water_drop_rounded;
+    case 'bed': return Icons.bedtime_rounded;
+    case 'school': return Icons.school_rounded;
+    case 'star': return Icons.star_rounded;
+    case 'directions_run': return Icons.directions_run_rounded;
+    case 'self_improvement': return Icons.self_improvement_rounded;
+    case 'spa': return Icons.spa_rounded;
+    case 'pool': return Icons.pool_rounded;
+    case 'hiking': return Icons.hiking_rounded;
+    case 'pets': return Icons.pets_rounded;
+    case 'restaurant': return Icons.restaurant_rounded;
+    case 'local_drink': return Icons.local_drink_rounded;
+    case 'psychology': return Icons.psychology_rounded;
+    case 'lightbulb': return Icons.lightbulb_rounded;
+    case 'edit_note': return Icons.edit_note_rounded;
+    case 'auto_stories': return Icons.auto_stories_rounded;
+    case 'headphones': return Icons.headphones_rounded;
+    case 'code': return Icons.code_rounded;
+    case 'weekend': return Icons.weekend_rounded;
+    case 'local_florist': return Icons.local_florist_rounded;
+    case 'music_note': return Icons.music_note_rounded;
+    case 'coffee': return Icons.coffee_rounded;
+    case 'favorite': return Icons.favorite_rounded;
+    case 'payments': return Icons.payments_rounded;
+    case 'shopping_cart': return Icons.shopping_cart_rounded;
+    case 'savings': return Icons.savings_rounded;
+    case 'account_balance': return Icons.account_balance_rounded;
+    case 'receipt_long': return Icons.receipt_long_rounded;
+    case 'groups': return Icons.groups_rounded;
+    case 'celebration': return Icons.celebration_rounded;
+    case 'diversity_3': return Icons.diversity_3_rounded;
+    case 'volunteer_activism': return Icons.volunteer_activism_rounded;
+    case 'emoji_emotions': return Icons.emoji_emotions_rounded;
+    case 'cleaning_services': return Icons.cleaning_services_rounded;
+    case 'yard': return Icons.yard_rounded;
+    case 'kitchen': return Icons.kitchen_rounded;
+    case 'checkroom': return Icons.checkroom_rounded;
+    case 'build': return Icons.build_rounded;
+    case 'eco': return Icons.eco_rounded;
+    case 'bolt': return Icons.bolt_rounded;
+    case 'rocket_launch': return Icons.rocket_launch_rounded;
+    case 'palette': return Icons.palette_rounded;
+    case 'explore': return Icons.explore_rounded;
+    case 'emoji_events': return Icons.emoji_events_rounded;
+    case 'schedule': return Icons.schedule_rounded;
+    case 'wb_sunny': return Icons.wb_sunny_rounded;
+    case 'nightlight': return Icons.nightlight_rounded;
+    case 'brush': return Icons.brush_rounded;
+    case 'health_and_safety': return Icons.health_and_safety_rounded;
+    case 'meditation': return Icons.self_improvement_rounded;
+    default: return Icons.star_rounded;
+  }
+}
+
+const List<String> _allIconKeys = [
+  'bathtub', 'sports_esports', 'fitness_center', 'book', 'water_drop', 'bed', 'school', 'star',
+  'directions_run', 'self_improvement', 'spa', 'pool', 'hiking', 'pets', 'restaurant', 'local_drink',
+  'psychology', 'lightbulb', 'edit_note', 'auto_stories', 'headphones', 'code',
+  'weekend', 'local_florist', 'music_note', 'coffee', 'favorite',
+  'payments', 'shopping_cart', 'savings', 'account_balance', 'receipt_long',
+  'groups', 'celebration', 'diversity_3', 'volunteer_activism', 'emoji_emotions',
+  'cleaning_services', 'yard', 'kitchen', 'checkroom', 'build', 'eco',
+  'bolt', 'rocket_launch', 'palette', 'explore', 'emoji_events', 'schedule', 'wb_sunny', 'nightlight', 'brush', 'health_and_safety', 'meditation',
+];
+
+const Map<String, List<String>> _iconCategories = {
+  'All': _allIconKeys,
+  'Health': ['fitness_center', 'directions_run', 'self_improvement', 'spa', 'pool', 'hiking', 'pets', 'restaurant', 'local_drink', 'health_and_safety', 'meditation'],
+  'Mind': ['book', 'school', 'psychology', 'lightbulb', 'edit_note', 'auto_stories', 'headphones', 'code'],
+  'Self-Care': ['bathtub', 'water_drop', 'bed', 'weekend', 'local_florist', 'music_note', 'coffee', 'favorite', 'spa', 'nightlight'],
+  'Play': ['sports_esports', 'star', 'celebration', 'emoji_emotions', 'pets', 'palette', 'explore'],
+  'Finance': ['payments', 'shopping_cart', 'savings', 'account_balance', 'receipt_long'],
+  'Social': ['groups', 'celebration', 'diversity_3', 'volunteer_activism', 'emoji_emotions'],
+  'Home': ['cleaning_services', 'yard', 'kitchen', 'checkroom', 'build', 'eco', 'local_florist'],
+  'Goals': ['bolt', 'rocket_launch', 'emoji_events', 'schedule', 'wb_sunny', 'brush', 'lightbulb'],
+};
+
+const List<int> _colorPresets = [
+  0xFF6750A4,
+  0xFFE53935,
+  0xFFFF6D00,
+  0xFFF9A825,
+  0xFF43A047,
+  0xFF00ACC1,
+  0xFF1E88E5,
+  0xFF8E24AA,
+  0xFFD81B60,
+  0xFF6D4C41,
+  0xFF546E7A,
+  0xFF00897B,
+];
+
+// =============================================================================
+// Model
+// =============================================================================
+
 class Habit {
   final int? id;
   final String name;
@@ -15,8 +123,17 @@ class Habit {
   final String? reminderTime;
   final DateTime createdAt;
   final int displayOrder;
+  final int color;
 
-  Habit({this.id, required this.name, required this.icon, this.reminderTime, required this.createdAt, this.displayOrder = 0});
+  Habit({
+    this.id,
+    required this.name,
+    required this.icon,
+    this.reminderTime,
+    required this.createdAt,
+    this.displayOrder = 0,
+    this.color = _defaultHabitColor,
+  });
 
   Map<String, dynamic> toMap() => {
     'id': id,
@@ -25,6 +142,7 @@ class Habit {
     'reminder_time': reminderTime,
     'created_at': createdAt.toIso8601String(),
     'display_order': displayOrder,
+    'color': color,
   };
 
   factory Habit.fromMap(Map<String, dynamic> m) => Habit(
@@ -34,8 +152,13 @@ class Habit {
     reminderTime: m['reminder_time'],
     createdAt: DateTime.parse(m['created_at']),
     displayOrder: m['display_order'] ?? 0,
+    color: m['color'] as int? ?? _defaultHabitColor,
   );
 }
+
+// =============================================================================
+// Provider
+// =============================================================================
 
 class HabitsProvider extends ChangeNotifier {
   List<Habit> _habits = [];
@@ -44,14 +167,36 @@ class HabitsProvider extends ChangeNotifier {
   String? _error;
   final NotificationService _notificationService;
   final Set<int> _selectedHabits = {};
+  String _searchQuery = '';
 
   List<Habit> get habits => _habits;
+  List<Habit> get filteredHabits {
+    if (_searchQuery.isEmpty) return _habits;
+    final query = _searchQuery.toLowerCase();
+    return _habits.where((h) => h.name.toLowerCase().contains(query)).toList();
+  }
+
   bool get loading => _loading;
   String? get error => _error;
   Set<int> get selectedHabits => _selectedHabits;
   bool get isSelectionMode => _selectedHabits.isNotEmpty;
+  String get searchQuery => _searchQuery;
+
+  int get todayCompletedCount {
+    final today = DateTime.now();
+    return _habits.where((h) => isCompleted(h.id!, today)).length;
+  }
+
+  int get todayTotalCount => _habits.length;
+
+  double get todayProgress => _habits.isEmpty ? 0.0 : todayCompletedCount / todayTotalCount;
 
   HabitsProvider(this._notificationService) { load(); }
+
+  void setSearchQuery(String query) {
+    _searchQuery = query;
+    notifyListeners();
+  }
 
   Future<void> load() async {
     _loading = true;
@@ -101,16 +246,15 @@ class HabitsProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> saveHabit(String name, String icon, String? reminderTime, [BuildContext? context]) async {
+  Future<void> saveHabit(String name, String icon, int color, String? reminderTime, [BuildContext? context]) async {
     try {
       final db = await AppDatabase.instance.database;
-      // Get max display_order
       final maxOrderResult = await db.rawQuery('SELECT MAX(display_order) as max_order FROM habits');
       final maxOrder = maxOrderResult.isNotEmpty ? (maxOrderResult.first['max_order'] as int? ?? 0) : 0;
-      
-      final habit = Habit(name: name, icon: icon, reminderTime: reminderTime, createdAt: DateTime.now(), displayOrder: maxOrder + 1);
+
+      final habit = Habit(name: name, icon: icon, color: color, reminderTime: reminderTime, createdAt: DateTime.now(), displayOrder: maxOrder + 1);
       final id = await db.insert('habits', habit.toMap()..remove('id'));
-      final savedHabit = Habit(id: id, name: name, icon: icon, reminderTime: reminderTime, createdAt: habit.createdAt, displayOrder: maxOrder + 1);
+      final savedHabit = Habit(id: id, name: name, icon: icon, color: color, reminderTime: reminderTime, createdAt: habit.createdAt, displayOrder: maxOrder + 1);
       if (reminderTime != null) _scheduleHabitNotification(savedHabit);
       if (context != null && context.mounted) {
         showSuccessSnackBar(context, 'Habit created');
@@ -145,7 +289,7 @@ class HabitsProvider extends ChangeNotifier {
     try {
       final db = await AppDatabase.instance.database;
       final current = _habits.firstWhere((h) => h.id == habitId);
-      final updated = Habit(id: current.id, name: current.name, icon: current.icon, reminderTime: reminderTime, createdAt: current.createdAt);
+      final updated = Habit(id: current.id, name: current.name, icon: current.icon, color: current.color, reminderTime: reminderTime, createdAt: current.createdAt);
       await db.update('habits', updated.toMap(), where: 'id = ?', whereArgs: [habitId]);
       await _notificationService.cancel(1000 + habitId);
       if (reminderTime != null) _scheduleHabitNotification(updated);
@@ -161,11 +305,11 @@ class HabitsProvider extends ChangeNotifier {
     await load();
   }
 
-  Future<void> updateHabit(int habitId, String name, String icon, String? reminderTime, [BuildContext? context]) async {
+  Future<void> updateHabit(int habitId, String name, String icon, int color, String? reminderTime, [BuildContext? context]) async {
     try {
       final db = await AppDatabase.instance.database;
       final current = _habits.firstWhere((h) => h.id == habitId);
-      final updated = Habit(id: current.id, name: name, icon: icon, reminderTime: reminderTime, createdAt: current.createdAt, displayOrder: current.displayOrder);
+      final updated = Habit(id: current.id, name: name, icon: icon, color: color, reminderTime: reminderTime, createdAt: current.createdAt, displayOrder: current.displayOrder);
       await db.update('habits', updated.toMap(), where: 'id = ?', whereArgs: [habitId]);
       await _notificationService.cancel(1000 + habitId);
       if (reminderTime != null) _scheduleHabitNotification(updated);
@@ -185,8 +329,7 @@ class HabitsProvider extends ChangeNotifier {
     if (oldIndex < newIndex) newIndex--;
     final habit = _habits.removeAt(oldIndex);
     _habits.insert(newIndex, habit);
-    
-    // Update display_order in database
+
     try {
       final db = await AppDatabase.instance.database;
       for (int i = 0; i < _habits.length; i++) {
@@ -198,11 +341,10 @@ class HabitsProvider extends ChangeNotifier {
     } catch (e) {
       debugLog('Failed to update habit order: $e');
     }
-    
+
     notifyListeners();
   }
 
-  // Selection mode methods
   void toggleHabitSelection(int habitId) {
     if (_selectedHabits.contains(habitId)) {
       _selectedHabits.remove(habitId);
@@ -310,7 +452,22 @@ class HabitsProvider extends ChangeNotifier {
     }
     return count;
   }
+
+  int completionsInWeek(int habitId, DateTime weekStart) {
+    final logs = _habitLogsByHabitId[habitId] ?? {};
+    int count = 0;
+    final weekEnd = weekStart.add(const Duration(days: 7));
+    for (final logDate in logs) {
+      final parsed = DateTime.parse(logDate);
+      if (parsed.isAfter(weekStart.subtract(const Duration(days: 1))) && parsed.isBefore(weekEnd)) count++;
+    }
+    return count;
+  }
 }
+
+// =============================================================================
+// Main Screen
+// =============================================================================
 
 class HabitsScreen extends StatefulWidget {
   const HabitsScreen({super.key});
@@ -322,19 +479,57 @@ class HabitsScreen extends StatefulWidget {
 class _HabitsScreenState extends State<HabitsScreen> {
   Habit? _selectedHabit;
   DateTime _currentLogMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  DateTime _currentWeekStart = _getWeekStart(DateTime.now());
+  bool _showSearch = false;
+  final _searchController = TextEditingController();
+
+  static DateTime _getWeekStart(DateTime date) {
+    final monday = date.subtract(Duration(days: date.weekday - 1));
+    return DateTime(monday.year, monday.month, monday.day);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Habit Tracker', style: theme.textTheme.titleLarge),
+        title: _showSearch
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Search habits...',
+                  border: InputBorder.none,
+                ),
+                onChanged: (v) => context.read<HabitsProvider>().setSearchQuery(v),
+              )
+            : Text('Habit Tracker', style: theme.textTheme.titleLarge),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_circle_outline_rounded),
-            tooltip: 'Add habit',
-            onPressed: () => _showAddHabitDialog(context),
-          )
+            icon: Icon(_showSearch ? Icons.close_rounded : Icons.search_rounded),
+            tooltip: _showSearch ? 'Close search' : 'Search habits',
+            onPressed: () {
+              setState(() {
+                _showSearch = !_showSearch;
+                if (!_showSearch) {
+                  _searchController.clear();
+                  context.read<HabitsProvider>().setSearchQuery('');
+                }
+              });
+            },
+          ),
+          if (!_showSearch)
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline_rounded),
+              tooltip: 'Add habit',
+              onPressed: () => _showAddHabitDialog(context),
+            ),
         ],
       ),
       body: Consumer<HabitsProvider>(
@@ -342,32 +537,33 @@ class _HabitsScreenState extends State<HabitsScreen> {
           if (provider.loading) return const Center(child: CircularProgressIndicator());
           if (provider.error != null) return Center(child: Text(provider.error!, style: TextStyle(color: theme.colorScheme.error)));
           if (provider.habits.isEmpty) {
+            return _buildEmptyState(context, theme, provider);
+          }
+
+          final displayHabits = provider.filteredHabits;
+
+          if (displayHabits.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.checklist_rtl_rounded, size: 80, color: theme.colorScheme.primary.withValues(alpha: 0.4)),
+                  Icon(Icons.search_off_rounded, size: 64, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
                   const SizedBox(height: 16),
-                  Text('No habits created yet', style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                  const SizedBox(height: 8),
-                  ElevatedButton.icon(
-                    onPressed: () => _showAddHabitDialog(context),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Create Custom Habit'),
-                  )
+                  Text('No habits match "${provider.searchQuery}"', style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                 ],
               ),
             );
           }
 
-          _selectedHabit ??= provider.habits.first;
-          if (!provider.habits.any((h) => h.id == _selectedHabit!.id)) {
-            _selectedHabit = provider.habits.first;
+          _selectedHabit ??= displayHabits.first;
+          if (!displayHabits.any((h) => h.id == _selectedHabit!.id)) {
+            _selectedHabit = displayHabits.first;
           }
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Selection mode bar
               if (provider.isSelectionMode)
                 Container(
                   color: theme.colorScheme.primaryContainer,
@@ -379,11 +575,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                       TextButton.icon(
                         icon: const Icon(Icons.select_all_rounded),
                         label: const Text('Select All'),
-                        onPressed: () {
-                          for (final h in provider.habits) {
-                            provider.selectedHabits.add(h.id!);
-                          }
-                        },
+                        onPressed: provider.selectAll,
                       ),
                       TextButton.icon(
                         icon: const Icon(Icons.clear_rounded),
@@ -400,21 +592,28 @@ class _HabitsScreenState extends State<HabitsScreen> {
                     ],
                   ),
                 ),
+
+              // Today's progress card
+              _TodayProgressCard(provider: provider, theme: theme),
+
+              // Habit cards horizontal scroll
               SizedBox(
-                height: MediaQuery.of(context).orientation == Orientation.landscape ? 90 : 110,
+                height: 120,
                 child: ReorderableListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  itemCount: provider.habits.length,
+                  itemCount: displayHabits.length,
                   onReorderItem: (Object oldItem, int newIndex) {
-                    final int oldIndex = provider.habits.indexOf(oldItem as Habit);
+                    final int oldIndex = displayHabits.indexOf(oldItem as Habit);
                     provider.reorderHabits(oldIndex, newIndex);
                   },
                   itemBuilder: (context, index) {
-                    final h = provider.habits[index];
+                    final h = displayHabits[index];
                     final isSel = h.id == _selectedHabit?.id;
                     final streaks = provider.getStreaks(h.id!);
                     final currentStreak = streaks['current'] ?? 0;
+                    final completedToday = provider.isCompleted(h.id!, DateTime.now());
+
                     return ReorderableDragStartListener(
                       key: ValueKey(h.id),
                       index: index,
@@ -424,7 +623,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                             : () => setState(() => _selectedHabit = h),
                         onLongPress: () => provider.toggleHabitSelection(h.id!),
                         child: Container(
-                          width: 90,
+                          width: 96,
                           margin: const EdgeInsets.only(right: 12),
                           decoration: BoxDecoration(
                             color: isSel || provider.selectedHabits.contains(h.id)
@@ -432,58 +631,82 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                 : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                                color: isSel || provider.selectedHabits.contains(h.id)
-                                    ? theme.colorScheme.primary
-                                    : Colors.transparent,
-                                width: 2),
+                              color: isSel || provider.selectedHabits.contains(h.id)
+                                  ? h.color == _defaultHabitColor ? theme.colorScheme.primary : Color(h.color)
+                                  : Colors.transparent,
+                              width: 2,
+                            ),
                           ),
                           child: Stack(
                             children: [
                               Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                  // Color accent dot + icon
+                                  Stack(
+                                    clipBehavior: Clip.none,
                                     children: [
-                                      Icon(Icons.drag_indicator_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
-                                      const SizedBox(width: 4),
+                                      Icon(
+                                        _getIconData(h.icon),
+                                        size: 28,
+                                        color: isSel || provider.selectedHabits.contains(h.id)
+                                            ? (h.color == _defaultHabitColor ? theme.colorScheme.primary : Color(h.color))
+                                            : theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                      if (completedToday)
+                                        Positioned(
+                                          right: -4,
+                                          bottom: -2,
+                                          child: Container(
+                                            width: 12,
+                                            height: 12,
+                                            decoration: BoxDecoration(
+                                              color: Colors.green,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(color: theme.colorScheme.surface, width: 1.5),
+                                            ),
+                                            child: const Icon(Icons.check_rounded, size: 8, color: Colors.white),
+                                          ),
+                                        ),
                                     ],
                                   ),
-                                  Icon(_getIconData(h.icon), color: isSel || provider.selectedHabits.contains(h.id) ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant),
                                   const SizedBox(height: 4),
                                   Text(
                                     h.name,
                                     style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: 11,
                                       fontWeight: isSel || provider.selectedHabits.contains(h.id) ? FontWeight.bold : FontWeight.normal,
                                       color: isSel || provider.selectedHabits.contains(h.id) ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.onSurfaceVariant,
                                     ),
                                     overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
                                   ),
                                   if (currentStreak > 0) ...[
                                     const SizedBox(height: 2),
-                                    Semantics(
-                                      label: 'Current streak: $currentStreak days',
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          const Icon(Icons.local_fire_department, color: Colors.orange, size: 12),
-                                          Text('$currentStreak', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange)),
-                                        ],
-                                      ),
-                                    )
-                                  ]
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.local_fire_department, color: Colors.orange, size: 10),
+                                        Text('$currentStreak', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.orange)),
+                                      ],
+                                    ),
+                                  ],
                                 ],
                               ),
                               if (provider.isSelectionMode)
                                 Positioned(
                                   top: 4,
                                   right: 4,
-                                  child: Checkbox(
-                                    value: provider.selectedHabits.contains(h.id),
-                                    onChanged: (_) => provider.toggleHabitSelection(h.id!),
-                                    fillColor: WidgetStateProperty.resolveWith<Color>(
-                                      (states) => states.contains(WidgetState.selected) ? theme.colorScheme.primary : theme.colorScheme.surfaceContainer,
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: Checkbox(
+                                      value: provider.selectedHabits.contains(h.id),
+                                      onChanged: (_) => provider.toggleHabitSelection(h.id!),
+                                      fillColor: WidgetStateProperty.resolveWith<Color>(
+                                        (states) => states.contains(WidgetState.selected) ? theme.colorScheme.primary : theme.colorScheme.surfaceContainer,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -492,28 +715,44 @@ class _HabitsScreenState extends State<HabitsScreen> {
                         ),
                       ),
                     );
-                    },
+                  },
                 ),
               ),
+
               const Divider(height: 1),
+
               if (_selectedHabit != null) ...[
+                // Selected habit header
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Color(_selectedHabit!.color).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          _getIconData(_selectedHabit!.icon),
+                          color: Color(_selectedHabit!.color),
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Log Habit: ${_selectedHabit!.name}',
+                              _selectedHabit!.name,
                               style: theme.textTheme.titleMedium,
                             ),
                             Text(
                               _selectedHabit!.reminderTime == null
-                                ? 'No reminder set'
-                                : 'Daily reminder at ${_selectedHabit!.reminderTime}',
+                                  ? 'No reminder set'
+                                  : 'Daily reminder at ${_selectedHabit!.reminderTime}',
                               style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                             ),
                           ],
@@ -522,17 +761,17 @@ class _HabitsScreenState extends State<HabitsScreen> {
                       Row(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.edit_rounded),
+                            icon: const Icon(Icons.edit_rounded, size: 20),
                             tooltip: 'Edit habit',
                             onPressed: () => _showEditHabitDialog(context, _selectedHabit!, provider),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.alarm),
+                            icon: const Icon(Icons.alarm, size: 20),
                             tooltip: 'Set reminder',
                             onPressed: () => _pickReminderTime(context, _selectedHabit!, provider),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete_outline_rounded),
+                            icon: const Icon(Icons.delete_outline_rounded, size: 20),
                             tooltip: 'Delete habit',
                             onPressed: () => _confirmDeleteHabit(context, _selectedHabit!, provider),
                           ),
@@ -541,15 +780,60 @@ class _HabitsScreenState extends State<HabitsScreen> {
                     ],
                   ),
                 ),
-                _WeeklyChecklist(habit: _selectedHabit!, provider: provider),
+                const SizedBox(height: 8),
+
+                // Weekly checklist with week navigation
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left, size: 20),
+                        tooltip: 'Previous week',
+                        onPressed: () {
+                          setState(() => _currentWeekStart = _currentWeekStart.subtract(const Duration(days: 7)));
+                        },
+                      ),
+                      Text(
+                        'Week of ${DateFormat('MMM d').format(_currentWeekStart)}',
+                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right, size: 20),
+                        tooltip: 'Next week',
+                        onPressed: () {
+                          setState(() => _currentWeekStart = _currentWeekStart.add(const Duration(days: 7)));
+                        },
+                      ),
+                      const Spacer(),
+                      if (_currentWeekStart != _getWeekStart(DateTime.now()))
+                        TextButton.icon(
+                          icon: const Icon(Icons.today_rounded, size: 16),
+                          label: const Text('Today', style: TextStyle(fontSize: 12)),
+                          onPressed: () {
+                            setState(() => _currentWeekStart = _getWeekStart(DateTime.now()));
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+                _WeeklyChecklist(
+                  habit: _selectedHabit!,
+                  provider: provider,
+                  weekStart: _currentWeekStart,
+                ),
                 const SizedBox(height: 16),
+
+                // Monthly section header
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text('Monthly Overview', style: theme.textTheme.titleMedium),
                 ),
                 const SizedBox(height: 8),
+
                 Expanded(
                   child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(bottom: 16),
                     child: _MonthlyLogCalendar(
                       habit: _selectedHabit!,
                       provider: provider,
@@ -568,75 +852,135 @@ class _HabitsScreenState extends State<HabitsScreen> {
     );
   }
 
-  IconData _getIconData(String name) {
-    switch (name) {
-      case 'bathtub': return Icons.bathtub_rounded;
-      case 'sports_esports': return Icons.sports_esports_rounded;
-      case 'fitness_center': return Icons.fitness_center_rounded;
-      case 'book': return Icons.book_rounded;
-      case 'water_drop': return Icons.water_drop_rounded;
-      case 'bed': return Icons.bedtime_rounded;
-      case 'school': return Icons.school_rounded;
-      default: return Icons.star_rounded;
-    }
-  }
+  Widget _buildEmptyState(BuildContext context, ThemeData theme, HabitsProvider provider) {
+    final suggestions = [
+      {'name': 'Read', 'icon': 'book', 'color': 0xFF1E88E5},
+      {'name': 'Meditate', 'icon': 'self_improvement', 'color': 0xFF6750A4},
+      {'name': 'Walk', 'icon': 'directions_run', 'color': 0xFF43A047},
+      {'name': 'Drink Water', 'icon': 'water_drop', 'color': 0xFF00ACC1},
+    ];
 
-  void _showAddHabitDialog(BuildContext context) {
-    final titleCtrl = TextEditingController();
-    String selectedIcon = 'star';
-    final provider = context.read<HabitsProvider>();
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Add Custom Habit'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleCtrl,
-                decoration: const InputDecoration(labelText: 'Habit Name', border: OutlineInputBorder()),
-                autofocus: true,
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+                shape: BoxShape.circle,
               ),
-              const SizedBox(height: 16),
-              const Text('Select Icon'),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: ['bathtub', 'sports_esports', 'fitness_center', 'book', 'water_drop', 'bed', 'school', 'star'].map((iconName) {
-                  final isSel = selectedIcon == iconName;
-                  return GestureDetector(
-                    onTap: () => setDialogState(() => selectedIcon = iconName),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: isSel ? Theme.of(context).colorScheme.primaryContainer : Colors.transparent,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: isSel ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline),
-                      ),
-                      child: Icon(_getIconData(iconName), color: isSel ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant),
-                    ),
-                  );
-                }).toList(),
+              child: Icon(Icons.checklist_rtl_rounded, size: 50, color: theme.colorScheme.primary.withValues(alpha: 0.6)),
+            ),
+            const SizedBox(height: 20),
+            Text('No habits created yet', style: theme.textTheme.titleLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 8),
+            Text('Start building better habits today', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7))),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => _showAddHabitDialog(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Create Custom Habit'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            TextButton(
-              onPressed: () {
-                if (titleCtrl.text.trim().isNotEmpty) {
-                  provider.saveHabit(titleCtrl.text.trim(), selectedIcon, null, ctx);
-                  Navigator.pop(ctx);
-                }
-              },
-              child: const Text('Add'),
+            ),
+            const SizedBox(height: 32),
+            Text('Quick suggestions', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: suggestions.map((s) {
+                return ActionChip(
+                  avatar: Icon(_getIconData(s['icon'] as String), size: 18, color: Color(s['color'] as int)),
+                  label: Text(s['name'] as String, style: const TextStyle(fontSize: 13)),
+                  onPressed: () {
+                    provider.saveHabit(
+                      s['name'] as String,
+                      s['icon'] as String,
+                      s['color'] as int,
+                      null,
+                      context,
+                    );
+                  },
+                );
+              }).toList(),
             ),
           ],
         ),
       ),
     );
+  }
+
+  void _showAddHabitDialog(BuildContext context) {
+    final titleCtrl = TextEditingController();
+    String selectedIcon = 'star';
+    int selectedColor = _colorPresets[0];
+    final provider = context.read<HabitsProvider>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Add Custom Habit', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: titleCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Habit Name',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.edit_rounded),
+                  ),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 20),
+                const Text('Select Icon', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                const SizedBox(height: 8),
+                _HabitIconPicker(
+                  selectedIcon: selectedIcon,
+                  onIconSelected: (icon) => setDialogState(() => selectedIcon = icon),
+                ),
+                const SizedBox(height: 20),
+                const Text('Choose Color', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                const SizedBox(height: 8),
+                _ColorPicker(
+                  selectedColor: selectedColor,
+                  onColorSelected: (color) => setDialogState(() => selectedColor = color),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () {
+                        if (titleCtrl.text.trim().isNotEmpty) {
+                          provider.saveHabit(titleCtrl.text.trim(), selectedIcon, selectedColor, null, ctx);
+                          Navigator.pop(ctx);
+                        }
+                      },
+                      child: const Text('Add'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ).then((_) => titleCtrl.dispose());
   }
 
   void _pickReminderTime(BuildContext context, Habit habit, HabitsProvider provider) async {
@@ -676,171 +1020,277 @@ class _HabitsScreenState extends State<HabitsScreen> {
   void _showEditHabitDialog(BuildContext context, Habit habit, HabitsProvider provider) {
     final titleCtrl = TextEditingController(text: habit.name);
     String selectedIcon = habit.icon;
+    int selectedColor = habit.color;
     String? selectedReminder = habit.reminderTime;
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Edit Habit'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleCtrl,
-                decoration: const InputDecoration(labelText: 'Habit Name', border: OutlineInputBorder()),
-                autofocus: true,
-              ),
-              const SizedBox(height: 16),
-              const Text('Select Icon'),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: ['bathtub', 'sports_esports', 'fitness_center', 'book', 'water_drop', 'bed', 'school', 'star'].map((iconName) {
-                  final isSel = selectedIcon == iconName;
-                  return GestureDetector(
-                    onTap: () => setDialogState(() => selectedIcon = iconName),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: isSel ? Theme.of(context).colorScheme.primaryContainer : Colors.transparent,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: isSel ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline),
-                      ),
-                      child: Icon(_getIconData(iconName), color: isSel ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 16),
-              const Text('Reminder Time (optional)'),
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: () async {
-                  TimeOfDay? initial;
-                  if (selectedReminder != null) {
-                    final parts = selectedReminder!.split(':');
-                    initial = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
-                  }
-                  final picked = await showTimePicker(context: context, initialTime: initial ?? TimeOfDay.now());
-                  if (picked != null) {
-                    setDialogState(() => selectedReminder = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}');
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Theme.of(context).colorScheme.outline),
-                    borderRadius: BorderRadius.circular(8),
+        builder: (context, setDialogState) => Dialog(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Edit Habit', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: titleCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Habit Name',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.edit_rounded),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(selectedReminder ?? 'No reminder set'),
-                      const Icon(Icons.access_time_rounded),
-                    ],
+                  autofocus: true,
+                ),
+                const SizedBox(height: 20),
+                const Text('Select Icon', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                const SizedBox(height: 8),
+                _HabitIconPicker(
+                  selectedIcon: selectedIcon,
+                  onIconSelected: (icon) => setDialogState(() => selectedIcon = icon),
+                ),
+                const SizedBox(height: 20),
+                const Text('Choose Color', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                const SizedBox(height: 8),
+                _ColorPicker(
+                  selectedColor: selectedColor,
+                  onColorSelected: (color) => setDialogState(() => selectedColor = color),
+                ),
+                const SizedBox(height: 20),
+                const Text('Reminder Time (optional)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () async {
+                    TimeOfDay? initial;
+                    if (selectedReminder != null) {
+                      final parts = selectedReminder!.split(':');
+                      initial = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+                    }
+                    final picked = await showTimePicker(context: context, initialTime: initial ?? TimeOfDay.now());
+                    if (picked != null) {
+                      setDialogState(() => selectedReminder = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}');
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Theme.of(context).colorScheme.outline),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.access_time_rounded, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                            const SizedBox(width: 8),
+                            Text(selectedReminder ?? 'No reminder set'),
+                          ],
+                        ),
+                        if (selectedReminder != null)
+                          GestureDetector(
+                            onTap: () => setDialogState(() => selectedReminder = null),
+                            child: Icon(Icons.clear_rounded, size: 18, color: Theme.of(context).colorScheme.error),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            TextButton(
-              onPressed: () {
-                if (titleCtrl.text.trim().isNotEmpty) {
-                  provider.updateHabit(habit.id!, titleCtrl.text.trim(), selectedIcon, selectedReminder, context);
-                  Navigator.pop(ctx);
-                }
-              },
-              child: const Text('Save'),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () {
+                        if (titleCtrl.text.trim().isNotEmpty) {
+                          provider.updateHabit(habit.id!, titleCtrl.text.trim(), selectedIcon, selectedColor, selectedReminder, context);
+                          Navigator.pop(ctx);
+                        }
+                      },
+                      child: const Text('Save'),
+                    ),
+                  ],
+                ),
+              ],
             ),
+          ),
+        ),
+      ),
+    ).then((_) => titleCtrl.dispose());
+  }
+}
+
+// =============================================================================
+// Today Progress Card
+// =============================================================================
+
+class _TodayProgressCard extends StatelessWidget {
+  final HabitsProvider provider;
+  final ThemeData theme;
+
+  const _TodayProgressCard({required this.provider, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    if (provider.habits.isEmpty) return const SizedBox.shrink();
+
+    final completed = provider.todayCompletedCount;
+    final total = provider.todayTotalCount;
+    final progress = provider.todayProgress;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primaryContainer,
+            theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
           ],
         ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: progress == 1.0
+                  ? const Icon(Icons.celebration_rounded, color: Colors.amber, size: 24)
+                  : Icon(Icons.today_rounded, color: theme.colorScheme.primary, size: 24),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$completed of $total habits done today',
+                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 6,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      progress == 1.0 ? Colors.green : theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${(progress * 100).toInt()}%',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: progress == 1.0 ? Colors.green : theme.colorScheme.primary,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
+// =============================================================================
+// Weekly Checklist
+// =============================================================================
+
 class _WeeklyChecklist extends StatelessWidget {
   final Habit habit;
   final HabitsProvider provider;
-  const _WeeklyChecklist({required this.habit, required this.provider});
+  final DateTime weekStart;
+
+  const _WeeklyChecklist({
+    required this.habit,
+    required this.provider,
+    required this.weekStart,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final now = DateTime.now();
-    final todayWeekday = now.weekday;
-    final monday = now.subtract(Duration(days: todayWeekday - 1));
-    final weekDays = List.generate(7, (i) => monday.add(Duration(days: i)));
-    final dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    final today = DateTime(now.year, now.month, now.day);
+    final weekDays = List.generate(7, (i) => weekStart.add(Duration(days: i)));
+    final dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: List.generate(7, (index) {
           final date = weekDays[index];
           final completed = provider.isCompleted(habit.id!, date);
-          final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
-          final isFuture = date.isAfter(now);
-          return Column(
-            children: [
-              Text(
-                dayNames[index],
-                style: TextStyle(fontSize: 12, fontWeight: isToday ? FontWeight.bold : FontWeight.normal, color: isToday ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${date.day}',
-                style: TextStyle(fontSize: 10, fontWeight: isToday ? FontWeight.bold : FontWeight.normal, color: isToday ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: isFuture ? null : () {
-                  provider.toggleLog(habit.id!, date);
-                  if (!completed) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Completed "${habit.name}"!'),
-                        duration: const Duration(milliseconds: 600),
-                        behavior: SnackBarBehavior.floating,
-                      )
-                    );
-                  }
-                },
-                child: AnimatedContainer(
+          final isToday = date == today;
+          final isFuture = date.isAfter(today);
+
+          return GestureDetector(
+            onTap: isFuture ? null : () => provider.toggleLog(habit.id!, date),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  dayLabels[index],
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                    color: isToday ? Color(habit.color) : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${date.day}',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                    color: isToday ? Color(habit.color) : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
-                  width: 38,
-                  height: 38,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
                     color: completed
-                        ? theme.colorScheme.primary
-                        : (isToday ? theme.colorScheme.primary.withValues(alpha: 0.08) : theme.colorScheme.surfaceContainerHighest),
+                        ? Color(habit.color)
+                        : (isToday ? Color(habit.color).withValues(alpha: 0.08) : theme.colorScheme.surfaceContainerHighest),
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: completed ? theme.colorScheme.primary : (isToday ? theme.colorScheme.primary : Colors.transparent),
+                      color: completed
+                          ? Color(habit.color)
+                          : (isToday ? Color(habit.color).withValues(alpha: 0.4) : Colors.transparent),
                       width: 1.5,
                     ),
                   ),
                   child: completed
-                      ? const Icon(Icons.check_rounded, color: Colors.white, size: 20)
+                      ? const Icon(Icons.check_rounded, color: Colors.white, size: 22)
                       : (isFuture
-                          ? Icon(Icons.lock_outline_rounded, color: theme.colorScheme.onSurfaceVariant, size: 14)
+                          ? Icon(Icons.lock_outline_rounded, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4), size: 16)
                           : null),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         }),
       ),
@@ -848,11 +1298,16 @@ class _WeeklyChecklist extends StatelessWidget {
   }
 }
 
+// =============================================================================
+// Monthly Log Calendar
+// =============================================================================
+
 class _MonthlyLogCalendar extends StatelessWidget {
   final Habit habit;
   final HabitsProvider provider;
   final DateTime currentMonth;
   final ValueChanged<DateTime> onMonthChanged;
+
   const _MonthlyLogCalendar({
     required this.habit,
     required this.provider,
@@ -870,20 +1325,27 @@ class _MonthlyLogCalendar extends StatelessWidget {
     final streakStats = provider.getStreaks(habit.id!);
     final currentStreak = streakStats['current'] ?? 0;
     final maxStreak = streakStats['max'] ?? 0;
+    final habitColor = Color(habit.color);
+
     final cells = <Widget>[];
-    for (int i = 1; i < startWeekday; i++) { cells.add(const SizedBox()); }
+    for (int i = 1; i < startWeekday; i++) {
+      cells.add(const SizedBox());
+    }
     for (int day = 1; day <= totalDays; day++) {
       final date = DateTime(currentMonth.year, currentMonth.month, day);
       final isLogged = provider.isCompleted(habit.id!, date);
       cells.add(
         Center(
           child: Container(
-            width: 32,
-            height: 32,
+            width: 36,
+            height: 36,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: isLogged ? theme.colorScheme.primary.withValues(alpha: 0.2) : Colors.transparent,
-              border: Border.all(color: isLogged ? theme.colorScheme.primary : theme.colorScheme.outlineVariant, width: isLogged ? 1.5 : 1),
+              color: isLogged ? habitColor.withValues(alpha: 0.2) : Colors.transparent,
+              border: Border.all(
+                color: isLogged ? habitColor : theme.colorScheme.outlineVariant,
+                width: isLogged ? 1.5 : 1,
+              ),
               shape: BoxShape.circle,
             ),
             child: Text(
@@ -891,13 +1353,14 @@ class _MonthlyLogCalendar extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isLogged ? FontWeight.bold : FontWeight.normal,
-                color: isLogged ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                color: isLogged ? habitColor : theme.colorScheme.onSurface,
               ),
             ),
           ),
         ),
       );
     }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Card(
@@ -939,29 +1402,48 @@ class _MonthlyLogCalendar extends StatelessWidget {
                 children: cells,
               ),
               const Divider(height: 24),
+              // Stats with small progress bars
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _StatBlock(
-                    icon: Icons.calendar_today_rounded,
-                    title: 'Completed',
-                    value: '$completedCount times',
-                    color: theme.colorScheme.primary,
+                  Expanded(
+                    child: _StatBlock(
+                      icon: Icons.calendar_today_rounded,
+                      title: 'Completed',
+                      value: '$completedCount/$totalDays',
+                      subtitle: '${(completedCount / totalDays * 100).toInt()}%',
+                      color: habitColor,
+                    ),
                   ),
-                  _StatBlock(
-                    icon: Icons.local_fire_department_rounded,
-                    title: 'Current Streak',
-                    value: '$currentStreak days',
-                    color: Colors.orange,
+                  Expanded(
+                    child: _StatBlock(
+                      icon: Icons.local_fire_department_rounded,
+                      title: 'Current Streak',
+                      value: '$currentStreak days',
+                      color: Colors.orange,
+                    ),
                   ),
-                  _StatBlock(
-                    icon: Icons.emoji_events_rounded,
-                    title: 'Max Streak',
-                    value: '$maxStreak days',
-                    color: Colors.amber,
+                  Expanded(
+                    child: _StatBlock(
+                      icon: Icons.emoji_events_rounded,
+                      title: 'Best Streak',
+                      value: '$maxStreak days',
+                      color: Colors.amber,
+                    ),
                   ),
                 ],
               ),
+              if (completedCount > 0) ...[
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: completedCount / totalDays,
+                    minHeight: 4,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                    valueColor: AlwaysStoppedAnimation<Color>(habitColor),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -970,12 +1452,24 @@ class _MonthlyLogCalendar extends StatelessWidget {
   }
 }
 
+// =============================================================================
+// Stat Block
+// =============================================================================
+
 class _StatBlock extends StatelessWidget {
   final IconData icon;
   final String title;
   final String value;
   final Color color;
-  const _StatBlock({required this.icon, required this.title, required this.value, required this.color});
+  final String? subtitle;
+
+  const _StatBlock({
+    required this.icon,
+    required this.title,
+    required this.value,
+    this.subtitle,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -984,12 +1478,160 @@ class _StatBlock extends StatelessWidget {
       label: '$title: $value',
       child: Column(
         children: [
-          Icon(icon, color: color, size: 24),
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: color.withValues(alpha: 0.12),
+            child: Icon(icon, color: color, size: 20),
+          ),
           const SizedBox(height: 4),
-          Text(title, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-          Text(value, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
+          Text(title, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant, fontSize: 10)),
+          Text(value, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, fontSize: 13)),
+          if (subtitle != null)
+            Text(subtitle!, style: theme.textTheme.bodySmall?.copyWith(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
         ],
       ),
+    );
+  }
+}
+
+// =============================================================================
+// Habit Icon Picker — Horizontal Scroll (Dialog-compatible)
+// =============================================================================
+
+class _HabitIconPicker extends StatefulWidget {
+  final String selectedIcon;
+  final ValueChanged<String> onIconSelected;
+
+  const _HabitIconPicker({
+    required this.selectedIcon,
+    required this.onIconSelected,
+  });
+
+  @override
+  State<_HabitIconPicker> createState() => _HabitIconPickerState();
+}
+
+class _HabitIconPickerState extends State<_HabitIconPicker> {
+  String _selectedCategory = 'All';
+
+  List<String> get _filteredIcons => _iconCategories[_selectedCategory] ?? _allIconKeys;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 30,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: _iconCategories.keys.map((cat) {
+              final isSelected = cat == _selectedCategory;
+              return Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: ChoiceChip(
+                  label: Text(cat, style: const TextStyle(fontSize: 11)),
+                  selected: isSelected,
+                  onSelected: (_) => setState(() => _selectedCategory = cat),
+                  visualDensity: VisualDensity.compact,
+                  labelPadding: EdgeInsets.zero,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 44,
+          child: _filteredIcons.isEmpty
+              ? Center(
+                  child: Text('No icons', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
+                )
+              : ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _filteredIcons.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 6),
+                  itemBuilder: (context, index) {
+                    final iconName = _filteredIcons[index];
+                    final isSelected = widget.selectedIcon == iconName;
+                    return GestureDetector(
+                      onTap: () => widget.onIconSelected(iconName),
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: isSelected ? theme.colorScheme.primaryContainer : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.outlineVariant,
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: Icon(
+                          _getIconData(iconName),
+                          size: 22,
+                          color: isSelected
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+// =============================================================================
+// Color Picker
+// =============================================================================
+
+class _ColorPicker extends StatelessWidget {
+  final int selectedColor;
+  final ValueChanged<int> onColorSelected;
+
+  const _ColorPicker({
+    required this.selectedColor,
+    required this.onColorSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: _colorPresets.map((color) {
+        final isSelected = selectedColor == color;
+        return GestureDetector(
+          onTap: () => onColorSelected(color),
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: Color(color),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isSelected ? Theme.of(context).colorScheme.onSurface : Colors.transparent,
+                width: isSelected ? 3 : 0,
+              ),
+              boxShadow: isSelected
+                  ? [BoxShadow(color: Color(color).withValues(alpha: 0.4), blurRadius: 6, spreadRadius: 1)]
+                  : null,
+            ),
+            child: isSelected
+                ? Icon(Icons.check_rounded, color: Colors.white, size: 18)
+                : null,
+          ),
+        );
+      }).toList(),
     );
   }
 }

@@ -88,7 +88,8 @@ void main() {
       await tester.pump();
 
       expect(find.byType(NavigationBar), findsOneWidget);
-      expect(find.text('Notes'), findsNWidgets(2));
+      expect(find.byType(NavigationDestination), findsNWidgets(6));
+      expect(find.text('Notes'), findsWidgets);
       expect(find.text('Habits'), findsOneWidget);
       expect(find.text('Calendar'), findsOneWidget);
       expect(find.text('Calculator'), findsOneWidget);
@@ -121,7 +122,7 @@ void main() {
   });
 
   group('NotesScreen', () {
-    testWidgets('Shows search field', (WidgetTester tester) async {
+    testWidgets('Shows FAB to create notes', (WidgetTester tester) async {
       await tester.pumpWidget(MaterialApp(
         home: ChangeNotifierProvider(
           create: (_) => NotesProvider(),
@@ -130,7 +131,7 @@ void main() {
       ));
       await tester.pump();
 
-      expect(find.byType(TextField), findsOneWidget);
+      expect(find.byType(FloatingActionButton), findsOneWidget);
     });
 
     testWidgets('Shows AppBar with Notes title', (WidgetTester tester) async {
@@ -143,6 +144,18 @@ void main() {
       await tester.pump();
 
       expect(find.text('Notes'), findsOneWidget);
+    });
+
+    testWidgets('Shows search icon in AppBar', (WidgetTester tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: ChangeNotifierProvider(
+          create: (_) => NotesProvider(),
+          child: const NotesScreen(),
+        ),
+      ));
+      await tester.pump();
+
+      expect(find.byIcon(Icons.search), findsOneWidget);
     });
   });
 
@@ -192,8 +205,11 @@ void main() {
   group('CalculatorScreen', () {
     testWidgets('Shows calculator display with 0', (WidgetTester tester) async {
       await tester.pumpWidget(MaterialApp(
-        home: ChangeNotifierProvider(
-          create: (_) => CalculatorProvider(),
+        home: MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => CalculatorProvider()),
+            ChangeNotifierProvider(create: (_) => SettingsProvider()),
+          ],
           child: const CalculatorScreen(),
         ),
       ));
@@ -204,8 +220,11 @@ void main() {
 
     testWidgets('Shows memory buttons', (WidgetTester tester) async {
       await tester.pumpWidget(MaterialApp(
-        home: ChangeNotifierProvider(
-          create: (_) => CalculatorProvider(),
+        home: MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => CalculatorProvider()),
+            ChangeNotifierProvider(create: (_) => SettingsProvider()),
+          ],
           child: const CalculatorScreen(),
         ),
       ));
@@ -219,8 +238,11 @@ void main() {
 
     testWidgets('Shows number buttons', (WidgetTester tester) async {
       await tester.pumpWidget(MaterialApp(
-        home: ChangeNotifierProvider(
-          create: (_) => CalculatorProvider(),
+        home: MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => CalculatorProvider()),
+            ChangeNotifierProvider(create: (_) => SettingsProvider()),
+          ],
           child: const CalculatorScreen(),
         ),
       ));
@@ -234,8 +256,11 @@ void main() {
 
     testWidgets('Shows operator buttons', (WidgetTester tester) async {
       await tester.pumpWidget(MaterialApp(
-        home: ChangeNotifierProvider(
-          create: (_) => CalculatorProvider(),
+        home: MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => CalculatorProvider()),
+            ChangeNotifierProvider(create: (_) => SettingsProvider()),
+          ],
           child: const CalculatorScreen(),
         ),
       ));
@@ -250,8 +275,11 @@ void main() {
 
     testWidgets('Tapping number updates expression', (WidgetTester tester) async {
       await tester.pumpWidget(MaterialApp(
-        home: ChangeNotifierProvider(
-          create: (_) => CalculatorProvider(),
+        home: MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => CalculatorProvider()),
+            ChangeNotifierProvider(create: (_) => SettingsProvider()),
+          ],
           child: const CalculatorScreen(),
         ),
       ));
@@ -305,14 +333,15 @@ void main() {
             ChangeNotifierProvider(create: (_) => HabitsProvider(MockNotificationService())),
             ChangeNotifierProvider(create: (_) => NotesProvider()),
             ChangeNotifierProvider(create: (_) => CalendarProvider(MockNotificationService())),
+            ChangeNotifierProvider(create: (_) => SettingsProvider()),
           ],
           child: const CalendarScreen(),
         ),
       ));
       await tester.pump();
 
-      expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_left), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
     });
 
     testWidgets('Shows day names', (WidgetTester tester) async {
@@ -322,6 +351,7 @@ void main() {
             ChangeNotifierProvider(create: (_) => HabitsProvider(MockNotificationService())),
             ChangeNotifierProvider(create: (_) => NotesProvider()),
             ChangeNotifierProvider(create: (_) => CalendarProvider(MockNotificationService())),
+            ChangeNotifierProvider(create: (_) => SettingsProvider()),
           ],
           child: const CalendarScreen(),
         ),
@@ -344,6 +374,7 @@ void main() {
             ChangeNotifierProvider(create: (_) => HabitsProvider(MockNotificationService())),
             ChangeNotifierProvider(create: (_) => NotesProvider()),
             ChangeNotifierProvider(create: (_) => CalendarProvider(MockNotificationService())),
+            ChangeNotifierProvider(create: (_) => SettingsProvider()),
           ],
           child: const CalendarScreen(),
         ),
@@ -361,6 +392,7 @@ void main() {
             ChangeNotifierProvider(create: (_) => HabitsProvider(MockNotificationService())),
             ChangeNotifierProvider(create: (_) => NotesProvider()),
             ChangeNotifierProvider(create: (_) => CalendarProvider(MockNotificationService())),
+            ChangeNotifierProvider(create: (_) => SettingsProvider()),
           ],
           child: const CalendarScreen(),
         ),

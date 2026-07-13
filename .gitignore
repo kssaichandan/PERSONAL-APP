@@ -5,9 +5,7 @@ build/
 *.iml
 .idea/
 .vscode/
-Podfile.lock
-package-lock.json
-yarn.lock
+*.lock
 
 # Android
 local.properties
@@ -26,10 +24,6 @@ macos/Pods/
 
 # Web
 web/.build*
-
-# Local notes
-notes.md
-problems.md
 
 # Platform
 .android/

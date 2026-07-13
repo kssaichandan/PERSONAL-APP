@@ -1,129 +1,73 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/services.dart';
 import '../database.dart';
-import '../utils/snackbar_utils.dart';
+import 'settings_provider.dart';
 
 class CalculatorProvider extends ChangeNotifier {
   String _expression = '';
   String _result = '';
-  double _memory = 0.0;
   List<Map<String, String>> _history = [];
   String? _error;
-  bool _scientificMode = false;
+  double _memory = 0.0;
 
   String get expression => _expression;
   String get result => _result;
-  double get memory => _memory;
   List<Map<String, String>> get history => _history;
   String? get error => _error;
-  bool get scientificMode => _scientificMode;
+  double get memory => _memory;
 
-  CalculatorProvider() { 
-    loadHistory();
-    _loadScientificMode();
-  }
-
-  Future<void> _loadScientificMode() async {
-    try {
-      final db = await AppDatabase.instance.database;
-      final maps = await db.query('settings', where: 'key = ?', whereArgs: ['calculator_scientific_mode']);
-      if (maps.isNotEmpty) {
-        _scientificMode = maps.first['value'] == 'true';
-      }
-    } catch (_) {}
-    notifyListeners();
-  }
-
-  Future<void> toggleScientificMode([BuildContext? context]) async {
-    _scientificMode = !_scientificMode;
-    try {
-      final db = await AppDatabase.instance.database;
-      final maps = await db.query('settings', where: 'key = ?', whereArgs: ['calculator_scientific_mode']);
-      if (maps.isEmpty) {
-        await db.insert('settings', {'key': 'calculator_scientific_mode', 'value': _scientificMode.toString()});
-      } else {
-        await db.update('settings', {'value': _scientificMode.toString()}, where: 'key = ?', whereArgs: ['calculator_scientific_mode']);
-      }
-    } catch (_) {}
-    notifyListeners();
-    if (context != null && context.mounted) {
-      showSuccessSnackBar(context, _scientificMode ? 'Scientific mode enabled' : 'Scientific mode disabled');
-    }
-  }
+  CalculatorProvider() { loadHistory(); }
 
   Future<void> loadHistory() async {
     try {
       final db = await AppDatabase.instance.database;
       final maps = await db.query('calculator_history', orderBy: 'created_at DESC', limit: 50);
-      _history = maps.map((m) => {
-        'id': m['id'].toString(),
-        'expression': m['expression'] as String,
-        'result': m['result'] as String,
-      }).toList();
+      _history = maps.map((m) => {'expression': m['expression'] as String, 'result': m['result'] as String}).toList();
     } catch (e) {
       _error = 'Failed to load history';
     }
     notifyListeners();
   }
 
-  Future<void> clearHistory([BuildContext? context]) async {
-    try {
-      final db = await AppDatabase.instance.database;
-      await db.delete('calculator_history');
-      if (context != null && context.mounted) {
-        showSuccessSnackBar(context, 'History cleared');
-      }
-    } catch (e) {
-      debugLog('Failed to clear history: $e');
-      if (context != null && context.mounted) {
-        showErrorSnackBar(context, 'Failed to clear history');
-      }
-    }
-    await loadHistory();
-  }
-
-  Future<void> deleteHistoryEntry(int id, [BuildContext? context]) async {
-    try {
-      final db = await AppDatabase.instance.database;
-      await db.delete('calculator_history', where: 'id = ?', whereArgs: [id]);
-      if (context != null && context.mounted) {
-        showSuccessSnackBar(context, 'Entry deleted');
-      }
-    } catch (e) {
-      debugLog('Failed to delete history entry: $e');
-      if (context != null && context.mounted) {
-        showErrorSnackBar(context, 'Failed to delete entry');
-      }
-    }
-    await loadHistory();
-  }
-
-  void memoryClear() { _memory = 0.0; notifyListeners(); }
-
-  void memoryRecall() {
-    _expression += _formatResult(_memory);
+  void loadExpression(String expr) {
+    _expression = expr;
+    _result = '';
     notifyListeners();
   }
 
   void memoryAdd() {
-    _evaluateSilent();
-    if (_result != 'Error' && _result.isNotEmpty) _memory += double.tryParse(_result) ?? 0.0;
+    final parsed = double.tryParse(_result);
+    if (parsed != null) _memory += parsed;
     notifyListeners();
   }
 
   void memorySubtract() {
-    _evaluateSilent();
-    if (_result != 'Error' && _result.isNotEmpty) _memory -= double.tryParse(_result) ?? 0.0;
+    final parsed = double.tryParse(_result);
+    if (parsed != null) _memory -= parsed;
     notifyListeners();
   }
 
+  void memoryRecall() {
+    _expression = _memory.toString();
+    _result = '';
+    notifyListeners();
+  }
+
+  void memoryClear() {
+    _memory = 0.0;
+    notifyListeners();
+  }
+
+  Future<void> clearHistory() async {
+    try {
+      final db = await AppDatabase.instance.database;
+      await db.delete('calculator_history');
+    } catch (_) {}
+    await loadHistory();
+  }
+
   void input(String value) {
-    if (_result == 'Error' && value != 'C' && value != '⌫') {
-      _expression = '';
-      _result = '';
-    }
     if (value == 'C') {
       _expression = '';
       _result = '';
@@ -139,28 +83,13 @@ class CalculatorProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void loadExpression(String expr) {
-    _expression = expr;
-    _result = '';
-    notifyListeners();
-  }
-
-  void _evaluateSilent() {
-    try {
-      final parsed = _parse(_expression);
-      _result = _formatResult(parsed);
-    } catch (_) {
-      _result = 'Error';
-    }
-  }
-
   void _evaluate() {
     try {
       final parsed = _parse(_expression);
       _result = _formatResult(parsed);
       _saveToHistory(_expression, _result);
       _expression = _result;
-    } catch (_) {
+    } catch (e) {
       _result = 'Error';
     }
     notifyListeners();
@@ -169,21 +98,21 @@ class CalculatorProvider extends ChangeNotifier {
   String _formatResult(num value) {
     if (value is double && (value.isNaN || value.isInfinite)) return 'Error';
     if (value == value.toInt()) return value.toInt().toString();
-    return value.toStringAsFixed(8).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
+    return value.toStringAsFixed(10).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
   }
 
   Future<void> _saveToHistory(String expr, String res) async {
     try {
       final db = await AppDatabase.instance.database;
       await db.insert('calculator_history', {
-        'expression': expr,
-        'result': res,
+        'expression': expr, 'result': res,
         'created_at': DateTime.now().toIso8601String(),
       });
     } catch (_) {}
     await loadHistory();
   }
 
+  // ponytail: recursive descent parser, no external dep
   int _pos = 0;
   String _input = '';
 
@@ -221,386 +150,198 @@ class CalculatorProvider extends ChangeNotifier {
       _pos++;
       result = pow(result, _factor()).toDouble();
     }
-    if (_pos < _input.length && _input[_pos] == '%') {
-      _pos++;
-      result = result / 100;
-    }
     return result;
   }
 
   num _unary() {
-    if (_pos >= _input.length) throw const FormatException('Unexpected end');
+    if (_pos >= _input.length) throw FormatException('Unexpected end');
     if (_input[_pos] == '-') { _pos++; return -_unary(); }
     if (_input[_pos] == '+') { _pos++; return _unary(); }
     return _primary();
   }
 
   num _primary() {
-    num result;
-    if (_pos >= _input.length) throw const FormatException('Unexpected end');
+    if (_pos >= _input.length) throw FormatException('Unexpected end');
+
     if (_input[_pos] == '(') {
       _pos++;
-      result = _expr();
-      if (_pos >= _input.length || _input[_pos] != ')') throw const FormatException('Missing )');
+      final result = _expr();
+      if (_pos >= _input.length || _input[_pos] != ')') throw FormatException('Missing )');
       _pos++;
-    } else if (_input.substring(_pos).startsWith('sin(')) {
-      _pos += 4;
-      result = sin(_expr().toDouble());
-      if (_pos < _input.length && _input[_pos] == ')') _pos++;
-    } else if (_input.substring(_pos).startsWith('cos(')) {
-      _pos += 4;
-      result = cos(_expr().toDouble());
-      if (_pos < _input.length && _input[_pos] == ')') _pos++;
-    } else if (_input.substring(_pos).startsWith('tan(')) {
-      _pos += 4;
-      result = tan(_expr().toDouble());
-      if (_pos < _input.length && _input[_pos] == ')') _pos++;
-    } else if (_input.substring(_pos).startsWith('log(')) {
-      _pos += 4;
-      result = log(_expr().toDouble()) / ln10;
-      if (_pos < _input.length && _input[_pos] == ')') _pos++;
-    } else if (_input.substring(_pos).startsWith('ln(')) {
-      _pos += 3;
-      result = log(_expr().toDouble());
-      if (_pos < _input.length && _input[_pos] == ')') _pos++;
-    } else if (_input.substring(_pos).startsWith('sqrt(')) {
-      _pos += 5;
-      result = sqrt(_expr().toDouble());
-      if (_pos < _input.length && _input[_pos] == ')') _pos++;
-    } else if (_input.substring(_pos).startsWith('π')) {
-      _pos++;
-      result = pi;
-    } else if (_input.substring(_pos).startsWith('e') && (_pos + 1 >= _input.length || !RegExp(r'[a-zA-Z0-9]').hasMatch(_input[_pos + 1]))) {
-      _pos++;
-      result = e;
-    } else {
-      final start = _pos;
-      while (_pos < _input.length && RegExp(r'[0-9.]').hasMatch(_input[_pos])) { _pos++; }
-      if (_pos == start) throw FormatException('Unexpected: ${_input[_pos]}');
-      result = double.parse(_input.substring(start, _pos));
+      return result;
     }
+
+    if (_input.substring(_pos).startsWith('sin(')) { _pos += 3; return sin(_primary().toDouble()); }
+    if (_input.substring(_pos).startsWith('cos(')) { _pos += 3; return cos(_primary().toDouble()); }
+    if (_input.substring(_pos).startsWith('tan(')) { _pos += 3; return tan(_primary().toDouble()); }
+    if (_input.substring(_pos).startsWith('log(')) { _pos += 3; return log(_primary().toDouble()) / ln10; }
+    if (_input.substring(_pos).startsWith('ln(')) { _pos += 2; return log(_primary().toDouble()); }
+    if (_input.substring(_pos).startsWith('sqrt(')) { _pos += 4; return sqrt(_primary().toDouble()); }
+
+    if (_input.substring(_pos).startsWith('π')) { _pos++; return pi; }
+    if (_input.substring(_pos).startsWith('e') && (_pos + 1 >= _input.length || !RegExp(r'[a-zA-Z0-9]').hasMatch(_input[_pos + 1]))) { _pos++; return e; }
+
+    final start = _pos;
+    while (_pos < _input.length && (RegExp(r'[0-9.]').hasMatch(_input[_pos]))) { _pos++; }
+    if (_pos == start) throw FormatException('Unexpected: ${_input[_pos]}');
+    var result = double.parse(_input.substring(start, _pos));
+    if (_pos < _input.length && _input[_pos] == '%') { _pos++; result /= 100; }
     return result;
   }
 }
 
-class CalculatorScreen extends StatefulWidget {
+class CalculatorScreen extends StatelessWidget {
   const CalculatorScreen({super.key});
 
   @override
-  State<CalculatorScreen> createState() => _CalculatorScreenState();
-}
-
-class _CalculatorScreenState extends State<CalculatorScreen> {
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final calc = context.watch<CalculatorProvider>();
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Calculator', style: theme.textTheme.titleLarge),
-        actions: [
-          if (calc.expression.isNotEmpty || calc.result.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.content_copy_rounded),
-              tooltip: 'Copy result',
-              onPressed: () {
-                final text = calc.result.isNotEmpty ? calc.result : calc.expression;
-                _copyToClipboard(context, text, 'Copied to clipboard');
-              },
-            ),
-          IconButton(
-            icon: Icon(calc.scientificMode ? Icons.functions_rounded : Icons.functions_outlined),
-            tooltip: calc.scientificMode ? 'Disable scientific mode' : 'Enable scientific mode',
-            onPressed: () => calc.toggleScientificMode(context),
-          ),
-          if (calc.history.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.history_rounded),
-              tooltip: 'Show history',
-              onPressed: () => _showHistoryDrawer(context, calc),
-            ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                alignment: Alignment.bottomRight,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    GestureDetector(
-                      onLongPress: () => _copyToClipboard(context, calc.expression.isEmpty ? '0' : calc.expression, 'Expression copied'),
-                      child: Tooltip(
-                        message: calc.expression.isEmpty ? '0' : calc.expression,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          reverse: true,
-                          child: Text(
-                            calc.expression.isEmpty ? '0' : calc.expression,
-                            style: theme.textTheme.titleLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    GestureDetector(
-                      onLongPress: () => _copyToClipboard(context, calc.result.isEmpty ? '0' : calc.result, 'Result copied'),
-                      child: Tooltip(
-                        message: calc.result.isEmpty ? '0' : calc.result,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          reverse: true,
-                          child: Text(
-                            calc.result.isEmpty ? '0' : calc.result,
-                            style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _MemoryButton(label: 'MC', onTap: calc.memoryClear),
-                  _MemoryButton(label: 'MR', onTap: calc.memoryRecall),
-                  _MemoryButton(label: 'M+', onTap: calc.memoryAdd),
-                  _MemoryButton(label: 'M-', onTap: calc.memorySubtract),
-                  if (calc.memory != 0.0)
-                    Text(
-                      'M = ${calc.memory.toStringAsFixed(2).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '')}',
-                      style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
-                    ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeInOut,
-              padding: const EdgeInsets.all(8),
-              child: _ResponsiveButtonGrid(calc: calc),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showHistoryDrawer(BuildContext context, CalculatorProvider calc) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => Consumer<CalculatorProvider>(
-        builder: (context, provider, _) {
-          final theme = Theme.of(context);
-          return Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+      appBar: AppBar(title: const Text('Calculator')),
+      body: Consumer2<CalculatorProvider, SettingsProvider>(
+        builder: (context, calc, settings, _) {
+          return Column(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Calculation History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  TextButton(onPressed: () => provider.clearHistory(context), child: const Text('Clear All')),
-                ],
-              ),
-              const Divider(),
               Expanded(
-                child: ListView.builder(
-                  itemCount: provider.history.length,
-                  itemBuilder: (context, index) {
-                    final item = provider.history[index];
-                    return ListTile(
-                      title: Text(item['expression']!, style: theme.textTheme.bodyMedium),
-                      subtitle: Text('= ${item['result']!}', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline, size: 18),
-                        tooltip: 'Delete entry',
-                        onPressed: () => provider.deleteHistoryEntry(int.parse(item['id']!), context),
-                      ),
-                      onTap: () {
-                        provider.loadExpression(item['expression']!);
-                        Navigator.pop(ctx);
-                      },
-                    );
-                  },
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  alignment: Alignment.bottomRight,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(calc.expression, style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                      const SizedBox(height: 8),
+                      Text(calc.result, style: theme.textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
               ),
+              if (calc.history.isNotEmpty)
+                SizedBox(
+                  height: 80,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    children: calc.history.take(10).map((h) => Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(h['expression']!, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                            Text(h['result']!, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    )).toList(),
+                  ),
+                ),
+              _MemoryButtonRow(calc: calc, theme: theme),
+              _ButtonGrid(calc: calc, scientific: settings.scientificMode, theme: theme),
+              const SizedBox(height: 8),
             ],
-          ));
+          );
         },
       ),
     );
   }
 }
 
-void _copyToClipboard(BuildContext context, String text, String message) {
-  Clipboard.setData(ClipboardData(text: text));
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(message),
-      duration: const Duration(seconds: 2),
-      behavior: SnackBarBehavior.floating,
-    ),
-  );
-}
-
-class _MemoryButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  const _MemoryButton({required this.label, required this.onTap});
+class _MemoryButtonRow extends StatelessWidget {
+  final CalculatorProvider calc;
+  final ThemeData theme;
+  const _MemoryButtonRow({required this.calc, required this.theme});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final semanticLabel = switch (label) {
-      'MC' => 'Memory Clear',
-      'MR' => 'Memory Recall',
-      'M+' => 'Memory Add',
-      'M-' => 'Memory Subtract',
-      _ => label,
-    };
-
-    return Semantics(
-      label: semanticLabel,
-      button: true,
-      child: TextButton(
-        onPressed: onTap,
-        style: TextButton.styleFrom(minimumSize: const Size(48, 36), padding: EdgeInsets.zero),
-        child: Text(label, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant)),
-      ),
+    final hasMemory = calc.memory != 0.0;
+    final memButtons = ['MC', 'MR', 'M+', 'M-'];
+    return Row(
+      children: [
+        if (hasMemory)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text('M', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.onPrimaryContainer)),
+            ),
+          ),
+        ...memButtons.map((label) {
+          final isDisabled = (label == 'MC' || label == 'MR') && !hasMemory;
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(3),
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  foregroundColor: isDisabled ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4) : theme.colorScheme.onSurfaceVariant,
+                ),
+                onPressed: isDisabled ? null : () {
+                  switch (label) {
+                    case 'MC': calc.memoryClear();
+                    case 'MR': calc.memoryRecall();
+                    case 'M+': calc.memoryAdd();
+                    case 'M-': calc.memorySubtract();
+                  }
+                },
+                child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+              ),
+            ),
+          );
+        }),
+      ],
     );
   }
 }
 
-class _ResponsiveButtonGrid extends StatelessWidget {
+class _ButtonGrid extends StatelessWidget {
   final CalculatorProvider calc;
-  const _ResponsiveButtonGrid({required this.calc});
+  final bool scientific;
+  final ThemeData theme;
+  const _ButtonGrid({required this.calc, required this.scientific, required this.theme});
 
   @override
   Widget build(BuildContext context) {
-    final isScientific = calc.scientificMode;
-
-    final standardRows = [
-      ['C', '⌫', '%', '÷'],
-      ['7', '8', '9', '×'],
-      ['4', '5', '6', '-'],
-      ['1', '2', '3', '+'],
-      ['0', '.', '=', ''],
+    const sciRows = [
+      ['sin(', 'cos(', 'tan(', 'log(', 'C'],
+      ['√(', 'ln(', 'π', 'e', '⌫'],
+    ];
+    const basicRows = [
+      ['7', '8', '9', '÷', '^'],
+      ['4', '5', '6', '×', '('],
+      ['1', '2', '3', '-', ')'],
+      ['0', '.', '=', '+', '%'],
     ];
 
-    final scientificRows = [
-      ['C', '⌫', '%', '÷', '(', ')'],
-      ['sin', 'cos', 'tan', '×', '^', '√'],
-      ['7', '8', '9', '-', 'π', 'e'],
-      ['4', '5', '6', '+', 'log', 'ln'],
-      ['1', '2', '3', '=', '(', ')'],
-      ['0', '.', '', '', '', ''],
-    ];
-
-    final rows = isScientific ? scientificRows : standardRows;
+    final allRows = scientific ? [...sciRows, ...basicRows] : basicRows;
+    final opLabels = ['+', '-', '×', '÷', '=', '^', 'C', '⌫'];
+    final fnLabels = ['sin(', 'cos(', 'tan(', 'log(', '√(', 'ln(', 'π', 'e', '(', ')', '%'];
 
     return Column(
-      children: rows.map((row) => Row(
+      children: allRows.map((row) => Row(
         children: row.map((label) {
-          if (label.isEmpty) return Expanded(child: const SizedBox());
+          final isOp = opLabels.contains(label);
+          final isFn = fnLabels.contains(label);
           return Expanded(
-            child: _CalcButton(
-              label: label,
-              onTap: () => calc.input(label),
-              isOperator: ['÷', '×', '-', '+', '=', '^'].contains(label),
-              isAction: ['C', '⌫', '%'].contains(label),
-              isScientific: ['sin', 'cos', 'tan', 'log', 'ln', '√', 'π', 'e', '^'].contains(label),
+            child: Padding(
+              padding: const EdgeInsets.all(3),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: isOp ? theme.colorScheme.primaryContainer : (isFn ? theme.colorScheme.surfaceContainerHighest : null),
+                ),
+                onPressed: () => calc.input(label),
+                child: Text(label, style: TextStyle(fontSize: isOp || isFn ? 14 : 18)),
+              ),
             ),
           );
         }).toList(),
       )).toList(),
-    );
-  }
-}
-
-class _CalcButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  final bool isOperator;
-  final bool isAction;
-  final bool isScientific;
-  const _CalcButton({required this.label, required this.onTap, this.isOperator = false, this.isAction = false, this.isScientific = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    Color getBgColor() {
-      if (isOperator) return label == '=' ? theme.colorScheme.primary : theme.colorScheme.primaryContainer;
-      if (isAction) return theme.colorScheme.errorContainer.withValues(alpha: 0.4);
-      if (isScientific) return theme.colorScheme.secondaryContainer;
-      return theme.colorScheme.surfaceContainer;
-    }
-
-    Color getTextColor() {
-      if (isOperator) return label == '=' ? theme.colorScheme.onPrimary : theme.colorScheme.onPrimaryContainer;
-      if (isAction) return theme.colorScheme.onErrorContainer;
-      if (isScientific) return theme.colorScheme.onSecondaryContainer;
-      return theme.colorScheme.onSurface;
-    }
-
-    String getSemanticLabel() {
-      switch (label) {
-        case 'C': return 'Clear';
-        case '⌫': return 'Backspace';
-        case '%': return 'Percent';
-        case '÷': return 'Divide';
-        case '×': return 'Multiply';
-        case '-': return 'Subtract';
-        case '+': return 'Add';
-        case '=': return 'Equals';
-        case '^': return 'Power';
-        case '√': return 'Square root';
-        case 'π': return 'Pi';
-        case 'e': return 'Euler\'s number';
-        case 'sin': return 'Sine';
-        case 'cos': return 'Cosine';
-        case 'tan': return 'Tangent';
-        case 'log': return 'Logarithm base 10';
-        case 'ln': return 'Natural logarithm';
-        default: return label;
-      }
-    }
-
-    return Padding(
-      padding: const EdgeInsets.all(4),
-      child: Material(
-        color: getBgColor(),
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Semantics(
-            label: getSemanticLabel(),
-            button: true,
-            child: Container(
-              height: MediaQuery.of(context).orientation == Orientation.landscape ? 44 : 52,
-              alignment: Alignment.center,
-              child: Text(label, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: getTextColor())),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

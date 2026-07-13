@@ -216,7 +216,17 @@ class LifeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 40),
                 ElevatedButton.icon(
-                  onPressed: () => _pickDate(context, provider),
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: provider.dob ?? DateTime(2000, 1, 1),
+                      firstDate: DateTime(1900),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null && context.mounted) {
+                      await provider.saveDOB(picked, context);
+                    }
+                  },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -243,18 +253,6 @@ class LifeScreen extends StatelessWidget {
 
     return _LifeScreenContent(dob: dob, expectedYears: expectedYears, provider: provider);
   }
-
-  Future<void> _pickDate(BuildContext context, LifeProvider provider) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: provider.dob ?? DateTime(2000, 1, 1),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null && context.mounted) {
-      await provider.saveDOB(picked, context);
-    }
-  }
 }
 
 class _BiometricGuard extends StatefulWidget {
@@ -267,6 +265,7 @@ class _BiometricGuard extends StatefulWidget {
 
 class _BiometricGuardState extends State<_BiometricGuard> {
   bool _authenticated = false;
+  bool _error = false;
 
   @override
   void initState() {
@@ -275,30 +274,70 @@ class _BiometricGuardState extends State<_BiometricGuard> {
   }
 
   Future<void> _authenticate() async {
+    setState(() => _error = false);
     final provider = context.read<LifeProvider>();
     final authenticated = await provider.authenticate();
     if (mounted) {
-      setState(() => _authenticated = authenticated);
+      setState(() {
+        _authenticated = authenticated;
+        _error = !authenticated;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_authenticated) {
+    final theme = Theme.of(context);
+
+    if (_authenticated) return widget.child;
+
+    if (_error) {
       return Scaffold(
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              Text('Authenticating...', style: Theme.of(context).textTheme.bodyLarge),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.lock_rounded, size: 64, color: theme.colorScheme.error),
+                const SizedBox(height: 16),
+                Text('Authentication Failed', style: theme.textTheme.titleLarge),
+                const SizedBox(height: 8),
+                Text(
+                  'Could not verify your identity. Please try again.',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                FilledButton.icon(
+                  onPressed: _authenticate,
+                  icon: const Icon(Icons.fingerprint_rounded),
+                  label: const Text('Try Again'),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => context.read<LifeProvider>().setBiometricEnabled(false),
+                  child: const Text('Disable biometric lock'),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
-    return widget.child;
+
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text('Authenticating...', style: Theme.of(context).textTheme.bodyLarge),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -325,6 +364,11 @@ class _LifeScreenContent extends StatelessWidget {
         title: Text('Life Journey', style: theme.textTheme.titleLarge),
         actions: [
           IconButton(
+            icon: const Icon(Icons.speed_rounded),
+            tooltip: 'Life expectancy',
+            onPressed: () => _showLifeExpectancyDialog(context, provider),
+          ),
+          IconButton(
             icon: const Icon(Icons.settings_backup_restore_rounded),
             tooltip: 'Reset date of birth',
             onPressed: () => _confirmReset(context, provider),
@@ -337,7 +381,7 @@ class _LifeScreenContent extends StatelessWidget {
         ],
       ),
       body: StreamBuilder<DateTime>(
-        stream: Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now()),
+        stream: Stream.periodic(const Duration(milliseconds: 50), (_) => DateTime.now()),
         initialData: DateTime.now(),
         builder: (context, snapshot) {
           final now = snapshot.data!;
@@ -360,6 +404,19 @@ class _LifeScreenContent extends StatelessWidget {
           final totalExpectedDays = expectedYears * 365.25;
           final lifePercentage = (totalDays / totalExpectedDays) * 100;
           final formattedPercentage = lifePercentage.toStringAsFixed(2);
+
+          final expectedDeathDate = DateTime(dob.year + expectedYears, dob.month, dob.day);
+          final remainingDuration = expectedDeathDate.difference(now);
+          int remainingYears = expectedDeathDate.year - now.year;
+          int remainingMonths = expectedDeathDate.month - now.month;
+          int remainingDays = expectedDeathDate.day - now.day;
+          if (remainingDays < 0) {
+            remainingMonths--;
+            final prevMonth = DateTime(expectedDeathDate.year, expectedDeathDate.month, 0);
+            remainingDays += prevMonth.day;
+          }
+          if (remainingMonths < 0) { remainingYears--; remainingMonths += 12; }
+          if (remainingDuration.isNegative) { remainingYears = 0; remainingMonths = 0; remainingDays = 0; }
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -426,9 +483,57 @@ class _LifeScreenContent extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Based on an average life expectancy of \$expectedYears years.',
+                          'Based on an average life expectancy of $expectedYears years.',
                           style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                           textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'You have lived $formattedPercentage% of your expected life.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: lifePercentage < 50
+                                ? theme.colorScheme.primary
+                                : lifePercentage < 80
+                                    ? Colors.amber.shade700
+                                    : theme.colorScheme.error,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Card(
+                  elevation: 0,
+                  color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.3),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.hourglass_bottom_rounded, color: theme.colorScheme.tertiary, size: 20),
+                            const SizedBox(width: 8),
+                            Text('EXPECTED REMAINING TIME', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1, color: theme.colorScheme.tertiary)),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text('$remainingYears', style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold)),
+                              Text(' yrs  ', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                              Text('$remainingMonths', style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold)),
+                              Text(' mos  ', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                              Text('$remainingDays', style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold)),
+                              Text(' days', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -439,8 +544,8 @@ class _LifeScreenContent extends StatelessWidget {
                 const SizedBox(height: 8),
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final crossAxisCount = constraints.maxWidth < 400 ? 1 : 2;
-                    final childAspectRatio = crossAxisCount == 1 ? 3.0 : 1.4;
+                    final crossAxisCount = constraints.maxWidth < 400 ? 1 : 3;
+                    final childAspectRatio = crossAxisCount == 1 ? 3.0 : 1.6;
                     return GridView.count(
                       crossAxisCount: crossAxisCount,
                       shrinkWrap: true,
@@ -449,10 +554,11 @@ class _LifeScreenContent extends StatelessWidget {
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
                       children: [
-                        _MetricCard(title: 'Total Days', value: NumberFormat.compact().format(totalDays), icon: Icons.today_rounded, color: Colors.teal),
-                        _MetricCard(title: 'Total Hours', value: NumberFormat.compact().format(totalHours), icon: Icons.watch_later_rounded, color: Colors.blue),
-                        _MetricCard(title: 'Total Minutes', value: NumberFormat.compact().format(totalMinutes), icon: Icons.timer_rounded, color: Colors.indigo),
-                        _MetricCard(title: 'Total Seconds', value: NumberFormat.compact().format(totalSeconds), icon: Icons.hourglass_full_rounded, color: Colors.amber.shade800),
+                        _MetricCard(title: 'Total Days', value: NumberFormat.compact().format(totalDays), icon: Icons.today_rounded, color: theme.colorScheme.tertiary),
+                        _MetricCard(title: 'Total Weeks', value: (totalDays / 7).toStringAsFixed(1), icon: Icons.date_range_rounded, color: theme.colorScheme.primary),
+                        _MetricCard(title: 'Total Hours', value: NumberFormat.compact().format(totalHours), icon: Icons.watch_later_rounded, color: theme.colorScheme.secondary),
+                        _MetricCard(title: 'Total Minutes', value: NumberFormat.compact().format(totalMinutes), icon: Icons.timer_rounded, color: theme.colorScheme.tertiary),
+                        _MetricCard(title: 'Total Seconds', value: NumberFormat.compact().format(totalSeconds), icon: Icons.hourglass_full_rounded, color: theme.colorScheme.error),
                       ],
                     );
                   },
@@ -465,16 +571,16 @@ class _LifeScreenContent extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            Icon(Icons.bolt, color: Colors.purple),
-                            SizedBox(width: 8),
-                            Text('Ticking milliseconds:', style: TextStyle(fontSize: 12)),
+                            Icon(Icons.bolt, color: theme.colorScheme.tertiary),
+                            const SizedBox(width: 8),
+                            Text('Ticking milliseconds:', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
                           ],
                         ),
                         Text(
                           NumberFormat('#,###').format(totalMillis),
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.purple),
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: theme.colorScheme.tertiary),
                         ),
                       ],
                     ),
@@ -500,6 +606,39 @@ class _LifeScreenContent extends StatelessWidget {
     }
   }
 
+  Future<void> _showLifeExpectancyDialog(BuildContext context, LifeProvider provider) async {
+    final controller = TextEditingController(text: provider.lifeExpectancy.toString());
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Life Expectancy'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Expected years',
+            border: OutlineInputBorder(),
+            helperText: 'Used for progress meter calculation',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              final years = int.tryParse(controller.text);
+              if (years != null && years > 0 && years <= 120) {
+                provider.setLifeExpectancy(years, context);
+                Navigator.pop(ctx);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+  }
+
   Future<void> _confirmReset(BuildContext context, LifeProvider provider) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -510,7 +649,7 @@ class _LifeScreenContent extends StatelessWidget {
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Reset', style: TextStyle(color: Colors.red)),
+            child: Text('Reset', style: TextStyle(color: Theme.of(ctx).colorScheme.error)),
           ),
         ],
       ),

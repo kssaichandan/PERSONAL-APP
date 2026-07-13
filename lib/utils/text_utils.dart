@@ -1,4 +1,4 @@
-// Shared utility functions
+import 'dart:convert';
 
 /// Strips HTML tags and normalizes whitespace from text content
 String plainText(String content) {
@@ -6,6 +6,16 @@ String plainText(String content) {
       .replaceAll(RegExp(r'<[^>]*>'), '')
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
+}
+
+/// Extracts plain text from a Quill delta JSON string
+String deltaToPlainText(String deltaJson) {
+  try {
+    final delta = jsonDecode(deltaJson);
+    return (delta as List).map((op) => op['insert'] ?? '').join().trim();
+  } catch (_) {
+    return deltaJson;
+  }
 }
 
 /// Formats a number with compact notation (e.g., 1.2M, 500K)
