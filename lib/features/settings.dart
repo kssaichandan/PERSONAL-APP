@@ -395,7 +395,7 @@ class _DataSectionState extends State<_DataSection> {
   Future<void> _importData(BuildContext context) async {
     setState(() => _loading = true);
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['json'],
       );
