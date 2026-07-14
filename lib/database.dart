@@ -29,7 +29,7 @@ class AppDatabase {
     final path = join(dbPath, 'personal_app.db');
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE notes (
@@ -37,6 +37,12 @@ class AppDatabase {
             title TEXT NOT NULL DEFAULT '',
             content TEXT NOT NULL DEFAULT '',
             pinned INTEGER NOT NULL DEFAULT 0,
+            favorite INTEGER NOT NULL DEFAULT 0,
+            color INTEGER,
+            archived INTEGER NOT NULL DEFAULT 0,
+            deleted_at TEXT,
+            reminder_time TEXT,
+            priority INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
           )
@@ -66,7 +72,7 @@ class AppDatabase {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             icon TEXT DEFAULT 'star',
-            color INTEGER DEFAULT 0xFF6750A4,
+            color INTEGER DEFAULT 4284993700,
             reminder_time TEXT,
             reminder_days TEXT,
             created_at TEXT NOT NULL,
@@ -90,13 +96,45 @@ class AppDatabase {
         ''');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 2) {
-          await db.execute('ALTER TABLE notes ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0');
-          await db.execute('ALTER TABLE notes ADD COLUMN color INTEGER');
-          await db.execute('ALTER TABLE notes ADD COLUMN archived INTEGER NOT NULL DEFAULT 0');
-          await db.execute('ALTER TABLE notes ADD COLUMN deleted_at TEXT');
-          await db.execute('ALTER TABLE notes ADD COLUMN reminder_time TEXT');
-          await db.execute('ALTER TABLE notes ADD COLUMN priority INTEGER NOT NULL DEFAULT 0');
+        if (oldVersion < 3) {
+          // Alter notes table to add new columns if they do not exist
+          final notesColumns = {
+            'favorite': 'INTEGER NOT NULL DEFAULT 0',
+            'color': 'INTEGER',
+            'archived': 'INTEGER NOT NULL DEFAULT 0',
+            'deleted_at': 'TEXT',
+            'reminder_time': 'TEXT',
+            'priority': 'INTEGER NOT NULL DEFAULT 0',
+          };
+          for (final entry in notesColumns.entries) {
+            try {
+              await db.execute('ALTER TABLE notes ADD COLUMN ${entry.key} ${entry.value}');
+            } catch (_) {}
+          }
+
+          // Alter habits table to add new columns if they do not exist
+          final habitsColumns = {
+            'color': 'INTEGER DEFAULT 4284993700',
+            'display_order': 'INTEGER DEFAULT 0',
+          };
+          for (final entry in habitsColumns.entries) {
+            try {
+              await db.execute('ALTER TABLE habits ADD COLUMN ${entry.key} ${entry.value}');
+            } catch (_) {}
+          }
+
+          // Alter calendar_events table to add new columns if they do not exist
+          final calendarColumns = {
+            'notes': "TEXT DEFAULT ''",
+            'category': "TEXT DEFAULT 'General'",
+            'recurrence': "TEXT DEFAULT 'none'",
+            'recurrence_end': 'TEXT',
+          };
+          for (final entry in calendarColumns.entries) {
+            try {
+              await db.execute('ALTER TABLE calendar_events ADD COLUMN ${entry.key} ${entry.value}');
+            } catch (_) {}
+          }
         }
       },
     );

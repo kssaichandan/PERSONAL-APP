@@ -25,6 +25,7 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: const Text('Settings'),
       ),
       body: ListView(
@@ -238,7 +239,7 @@ class _AppearanceSection extends StatelessWidget {
                 ),
                 itemBuilder: (ctx, index) {
                   final color = colors[index];
-                  final isSelected = settings.colorSeed.value == color.value;
+                  final isSelected = settings.colorSeed == color;
                   return GestureDetector(
                     onTap: () {
                       settings.setColorSeed(color);

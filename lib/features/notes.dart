@@ -315,6 +315,7 @@ class NotesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: Consumer<NotesProvider>(builder: (_, p, __) => Text(p.isSelectionMode ? '${p.selectedNotes.length} selected' : 'Notes')),
         actions: [
           Consumer<NotesProvider>(builder: (context, p, _) {

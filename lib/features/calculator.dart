@@ -225,7 +225,7 @@ class CalculatorScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Calculator')),
+      appBar: AppBar(title: const Text('Calculator'), centerTitle: true),
       body: Consumer2<CalculatorProvider, SettingsProvider>(
         builder: (context, calc, settings, _) {
           return Column(
@@ -235,10 +235,10 @@ class CalculatorScreen extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _MemoryRow(calc: calc, theme: theme),
+                    _MemoryRow(calc: calc, scientific: settings.scientificMode, theme: theme),
                     _ScientificToggle(calc: calc, settings: settings),
                     _ButtonGrid(calc: calc, scientific: settings.scientificMode, theme: theme),
-                    const SizedBox(height: 8),
+                    SizedBox(height: settings.scientificMode ? 4 : 8),
                   ],
                 ),
               ),
@@ -258,8 +258,9 @@ class _DisplayArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isSci = settings.scientificMode;
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+      padding: EdgeInsets.fromLTRB(20, isSci ? 4 : 8, 20, isSci ? 4 : 12),
       alignment: Alignment.bottomRight,
       child: SingleChildScrollView(
         child: Column(
@@ -278,7 +279,7 @@ class _DisplayArea extends StatelessWidget {
                   child: Text('M', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.onPrimaryContainer)),
                 ),
               const Spacer(),
-              if (settings.scientificMode)
+              if (isSci)
                 const Chip(
                   avatar: Icon(Icons.science_outlined, size: 14),
                   label: Text('SCI', style: TextStyle(fontSize: 10)),
@@ -289,27 +290,27 @@ class _DisplayArea extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: isSci ? 4 : 12),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             reverse: true,
             child: Text(
               calc.expression.isEmpty ? '0' : calc.expression,
-              style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: (isSci ? theme.textTheme.titleSmall : theme.textTheme.titleMedium)?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               maxLines: 1,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: isSci ? 2 : 4),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             reverse: true,
             child: Text(
               calc.result.isEmpty ? '' : calc.result,
-              style: theme.textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: (isSci ? theme.textTheme.headlineMedium : theme.textTheme.headlineLarge)?.copyWith(fontWeight: FontWeight.bold),
               maxLines: 1,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: isSci ? 4 : 8),
           if (calc.history.isNotEmpty)
             SizedBox(
               height: 44,
@@ -341,8 +342,9 @@ class _DisplayArea extends StatelessWidget {
 
 class _MemoryRow extends StatelessWidget {
   final CalculatorProvider calc;
+  final bool scientific;
   final ThemeData theme;
-  const _MemoryRow({required this.calc, required this.theme});
+  const _MemoryRow({required this.calc, required this.scientific, required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -355,10 +357,10 @@ class _MemoryRow extends StatelessWidget {
           final disabled = (label == 'MC' || label == 'MR') && !hasMemory;
           return Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(2),
+              padding: EdgeInsets.all(scientific ? 1 : 2),
               child: TextButton(
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  padding: EdgeInsets.symmetric(vertical: scientific ? 3 : 6),
                   foregroundColor: disabled ? theme.colorScheme.onSurface.withValues(alpha: 0.38) : theme.colorScheme.onSurfaceVariant,
                   backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -388,17 +390,18 @@ class _ScientificToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isSci = settings.scientificMode;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: isSci ? 2 : 4),
       child: Row(
         children: [
           TextButton.icon(
-            icon: Icon(settings.scientificMode ? Icons.science : Icons.science_outlined, size: 16),
-            label: Text(settings.scientificMode ? 'Scientific ON' : 'Scientific OFF', style: const TextStyle(fontSize: 11)),
+            icon: Icon(isSci ? Icons.science : Icons.science_outlined, size: 16),
+            label: Text(isSci ? 'Scientific ON' : 'Scientific OFF', style: const TextStyle(fontSize: 11)),
             onPressed: () => settings.setScientificMode(!settings.scientificMode),
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              backgroundColor: settings.scientificMode ? Theme.of(context).colorScheme.primaryContainer : null,
+              backgroundColor: isSci ? Theme.of(context).colorScheme.primaryContainer : null,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
@@ -444,7 +447,7 @@ class _ButtonGrid extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Column(
         children: allRows.map((row) => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 3),
+          padding: EdgeInsets.symmetric(vertical: scientific ? 1.5 : 3),
           child: Row(
             children: row.map((label) {
               final isNumber = RegExp(r'^[0-9]$').hasMatch(label);
@@ -475,9 +478,9 @@ class _ButtonGrid extends StatelessWidget {
               return Expanded(
                 flex: isZero ? 2 : 1,
                 child: Padding(
-                  padding: const EdgeInsets.all(2),
+                  padding: EdgeInsets.all(scientific ? 1 : 2),
                   child: SizedBox(
-                    height: 48,
+                    height: scientific ? 38 : 48,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: bg,
@@ -496,7 +499,9 @@ class _ButtonGrid extends StatelessWidget {
                           child: Text(
                             label,
                             style: TextStyle(
-                              fontSize: isNumber || isZero ? 22 : (isFn ? 14 : 15),
+                              fontSize: scientific 
+                                  ? (isNumber || isZero ? 16 : (isFn ? 12 : 13))
+                                  : (isNumber || isZero ? 22 : (isFn ? 14 : 15)),
                               fontWeight: isOp || isEquals ? FontWeight.w600 : FontWeight.normal,
                             ),
                           ),

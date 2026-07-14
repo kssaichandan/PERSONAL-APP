@@ -186,7 +186,7 @@ class LifeScreen extends StatelessWidget {
 
     if (provider.dob == null) {
       return Scaffold(
-        appBar: AppBar(title: Text('Life Tracker', style: theme.textTheme.titleLarge)),
+        appBar: AppBar(title: Text('Life Tracker', style: theme.textTheme.titleLarge), centerTitle: true),
         body: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -365,6 +365,7 @@ class _LifeScreenContent extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: Text('Life Journey', style: theme.textTheme.titleLarge),
         actions: [
           IconButton(

@@ -254,6 +254,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: _showSearch
             ? TextField(
                 controller: _searchController,

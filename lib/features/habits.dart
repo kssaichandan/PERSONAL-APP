@@ -234,7 +234,11 @@ class HabitsProvider extends ChangeNotifier {
         await db.delete('habit_logs', where: 'habit_id = ? AND date = ?', whereArgs: [habitId, dateStr]);
         _habitLogsByHabitId[habitId]?.remove(dateStr);
       } else {
-        await db.insert('habit_logs', {'habit_id': habitId, 'date': dateStr});
+        await db.insert('habit_logs', {
+          'habit_id': habitId,
+          'date': dateStr,
+          'created_at': DateTime.now().toIso8601String(),
+        });
         _habitLogsByHabitId.putIfAbsent(habitId, () => {}).add(dateStr);
       }
       notifyListeners();
@@ -499,6 +503,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: _showSearch
             ? TextField(
                 controller: _searchController,
