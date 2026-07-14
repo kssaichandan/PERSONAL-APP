@@ -276,7 +276,7 @@ void main() {
     setUp(() async {
       mockNotifications = MockNotificationService();
       when(() => mockNotifications.initialize()).thenAnswer((_) async {});
-      provider = CalendarProvider(mockNotifications);
+      provider = CalendarProvider();
       await Future.delayed(Duration.zero);
     });
 

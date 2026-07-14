@@ -534,8 +534,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
       ),
       body: Consumer<HabitsProvider>(
         builder: (context, provider, _) {
-          if (provider.loading) return const Center(child: CircularProgressIndicator());
-          if (provider.error != null) return Center(child: Text(provider.error!, style: TextStyle(color: theme.colorScheme.error)));
+          if (provider.loading) return const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [CircularProgressIndicator(), SizedBox(height: 16), Text('Loading habits...')]));
+          if (provider.error != null) return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error), const SizedBox(height: 12), Text(provider.error!, style: TextStyle(color: theme.colorScheme.error)), const SizedBox(height: 16), FilledButton.tonalIcon(onPressed: () => context.read<HabitsProvider>().load(), icon: const Icon(Icons.refresh, size: 18), label: const Text('Retry'))]));
           if (provider.habits.isEmpty) {
             return _buildEmptyState(context, theme, provider);
           }
@@ -547,7 +547,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.search_off_rounded, size: 64, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+                  Icon(Icons.search_off_rounded, size: 64, color: theme.colorScheme.onSurfaceVariant),
                   const SizedBox(height: 16),
                   Text('No habits match "${provider.searchQuery}"', style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                 ],
@@ -596,7 +596,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
 
               // Habit cards horizontal scroll
               SizedBox(
-                height: 120,
+                height: 130,
                 child: ReorderableListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -623,7 +623,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                         child: Padding(
                           padding: EdgeInsets.only(top: provider.isSelectionMode ? 14 : 0),
                           child: Container(
-                          width: 96,
+                          width: 112,
                           margin: const EdgeInsets.only(right: 12),
                           decoration: BoxDecoration(
                             color: isSel || provider.selectedHabits.contains(h.id)
@@ -655,8 +655,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                       ),
                                       if (completedToday)
                                         Positioned(
-                                          right: -4,
-                                          bottom: -2,
+                                          right: 0,
+                                          bottom: 0,
                                           child: Container(
                                             width: 12,
                                             height: 12,
@@ -676,7 +676,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                     child: Text(
                                       h.name,
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: 12,
                                         fontWeight: isSel || provider.selectedHabits.contains(h.id) ? FontWeight.bold : FontWeight.normal,
                                         color: isSel || provider.selectedHabits.contains(h.id) ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.onSurfaceVariant,
                                       ),
@@ -691,7 +691,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         const Icon(Icons.local_fire_department, color: Colors.orange, size: 10),
-                                        Text('$currentStreak', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.orange)),
+                                        Text('$currentStreak', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.orange)),
                                       ],
                                     ),
                                   ],
@@ -702,14 +702,29 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                 Positioned(
                                   top: 2,
                                   right: 2,
-                                  child: SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: Checkbox(
-                                      value: provider.selectedHabits.contains(h.id),
-                                      onChanged: (_) => provider.toggleHabitSelection(h.id!),
-                                      fillColor: WidgetStateProperty.resolveWith<Color>(
-                                        (states) => states.contains(WidgetState.selected) ? theme.colorScheme.primary : theme.colorScheme.surfaceContainer,
+                                  child: Semantics(
+                                    label: provider.selectedHabits.contains(h.id) ? 'Selected' : 'Not selected',
+                                    button: true,
+                                    child: GestureDetector(
+                                      onTap: () => provider.toggleHabitSelection(h.id!),
+                                      child: Container(
+                                        width: 24,
+                                        height: 24,
+                                        decoration: BoxDecoration(
+                                          color: provider.selectedHabits.contains(h.id)
+                                              ? theme.colorScheme.primary
+                                              : theme.colorScheme.surfaceContainer,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: provider.selectedHabits.contains(h.id)
+                                                ? theme.colorScheme.primary
+                                                : theme.colorScheme.outline,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: provider.selectedHabits.contains(h.id)
+                                            ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
+                                            : null,
                                       ),
                                     ),
                                   ),
@@ -883,7 +898,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
             const SizedBox(height: 20),
             Text('No habits created yet', style: theme.textTheme.titleLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
             const SizedBox(height: 8),
-            Text('Start building better habits today', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7))),
+            Text('Start building better habits today', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () => _showAddHabitDialog(context),
@@ -1275,15 +1290,17 @@ class _WeeklyChecklist extends StatelessWidget {
           final isFuture = date.isAfter(today);
 
           return Expanded(
-            child: GestureDetector(
-              onTap: isFuture ? null : () => provider.toggleLog(habit.id!, date),
-              child: Column(
+            child: Semantics(
+              label: '${dayLabels[index]} ${date.day}${isFuture ? ", cannot log future dates" : ""}',
+              button: !isFuture,
+              child: GestureDetector(
+                onTap: isFuture ? null : () => provider.toggleLog(habit.id!, date),
+                child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     dayLabels[index],
                     style: TextStyle(
-                      fontSize: 11,
                       fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
                       color: isToday ? Color(habit.color) : theme.colorScheme.onSurfaceVariant,
                     ),
@@ -1292,7 +1309,6 @@ class _WeeklyChecklist extends StatelessWidget {
                   Text(
                     '${date.day}',
                     style: TextStyle(
-                      fontSize: 10,
                       fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
                       color: isToday ? Color(habit.color) : theme.colorScheme.onSurfaceVariant,
                     ),
@@ -1323,7 +1339,8 @@ class _WeeklyChecklist extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
+                    ),
+                  ),
           );
         }),
       ),
@@ -1518,10 +1535,10 @@ class _StatBlock extends StatelessWidget {
             child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(height: 4),
-          Text(title, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant, fontSize: 10)),
-          Text(value, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, fontSize: 13)),
+          Text(title, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          Text(value, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
           if (subtitle != null)
-            Text(subtitle!, style: theme.textTheme.bodySmall?.copyWith(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+            Text(subtitle!, style: theme.textTheme.labelSmall?.copyWith(color: color, fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -1647,8 +1664,8 @@ class _ColorPicker extends StatelessWidget {
         return GestureDetector(
           onTap: () => onColorSelected(color),
           child: Container(
-            width: 36,
-            height: 36,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               color: Color(color),
               shape: BoxShape.circle,

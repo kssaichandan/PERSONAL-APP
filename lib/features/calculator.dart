@@ -357,7 +357,7 @@ class _MemoryRow extends StatelessWidget {
               child: TextButton(
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 6),
-                  foregroundColor: disabled ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3) : theme.colorScheme.onSurfaceVariant,
+                  foregroundColor: disabled ? theme.colorScheme.onSurface.withValues(alpha: 0.38) : theme.colorScheme.onSurfaceVariant,
                   backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
@@ -481,14 +481,16 @@ class _ButtonGrid extends StatelessWidget {
                         backgroundColor: bg,
                         foregroundColor: fg,
                         padding: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: isNumber
+                            ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: theme.colorScheme.outlineVariant, width: 0.5))
+                            : RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
                       ),
                       onPressed: () => _handlePress(calc, label),
                       child: Text(
                         label == '×' ? '×' : label == '÷' ? '÷' : label,
                         style: TextStyle(
-                          fontSize: isNumber || isZero ? 22 : (isFn ? 13 : 15),
+                          fontSize: isNumber || isZero ? 22 : (isFn ? 14 : 15),
                           fontWeight: isOp || isEquals ? FontWeight.w600 : FontWeight.normal,
                         ),
                       ),

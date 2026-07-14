@@ -221,8 +221,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
         builder: (context, provider, settings, _) {
           final theme = Theme.of(context);
           final weekStartsMonday = settings.weekStartsMonday;
-          if (provider.error != null) return Center(child: Text(provider.error!, style: TextStyle(color: theme.colorScheme.error)));
-          if (provider.loading) return const Center(child: CircularProgressIndicator());
+          if (provider.error != null) return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error), const SizedBox(height: 12), Text(provider.error!, style: TextStyle(color: theme.colorScheme.error)), const SizedBox(height: 16), FilledButton.tonalIcon(onPressed: () => context.read<CalendarProvider>().load(), icon: const Icon(Icons.refresh, size: 18), label: const Text('Retry'))]));
+          if (provider.loading) return const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [CircularProgressIndicator(), SizedBox(height: 16), Text('Loading calendar...')]));
           return Column(
             children: [
               if (provider.searchQuery.isNotEmpty || provider.categoryFilter != 'all')
@@ -321,19 +321,22 @@ class _MonthGrid extends StatelessWidget {
       cells.add(
         GestureDetector(
           onTap: () => _showDayEvents(context, date, provider),
-          child: Container(
-            margin: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: isToday ? theme.colorScheme.primaryContainer : null,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('$day', style: TextStyle(fontSize: 14, fontWeight: isToday ? FontWeight.bold : null)),
-                  if (hasEvent) Container(width: 5, height: 5, decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, shape: BoxShape.circle)),
-                ],
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.all(2),
+            child: Container(
+              decoration: BoxDecoration(
+                color: isToday ? theme.colorScheme.primaryContainer : null,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('$day', style: TextStyle(fontSize: 14, fontWeight: isToday ? FontWeight.bold : null)),
+                    if (hasEvent) Container(width: 5, height: 5, decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, shape: BoxShape.circle)),
+                  ],
+                ),
               ),
             ),
           ),
@@ -360,7 +363,7 @@ class _MonthGrid extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Text(DateFormat('EEEE, MMMM d').format(date), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           ),
-          if (events.isEmpty) const Padding(padding: EdgeInsets.all(16), child: Text('No events')),
+          if (events.isEmpty) Padding(padding: const EdgeInsets.all(16), child: Center(child: Column(children: [Icon(Icons.event_busy, size: 40, color: Theme.of(context).colorScheme.outline), const SizedBox(height: 8), const Text('No events on this day'), const SizedBox(height: 12), TextButton.icon(icon: const Icon(Icons.add, size: 18), label: const Text('Add Event'), onPressed: () { Navigator.pop(context); showModalBottomSheet(context: context, isScrollControlled: true, builder: (_) => EventEditor(selectedDate: date)); })]))),
           ...events.map((e) => ListTile(
             title: Text(e.title, overflow: TextOverflow.ellipsis),
             subtitle: e.time != null ? Text(e.time!) : null,

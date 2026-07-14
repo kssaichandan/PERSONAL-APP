@@ -363,6 +363,7 @@ class NotesScreen extends StatelessWidget {
                     p.query.isNotEmpty ? IconButton(icon: const Icon(Icons.clear), tooltip: 'Clear search', onPressed: () => p.search('')) : const SizedBox.shrink()
                   ),
                   border: const OutlineInputBorder(),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
                 onChanged: context.read<NotesProvider>().search,
               ),
@@ -445,7 +446,7 @@ class NotesScreen extends StatelessWidget {
               final textScale = MediaQuery.textScalerOf(context).textScaleFactor;
               if (p.gridView) {
                 return GridView.builder(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(16),
                     gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                       maxCrossAxisExtent: 200, mainAxisSpacing: 12, crossAxisSpacing: 12,
                       childAspectRatio: textScale > 1.2 ? 0.7 : 0.85,
@@ -455,7 +456,7 @@ class NotesScreen extends StatelessWidget {
                   );
                 }
                 return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   itemCount: p.notes.length,
                   itemBuilder: (_, i) => _NoteCard(note: p.notes[i], grid: false),
                 );
@@ -563,21 +564,25 @@ class _NoteCard extends StatelessWidget {
             children: [
               Row(children: [
                 Flexible(child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  if (note.pinned) Padding(padding: EdgeInsets.only(right: grid ? 2 : 4), child: Icon(Icons.push_pin, size: 14, color: theme.colorScheme.primary)),
-                  if (note.favorite) Padding(padding: EdgeInsets.only(right: grid ? 2 : 4), child: Icon(Icons.star, size: 14, color: Colors.amber)),
-                  if (note.reminderTime != null) Padding(padding: EdgeInsets.only(right: grid ? 2 : 4), child: Icon(Icons.notifications, size: 14)),
-                  if (note.priority > 0 && !grid) ...[
+                  if (note.pinned) Semantics(label: 'Pinned', child: Padding(padding: EdgeInsets.only(right: grid ? 2 : 4), child: Icon(Icons.push_pin, size: 14, color: theme.colorScheme.primary))),
+                  if (note.favorite) Semantics(label: 'Favorite', child: Padding(padding: EdgeInsets.only(right: grid ? 2 : 4), child: Icon(Icons.star, size: 14, color: Colors.amber))),
+                  if (note.reminderTime != null) Semantics(label: 'Has reminder', child: Padding(padding: EdgeInsets.only(right: grid ? 2 : 4), child: Icon(Icons.notifications, size: 14))),
+                  if (note.priority > 0 && !grid) Semantics(label: 'Priority $note.priority', child: Row(mainAxisSize: MainAxisSize.min, children: [
                     const SizedBox(width: 2),
                     ...List.generate(note.priority, (_) => Icon(Icons.flag, size: 14, color: theme.colorScheme.tertiary)),
-                  ],
+                  ])),
                 ])),
-                SizedBox(
-                  width: 48, height: 48,
-                  child: GestureDetector(
-                    onTap: () => provider.toggleSelection(note.id!),
-                    child: Icon(
-                      provider.selectedNotes.contains(note.id) ? Icons.check_circle : Icons.circle_outlined,
-                      size: grid ? 18 : 20, color: provider.selectedNotes.contains(note.id) ? theme.colorScheme.primary : theme.colorScheme.outline,
+                Semantics(
+                  label: provider.selectedNotes.contains(note.id) ? 'Selected' : 'Not selected',
+                  button: true,
+                  child: SizedBox(
+                    width: 48, height: 48,
+                    child: GestureDetector(
+                      onTap: () => provider.toggleSelection(note.id!),
+                      child: Icon(
+                        provider.selectedNotes.contains(note.id) ? Icons.check_circle : Icons.circle_outlined,
+                        size: grid ? 18 : 20, color: provider.selectedNotes.contains(note.id) ? theme.colorScheme.primary : theme.colorScheme.outline,
+                      ),
                     ),
                   ),
                 ),
@@ -586,7 +591,7 @@ class _NoteCard extends StatelessWidget {
               Text(note.title.isEmpty ? 'Untitled' : note.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
               if (!grid) ...[
                 const SizedBox(height: 4),
-                Text(deltaToPlainText(note.content), maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                Text(deltaToPlainText(note.content), maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
               ],
             ],
           ),
@@ -762,7 +767,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: TextField(controller: _titleController, decoration: const InputDecoration(hintText: 'Title', border: InputBorder.none)),
+          title: TextField(controller: _titleController, decoration: const InputDecoration(hintText: 'Title', border: InputBorder.none), style: Theme.of(context).textTheme.titleLarge),
           actions: [
             if (widget.note != null) ...[
               IconButton(icon: Icon(widget.note!.favorite ? Icons.star : Icons.star_border, color: widget.note!.favorite ? Colors.amber : null), tooltip: 'Favorite', onPressed: () {

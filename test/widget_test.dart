@@ -57,7 +57,7 @@ void main() {
         providers: [
           ChangeNotifierProvider(create: (_) => NotesProvider()),
           ChangeNotifierProvider(create: (_) => HabitsProvider(MockNotificationService())),
-          ChangeNotifierProvider(create: (_) => CalendarProvider(MockNotificationService())),
+          ChangeNotifierProvider(create: (_) => CalendarProvider()),
           ChangeNotifierProvider(create: (_) => CalculatorProvider()),
           ChangeNotifierProvider(create: (_) => LifeProvider()),
           ChangeNotifierProvider(create: (_) => SettingsProvider()),
@@ -332,7 +332,7 @@ void main() {
           providers: [
             ChangeNotifierProvider(create: (_) => HabitsProvider(MockNotificationService())),
             ChangeNotifierProvider(create: (_) => NotesProvider()),
-            ChangeNotifierProvider(create: (_) => CalendarProvider(MockNotificationService())),
+            ChangeNotifierProvider(create: (_) => CalendarProvider()),
             ChangeNotifierProvider(create: (_) => SettingsProvider()),
           ],
           child: const CalendarScreen(),
@@ -350,7 +350,7 @@ void main() {
           providers: [
             ChangeNotifierProvider(create: (_) => HabitsProvider(MockNotificationService())),
             ChangeNotifierProvider(create: (_) => NotesProvider()),
-            ChangeNotifierProvider(create: (_) => CalendarProvider(MockNotificationService())),
+            ChangeNotifierProvider(create: (_) => CalendarProvider()),
             ChangeNotifierProvider(create: (_) => SettingsProvider()),
           ],
           child: const CalendarScreen(),
@@ -373,7 +373,7 @@ void main() {
           providers: [
             ChangeNotifierProvider(create: (_) => HabitsProvider(MockNotificationService())),
             ChangeNotifierProvider(create: (_) => NotesProvider()),
-            ChangeNotifierProvider(create: (_) => CalendarProvider(MockNotificationService())),
+            ChangeNotifierProvider(create: (_) => CalendarProvider()),
             ChangeNotifierProvider(create: (_) => SettingsProvider()),
           ],
           child: const CalendarScreen(),
@@ -391,7 +391,7 @@ void main() {
           providers: [
             ChangeNotifierProvider(create: (_) => HabitsProvider(MockNotificationService())),
             ChangeNotifierProvider(create: (_) => NotesProvider()),
-            ChangeNotifierProvider(create: (_) => CalendarProvider(MockNotificationService())),
+            ChangeNotifierProvider(create: (_) => CalendarProvider()),
             ChangeNotifierProvider(create: (_) => SettingsProvider()),
           ],
           child: const CalendarScreen(),

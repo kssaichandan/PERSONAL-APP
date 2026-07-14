@@ -28,7 +28,7 @@ class SettingsScreen extends StatelessWidget {
         title: const Text('Settings'),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
           _AppearanceSection(),
           const SizedBox(height: 24),
@@ -216,20 +216,20 @@ class _AppearanceSection extends StatelessWidget {
                   settings.setColorSeed(color);
                   Navigator.pop(ctx);
                 },
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: settings.colorSeed == color ? theme.colorScheme.primary : theme.colorScheme.outline,
-                      width: settings.colorSeed == color ? 3 : 2,
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: settings.colorSeed == color ? theme.colorScheme.primary : theme.colorScheme.outline,
+                        width: settings.colorSeed == color ? 3 : 2,
+                      ),
                     ),
-                  ),
-                  child: settings.colorSeed == color
-                    ? Icon(Icons.check, color: color.computeLuminance() > 0.5 ? Colors.black54 : Colors.white, size: 20)
-                    : null,
+                    child: settings.colorSeed == color
+                      ? Icon(Icons.check, color: color.computeLuminance() > 0.5 ? Colors.black54 : Colors.white, size: 20)
+                      : null,
                 ),
               )).toList(),
             ),

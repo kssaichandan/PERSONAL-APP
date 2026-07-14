@@ -28,9 +28,9 @@ class PersonalApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => NotesProvider()),
+        ChangeNotifierProvider(create: (_) => NotesProvider(notificationService: notificationService)),
         ChangeNotifierProvider(create: (_) => HabitsProvider(notificationService)),
-        ChangeNotifierProvider(create: (_) => CalendarProvider(notificationService)),
+        ChangeNotifierProvider(create: (_) => CalendarProvider()),
         ChangeNotifierProvider(create: (_) => CalculatorProvider()),
         ChangeNotifierProvider(create: (_) => LifeProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),

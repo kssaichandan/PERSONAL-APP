@@ -182,7 +182,7 @@ class LifeScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final provider = context.watch<LifeProvider>();
 
-    if (provider.loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (provider.loading) return const Scaffold(body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [CircularProgressIndicator(), SizedBox(height: 16), Text('Loading life tracker...')])));
 
     if (provider.dob == null) {
       return Scaffold(
@@ -293,33 +293,35 @@ class _BiometricGuardState extends State<_BiometricGuard> {
 
     if (_error) {
       return Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.lock_rounded, size: 64, color: theme.colorScheme.error),
-                const SizedBox(height: 16),
-                Text('Authentication Failed', style: theme.textTheme.titleLarge),
-                const SizedBox(height: 8),
-                Text(
-                  'Could not verify your identity. Please try again.',
-                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                FilledButton.icon(
-                  onPressed: _authenticate,
-                  icon: const Icon(Icons.fingerprint_rounded),
-                  label: const Text('Try Again'),
-                ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () => context.read<LifeProvider>().setBiometricEnabled(false),
-                  child: const Text('Disable biometric lock'),
-                ),
-              ],
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.lock_rounded, size: 64, color: theme.colorScheme.error),
+                  const SizedBox(height: 16),
+                  Text('Authentication Failed', style: theme.textTheme.titleLarge),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Could not verify your identity. Please try again.',
+                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  FilledButton.icon(
+                    onPressed: _authenticate,
+                    icon: const Icon(Icons.fingerprint_rounded),
+                    label: const Text('Try Again'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () => context.read<LifeProvider>().setBiometricEnabled(false),
+                    child: const Text('Disable biometric lock'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -327,14 +329,16 @@ class _BiometricGuardState extends State<_BiometricGuard> {
     }
 
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text('Authenticating...', style: Theme.of(context).textTheme.bodyLarge),
-          ],
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text('Authenticating...', style: Theme.of(context).textTheme.bodyLarge),
+            ],
+          ),
         ),
       ),
     );
@@ -381,7 +385,7 @@ class _LifeScreenContent extends StatelessWidget {
         ],
       ),
       body: StreamBuilder<DateTime>(
-        stream: Stream.periodic(const Duration(milliseconds: 50), (_) => DateTime.now()),
+        stream: Stream.periodic(const Duration(milliseconds: 200), (_) => DateTime.now()),
         initialData: DateTime.now(),
         builder: (context, snapshot) {
           final now = snapshot.data!;
@@ -429,9 +433,11 @@ class _LifeScreenContent extends StatelessWidget {
                     padding: const EdgeInsets.all(24),
                     child: Column(
                       children: [
-                        Text('TIME ELAPSED SINCE BIRTH', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: theme.colorScheme.primary)),
+                        Text('TIME ELAPSED SINCE BIRTH', style: Theme.of(context).textTheme.labelLarge?.copyWith(letterSpacing: 1.5, color: theme.colorScheme.primary)),
                         const SizedBox(height: 16),
-                        FittedBox(
+                        Semantics(
+                          label: '$years years, $months months, $days days elapsed since birth',
+                          child: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -446,6 +452,7 @@ class _LifeScreenContent extends StatelessWidget {
                               Text(' days', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                             ],
                           ),
+                        ),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -495,7 +502,7 @@ class _LifeScreenContent extends StatelessWidget {
                                 ? theme.colorScheme.primary
                                 : lifePercentage < 80
                                     ? Colors.amber.shade700
-                                    : theme.colorScheme.error,
+                                    : Colors.deepOrange,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -515,11 +522,13 @@ class _LifeScreenContent extends StatelessWidget {
                           children: [
                             Icon(Icons.hourglass_bottom_rounded, color: theme.colorScheme.tertiary, size: 20),
                             const SizedBox(width: 8),
-                            Text('EXPECTED REMAINING TIME', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1, color: theme.colorScheme.tertiary)),
+                            Text('EXPECTED REMAINING TIME', style: theme.textTheme.labelLarge?.copyWith(letterSpacing: 1, color: theme.colorScheme.tertiary)),
                           ],
                         ),
                         const SizedBox(height: 12),
-                        FittedBox(
+                        Semantics(
+                          label: '$remainingYears years, $remainingMonths months, $remainingDays days remaining',
+                          child: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -534,12 +543,13 @@ class _LifeScreenContent extends StatelessWidget {
                             ],
                           ),
                         ),
+                        ),
                       ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text('REAL-TIME LIFE METRICS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1, color: theme.colorScheme.outline)),
+                Text('REAL-TIME LIFE METRICS', style: theme.textTheme.labelLarge?.copyWith(letterSpacing: 1, color: theme.colorScheme.outline)),
                 const SizedBox(height: 8),
                 LayoutBuilder(
                   builder: (context, constraints) {

@@ -29,7 +29,7 @@ class AppDatabase {
     final path = join(dbPath, 'personal_app.db');
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE notes (
@@ -88,6 +88,16 @@ class AppDatabase {
             value TEXT NOT NULL
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE notes ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0');
+          await db.execute('ALTER TABLE notes ADD COLUMN color INTEGER');
+          await db.execute('ALTER TABLE notes ADD COLUMN archived INTEGER NOT NULL DEFAULT 0');
+          await db.execute('ALTER TABLE notes ADD COLUMN deleted_at TEXT');
+          await db.execute('ALTER TABLE notes ADD COLUMN reminder_time TEXT');
+          await db.execute('ALTER TABLE notes ADD COLUMN priority INTEGER NOT NULL DEFAULT 0');
+        }
       },
     );
   }
