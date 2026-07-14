@@ -1,0 +1,122 @@
+{
+  "android/app/build.gradle.kts": {
+    "mtime": 1783929176.2044263,
+    "ast_hash": "97e65c86dcb4b4675c18f5726e8fa675",
+    "semantic_hash": "97e65c86dcb4b4675c18f5726e8fa675"
+  },
+  "android/app/src/main/kotlin/com/example/personal_app/MainActivity.kt": {
+    "mtime": 1783758795.2975507,
+    "ast_hash": "65c4685eaf56af2309d11c9e5c350e7a",
+    "semantic_hash": "65c4685eaf56af2309d11c9e5c350e7a"
+  },
+  "android/build.gradle.kts": {
+    "mtime": 1783953978.888179,
+    "ast_hash": "066d8354d3824baa7d0549b8039f4bf1",
+    "semantic_hash": "066d8354d3824baa7d0549b8039f4bf1"
+  },
+  "android/settings.gradle.kts": {
+    "mtime": 1783758795.36257,
+    "ast_hash": "087a01c04d081ae02a8e5db89f4bf3f3",
+    "semantic_hash": "087a01c04d081ae02a8e5db89f4bf3f3"
+  },
+  "integration_test/critical_flows_test.dart": {
+    "mtime": 1783752344.750123,
+    "ast_hash": "3e6b15304d244b40588c683cebb4afdc",
+    "semantic_hash": "3e6b15304d244b40588c683cebb4afdc"
+  },
+  "lib/database.dart": {
+    "mtime": 1783913646.5181758,
+    "ast_hash": "c704bbbe6ae3a1eaa2a919885aeed36f",
+    "semantic_hash": "c704bbbe6ae3a1eaa2a919885aeed36f"
+  },
+  "lib/features/calculator.dart": {
+    "mtime": 1784003879.210995,
+    "ast_hash": "cfaf7952ecd709e8e189c250057997d4",
+    "semantic_hash": "cfaf7952ecd709e8e189c250057997d4"
+  },
+  "lib/features/calendar.dart": {
+    "mtime": 1784003080.5294936,
+    "ast_hash": "ac6a9a65399c612efac7ace90539dff8",
+    "semantic_hash": "ac6a9a65399c612efac7ace90539dff8"
+  },
+  "lib/features/habits.dart": {
+    "mtime": 1784003131.9178681,
+    "ast_hash": "42f7f8fb80e47cef532ae02fa6a90386",
+    "semantic_hash": "42f7f8fb80e47cef532ae02fa6a90386"
+  },
+  "lib/features/life.dart": {
+    "mtime": 1784000968.083444,
+    "ast_hash": "be4e54556d45292bca28a6636a222ce0",
+    "semantic_hash": "be4e54556d45292bca28a6636a222ce0"
+  },
+  "lib/features/notes.dart": {
+    "mtime": 1784004165.680859,
+    "ast_hash": "ed59c42f2708fea4b30a8aa5d8ead763",
+    "semantic_hash": "ed59c42f2708fea4b30a8aa5d8ead763"
+  },
+  "lib/features/settings.dart": {
+    "mtime": 1783925031.1502895,
+    "ast_hash": "6d5153f7e5a6a5011d7c49482d640794",
+    "semantic_hash": "6d5153f7e5a6a5011d7c49482d640794"
+  },
+  "lib/features/settings_provider.dart": {
+    "mtime": 1783835069.9109087,
+    "ast_hash": "d25f62953f45f219fde48310c578b417",
+    "semantic_hash": "d25f62953f45f219fde48310c578b417"
+  },
+  "lib/main.dart": {
+    "mtime": 1783956024.3316038,
+    "ast_hash": "6e0ccda36cdcf6216d790a2715ab6a68",
+    "semantic_hash": "6e0ccda36cdcf6216d790a2715ab6a68"
+  },
+  "lib/services/biometric_service.dart": {
+    "mtime": 1783732844.1401346,
+    "ast_hash": "b9a6dd072b4c44c22ae99c076ed232da",
+    "semantic_hash": "b9a6dd072b4c44c22ae99c076ed232da"
+  },
+  "lib/services/notification_service.dart": {
+    "mtime": 1783832506.2975602,
+    "ast_hash": "fbe80220794f6a18f296fbc803fbb905",
+    "semantic_hash": "fbe80220794f6a18f296fbc803fbb905"
+  },
+  "lib/services/service_locator.dart": {
+    "mtime": 1783740625.1298163,
+    "ast_hash": "c02d5e4be80989829c2be609bd1a3cec",
+    "semantic_hash": "c02d5e4be80989829c2be609bd1a3cec"
+  },
+  "lib/services/workmanager_callback.dart": {
+    "mtime": 1783743688.9376774,
+    "ast_hash": "8f49507247587c8bd91295adf371721e",
+    "semantic_hash": "8f49507247587c8bd91295adf371721e"
+  },
+  "lib/services/workmanager_service.dart": {
+    "mtime": 1783756386.3287034,
+    "ast_hash": "30ab9d007863f03bf49b31c6ffcb86ac",
+    "semantic_hash": "30ab9d007863f03bf49b31c6ffcb86ac"
+  },
+  "lib/utils/snackbar_utils.dart": {
+    "mtime": 1783704332.297793,
+    "ast_hash": "c7c16c4ccff085e02f8dee71e58da4ce",
+    "semantic_hash": "c7c16c4ccff085e02f8dee71e58da4ce"
+  },
+  "lib/utils/text_utils.dart": {
+    "mtime": 1783915165.3399186,
+    "ast_hash": "04a846913a32be28758a754f206883f7",
+    "semantic_hash": "04a846913a32be28758a754f206883f7"
+  },
+  "setup.ps1": {
+    "mtime": 1783836545.828137,
+    "ast_hash": "ca17ebc2af09b1c32f37fed85af9aa26",
+    "semantic_hash": "ca17ebc2af09b1c32f37fed85af9aa26"
+  },
+  "test/provider_test.dart": {
+    "mtime": 1783750484.58416,
+    "ast_hash": "f5257128a25ad391103d739bdd9e8c86",
+    "semantic_hash": "f5257128a25ad391103d739bdd9e8c86"
+  },
+  "test/widget_test.dart": {
+    "mtime": 1784003642.5182762,
+    "ast_hash": "d89d58aa02749c0ff73480b99d1dfb93",
+    "semantic_hash": "d89d58aa02749c0ff73480b99d1dfb93"
+  }
+}

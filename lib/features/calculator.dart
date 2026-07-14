@@ -183,19 +183,19 @@ class CalculatorProvider extends ChangeNotifier {
   }
 
   num _unary() {
-    if (_pos >= _input.length) throw FormatException('Unexpected end');
+    if (_pos >= _input.length) throw const FormatException('Unexpected end');
     if (_input[_pos] == '-') { _pos++; return -_unary(); }
     if (_input[_pos] == '+') { _pos++; return _unary(); }
     return _primary();
   }
 
   num _primary() {
-    if (_pos >= _input.length) throw FormatException('Unexpected end');
+    if (_pos >= _input.length) throw const FormatException('Unexpected end');
 
     if (_input[_pos] == '(') {
       _pos++;
       final result = _expr();
-      if (_pos >= _input.length || _input[_pos] != ')') throw FormatException('Missing )');
+      if (_pos >= _input.length || _input[_pos] != ')') throw const FormatException('Missing )');
       _pos++;
       return result;
     }
@@ -261,11 +261,12 @@ class _DisplayArea extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
       alignment: Alignment.bottomRight,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Row(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Row(
             children: [
               if (calc.memory != 0.0)
                 Container(
@@ -278,12 +279,12 @@ class _DisplayArea extends StatelessWidget {
                 ),
               const Spacer(),
               if (settings.scientificMode)
-                Chip(
-                  avatar: const Icon(Icons.science_outlined, size: 14),
-                  label: const Text('SCI', style: TextStyle(fontSize: 10)),
+                const Chip(
+                  avatar: Icon(Icons.science_outlined, size: 14),
+                  label: Text('SCI', style: TextStyle(fontSize: 10)),
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
-                  labelPadding: const EdgeInsets.only(right: 4),
+                  labelPadding: EdgeInsets.only(right: 4),
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
             ],
@@ -333,8 +334,9 @@ class _DisplayArea extends StatelessWidget {
             ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _MemoryRow extends StatelessWidget {
@@ -487,11 +489,17 @@ class _ButtonGrid extends StatelessWidget {
                         elevation: 0,
                       ),
                       onPressed: () => _handlePress(calc, label),
-                      child: Text(
-                        label == '×' ? '×' : label == '÷' ? '÷' : label,
-                        style: TextStyle(
-                          fontSize: isNumber || isZero ? 22 : (isFn ? 14 : 15),
-                          fontWeight: isOp || isEquals ? FontWeight.w600 : FontWeight.normal,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            label,
+                            style: TextStyle(
+                              fontSize: isNumber || isZero ? 22 : (isFn ? 14 : 15),
+                              fontWeight: isOp || isEquals ? FontWeight.w600 : FontWeight.normal,
+                            ),
+                          ),
                         ),
                       ),
                     ),

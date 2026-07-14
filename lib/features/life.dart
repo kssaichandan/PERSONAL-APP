@@ -554,7 +554,7 @@ class _LifeScreenContent extends StatelessWidget {
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final crossAxisCount = constraints.maxWidth < 400 ? 1 : 3;
-                    final childAspectRatio = crossAxisCount == 1 ? 3.0 : 1.6;
+                    final childAspectRatio = crossAxisCount == 1 ? 3.2 : 1.35;
                     return GridView.count(
                       crossAxisCount: crossAxisCount,
                       shrinkWrap: true,
@@ -663,7 +663,7 @@ class _MetricCard extends StatelessWidget {
         elevation: 0,
         color: color.withValues(alpha: 0.08),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -671,11 +671,31 @@ class _MetricCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(title, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                  Icon(icon, color: color, size: 18),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 10,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(icon, color: color, size: 14),
                 ],
               ),
-              FittedBox(fit: BoxFit.scaleDown, child: Text(value, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: color))),
+              const SizedBox(height: 4),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  value,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ),
             ],
           ),
         ),

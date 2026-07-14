@@ -30,7 +30,7 @@ class PersonalApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => NotesProvider(notificationService: notificationService)),
         ChangeNotifierProvider(create: (_) => HabitsProvider(notificationService)),
-        ChangeNotifierProvider(create: (_) => CalendarProvider()),
+        ChangeNotifierProvider(create: (_) => CalendarProvider(notificationService: notificationService)),
         ChangeNotifierProvider(create: (_) => CalculatorProvider()),
         ChangeNotifierProvider(create: (_) => LifeProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),

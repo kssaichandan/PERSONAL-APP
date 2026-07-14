@@ -560,9 +560,10 @@ class _HabitsScreenState extends State<HabitsScreen> {
             _selectedHabit = displayHabits.first;
           }
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // Selection mode bar
               if (provider.isSelectionMode)
                 Container(
@@ -851,22 +852,19 @@ class _HabitsScreenState extends State<HabitsScreen> {
                 ),
                 const SizedBox(height: 8),
 
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: _MonthlyLogCalendar(
-                      habit: _selectedHabit!,
-                      provider: provider,
-                      currentMonth: _currentLogMonth,
-                      onMonthChanged: (newMonth) {
-                        setState(() => _currentLogMonth = newMonth);
-                      },
-                    ),
-                  ),
+                _MonthlyLogCalendar(
+                  habit: _selectedHabit!,
+                  provider: provider,
+                  currentMonth: _currentLogMonth,
+                  onMonthChanged: (newMonth) {
+                    setState(() => _currentLogMonth = newMonth);
+                  },
                 ),
+                const SizedBox(height: 24),
               ],
             ],
-          );
+          ),
+        );
         },
       ),
     );
@@ -1678,7 +1676,7 @@ class _ColorPicker extends StatelessWidget {
                   : null,
             ),
             child: isSelected
-                ? Icon(Icons.check_rounded, color: Colors.white, size: 18)
+                ? const Icon(Icons.check_rounded, color: Colors.white, size: 18)
                 : null,
           ),
         );

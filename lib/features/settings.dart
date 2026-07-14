@@ -36,7 +36,7 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 24),
           _DataSection(),
           const SizedBox(height: 24),
-          _LifeTrackerSection(),
+          const _LifeTrackerSection(),
           const SizedBox(height: 24),
           _CalculatorSection(),
           const SizedBox(height: 24),
@@ -72,15 +72,15 @@ class _AppearanceSection extends StatelessWidget {
     final settings = context.watch<SettingsProvider>();
 
     if (settings.loading) {
-      return Card(
+      return const Card(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _SectionHeader(icon: Icons.palette_rounded, title: 'Appearance'),
-              const SizedBox(height: 16),
-              const Center(child: CircularProgressIndicator()),
+              _SectionHeader(icon: Icons.palette_rounded, title: 'Appearance'),
+              SizedBox(height: 16),
+              Center(child: CircularProgressIndicator()),
             ],
           ),
         ),
@@ -185,54 +185,84 @@ class _AppearanceSection extends StatelessWidget {
     ];
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (ctx) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
+        ),
+        padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Select Color', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextButton.icon(
-                icon: Icon(Icons.wallpaper_rounded, color: theme.colorScheme.primary),
-                label: Text('Use system dynamic color (Material You)',
-                  style: TextStyle(color: theme.colorScheme.primary),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Accent Color', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(ctx),
                 ),
-                onPressed: () {
+              ],
+            ),
+            const Divider(),
+            const SizedBox(height: 8),
+            Card(
+              elevation: 0,
+              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: ListTile(
+                leading: Icon(Icons.wallpaper_rounded, color: theme.colorScheme.primary),
+                title: const Text('Default Accent Color', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Reset to system default purple accent'),
+                onTap: () {
                   settings.setColorSeed(Colors.deepPurple);
                   Navigator.pop(ctx);
                 },
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: colors.map((color) => GestureDetector(
-                onTap: () {
-                  settings.setColorSeed(color);
-                  Navigator.pop(ctx);
-                },
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: settings.colorSeed == color ? theme.colorScheme.primary : theme.colorScheme.outline,
-                        width: settings.colorSeed == color ? 3 : 2,
-                      ),
-                    ),
-                    child: settings.colorSeed == color
-                      ? Icon(Icons.check, color: color.computeLuminance() > 0.5 ? Colors.black54 : Colors.white, size: 20)
-                      : null,
-                ),
-              )).toList(),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text('Custom Palette', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline, fontWeight: FontWeight.bold)),
             ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: GridView.builder(
+                shrinkWrap: true,
+                itemCount: colors.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 6,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                ),
+                itemBuilder: (ctx, index) {
+                  final color = colors[index];
+                  final isSelected = settings.colorSeed.value == color.value;
+                  return GestureDetector(
+                    onTap: () {
+                      settings.setColorSeed(color);
+                      Navigator.pop(ctx);
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        boxShadow: isSelected
+                            ? [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 8, spreadRadius: 2)]
+                            : null,
+                        border: Border.all(
+                          color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+                          width: isSelected ? 3 : 0,
+                        ),
+                      ),
+                      child: isSelected
+                          ? Icon(Icons.check, color: color.computeLuminance() > 0.5 ? Colors.black87 : Colors.white, size: 20)
+                          : null,
+                    ),
+                  );
+                },
+              ),
             ),
             const SizedBox(height: 16),
           ],
@@ -412,7 +442,7 @@ class _DataSectionState extends State<_DataSection> {
 
       if (data['version'] == null) {
         setState(() => _loading = false);
-        throw FormatException('Invalid backup file');
+        throw const FormatException('Invalid backup file');
       }
 
       final db = await AppDatabase.instance.database;
@@ -453,7 +483,9 @@ class _DataSectionState extends State<_DataSection> {
         context.read<HabitsProvider>().load();
         context.read<LifeProvider>().loadDOB();
         await context.read<SettingsProvider>().reload();
-        showSuccessSnackBar(context, 'Data imported successfully');
+        if (context.mounted) {
+          showSuccessSnackBar(context, 'Data imported successfully');
+        }
       }
     } catch (e) {
       setState(() => _loading = false);
@@ -543,7 +575,9 @@ class _DataSectionState extends State<_DataSection> {
         context.read<HabitsProvider>().load();
         context.read<LifeProvider>().loadDOB();
         await context.read<SettingsProvider>().reload();
-        showSuccessSnackBar(context, 'All data cleared');
+        if (context.mounted) {
+          showSuccessSnackBar(context, 'All data cleared');
+        }
       }
     } catch (e) {
       setState(() => _loading = false);

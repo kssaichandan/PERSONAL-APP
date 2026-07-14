@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../database.dart';
 import 'settings_provider.dart';
+import '../services/notification_service.dart';
 
 class CalendarEvent {
   final int? id;
@@ -41,9 +45,30 @@ class CalendarEvent {
     recurrence: m['recurrence'] ?? 'none',
     recurrenceEnd: m['recurrence_end'] != null ? DateTime.parse(m['recurrence_end']) : null,
   );
+
+  CalendarEvent copyWith({
+    int? id,
+    String? title,
+    DateTime? date,
+    String? time,
+    String? notes,
+    String? category,
+    String? recurrence,
+    DateTime? recurrenceEnd,
+  }) => CalendarEvent(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    date: date ?? this.date,
+    time: time ?? this.time,
+    notes: notes ?? this.notes,
+    category: category ?? this.category,
+    recurrence: recurrence ?? this.recurrence,
+    recurrenceEnd: recurrenceEnd ?? this.recurrenceEnd,
+  );
 }
 
 class CalendarProvider extends ChangeNotifier {
+  final NotificationService? _notificationService;
   List<CalendarEvent> _events = [];
   DateTime _currentMonth = DateTime(DateTime.now().year, DateTime.now().month);
   bool _loading = true;
@@ -73,7 +98,9 @@ class CalendarProvider extends ChangeNotifier {
     return result;
   }
 
-  CalendarProvider() { load(); }
+  CalendarProvider({NotificationService? notificationService}) : _notificationService = notificationService {
+    load().then((_) => _scheduleAllFutureEvents());
+  }
 
   void setSearchQuery(String query) {
     _searchQuery = query;
@@ -118,13 +145,71 @@ class CalendarProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _scheduleAllFutureEvents() async {
+    final ns = _notificationService;
+    if (ns == null) return;
+    try {
+      final db = await AppDatabase.instance.database;
+      final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final maps = await db.query('calendar_events', where: 'date >= ?', whereArgs: [todayStr]);
+      final futureEvents = maps.map((m) => CalendarEvent.fromMap(m)).toList();
+      for (final event in futureEvents) {
+        await _scheduleEventNotification(event);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _scheduleEventNotification(CalendarEvent event) async {
+    final ns = _notificationService;
+    if (ns == null || event.id == null) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final enabled = prefs.getBool('event_reminders_enabled') ?? true;
+      final masterEnabled = prefs.getBool('notifications_enabled') ?? true;
+      if (!enabled || !masterEnabled) return;
+    } catch (_) {}
+
+    DateTime? alertTime;
+    if (event.time != null) {
+      final parts = event.time!.split(':');
+      final hour = int.parse(parts[0]);
+      final minute = int.parse(parts[1]);
+      alertTime = DateTime(event.date.year, event.date.month, event.date.day, hour, minute);
+    } else {
+      alertTime = DateTime(event.date.year, event.date.month, event.date.day, 9, 0);
+    }
+
+    final scheduled = tz.TZDateTime.from(alertTime, tz.local);
+    if (scheduled.isBefore(tz.TZDateTime.now(tz.local))) return;
+
+    try {
+      await ns.zonedSchedule(
+        10000 + event.id!,
+        'Event Alert: ${event.title}',
+        event.notes.isEmpty ? 'Calendar Event Today' : event.notes,
+        scheduled,
+        const NotificationDetails(
+          android: AndroidNotificationDetails('calendar', 'Event Reminders', importance: Importance.high, priority: Priority.high),
+        ),
+      );
+    } catch (_) {}
+  }
+
+  void _cancelEventNotification(int id) {
+    _notificationService?.cancel(10000 + id);
+  }
+
   Future<void> save(CalendarEvent event) async {
     try {
       final db = await AppDatabase.instance.database;
       if (event.id == null) {
-        await db.insert('calendar_events', event.toMap()..remove('id'));
+        final id = await db.insert('calendar_events', event.toMap()..remove('id'));
+        await _scheduleEventNotification(event.copyWith(id: id));
       } else {
         await db.update('calendar_events', event.toMap(), where: 'id = ?', whereArgs: [event.id]);
+        _cancelEventNotification(event.id!);
+        await _scheduleEventNotification(event);
       }
     } catch (e) {
       _error = 'Failed to save event';
@@ -138,6 +223,7 @@ class CalendarProvider extends ChangeNotifier {
     try {
       final db = await AppDatabase.instance.database;
       await db.delete('calendar_events', where: 'id = ?', whereArgs: [id]);
+      _cancelEventNotification(id);
     } catch (e) {
       _error = 'Failed to delete event';
       notifyListeners();
@@ -355,43 +441,106 @@ class _MonthGrid extends StatelessWidget {
     final events = provider.eventsForDay(date);
     showModalBottomSheet(
       context: context,
-      builder: (_) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(DateFormat('EEEE, MMMM d').format(date), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          ),
-          if (events.isEmpty) Padding(padding: const EdgeInsets.all(16), child: Center(child: Column(children: [Icon(Icons.event_busy, size: 40, color: Theme.of(context).colorScheme.outline), const SizedBox(height: 8), const Text('No events on this day'), const SizedBox(height: 12), TextButton.icon(icon: const Icon(Icons.add, size: 18), label: const Text('Add Event'), onPressed: () { Navigator.pop(context); showModalBottomSheet(context: context, isScrollControlled: true, builder: (_) => EventEditor(selectedDate: date)); })]))),
-          ...events.map((e) => ListTile(
-            title: Text(e.title, overflow: TextOverflow.ellipsis),
-            subtitle: e.time != null ? Text(e.time!) : null,
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(icon: const Icon(Icons.edit, size: 18), tooltip: 'Edit', onPressed: () {
-                  Navigator.pop(context);
-                  showModalBottomSheet(context: context, isScrollControlled: true, builder: (_) => EventEditor(event: e));
-                }),
-                IconButton(icon: const Icon(Icons.delete, size: 18), tooltip: 'Delete', onPressed: () => provider.delete(e.id!)),
-              ],
-            ),
-          )),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Center(
-              child: TextButton.icon(
-                icon: const Icon(Icons.add),
-                label: const Text('Add Event'),
-                onPressed: () {
-                  Navigator.pop(context);
-                  showModalBottomSheet(context: context, isScrollControlled: true, builder: (_) => EventEditor(selectedDate: date));
-                },
+      isScrollControlled: true,
+      builder: (_) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
+        ),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    DateFormat('EEEE, MMMM d').format(date),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    tooltip: 'Close details',
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+            const Divider(height: 1),
+            if (events.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.event_busy, size: 40, color: Theme.of(context).colorScheme.outline),
+                      const SizedBox(height: 8),
+                      const Text('No events on this day'),
+                    ],
+                  ),
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: events.length,
+                  itemBuilder: (ctx, index) {
+                    final e = events[index];
+                    return ListTile(
+                      title: Text(e.title, overflow: TextOverflow.ellipsis),
+                      subtitle: e.time != null ? Text(e.time!) : null,
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 18),
+                            tooltip: 'Edit event',
+                            onPressed: () {
+                              Navigator.pop(context);
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (_) => EventEditor(event: e),
+                              );
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, size: 18),
+                            tooltip: 'Delete event',
+                            onPressed: () => provider.delete(e.id!),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Center(
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Event'),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (_) => EventEditor(selectedDate: date),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
