@@ -76,6 +76,14 @@ class CalculatorProvider extends ChangeNotifier {
     } else if (value == '=') {
       _evaluate();
       return;
+    } else if (value == '±') {
+      if (_expression.isEmpty || _expression == '0') {
+        _expression = '-';
+      } else if (_expression.startsWith('-')) {
+        _expression = _expression.substring(1);
+      } else {
+        _expression = '-$_expression';
+      }
     } else {
       if (_expression.length >= 50) return;
       _expression += value;
@@ -202,42 +210,9 @@ class CalculatorScreen extends StatelessWidget {
         builder: (context, calc, settings, _) {
           return Column(
             children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  alignment: Alignment.bottomRight,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(calc.expression, style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                      const SizedBox(height: 8),
-                      Text(calc.result, style: theme.textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-              ),
-              if (calc.history.isNotEmpty)
-                SizedBox(
-                  height: 80,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    children: calc.history.take(10).map((h) => Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(h['expression']!, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                            Text(h['result']!, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                    )).toList(),
-                  ),
-                ),
-              _MemoryButtonRow(calc: calc, theme: theme),
+              Expanded(child: _DisplayArea(calc: calc, settings: settings, theme: theme)),
+              _MemoryRow(calc: calc, theme: theme),
+              _ScientificToggle(calc: calc, settings: settings),
               _ButtonGrid(calc: calc, scientific: settings.scientificMode, theme: theme),
               const SizedBox(height: 8),
             ],
@@ -248,40 +223,116 @@ class CalculatorScreen extends StatelessWidget {
   }
 }
 
-class _MemoryButtonRow extends StatelessWidget {
+class _DisplayArea extends StatelessWidget {
   final CalculatorProvider calc;
+  final SettingsProvider settings;
   final ThemeData theme;
-  const _MemoryButtonRow({required this.calc, required this.theme});
+  const _DisplayArea({required this.calc, required this.settings, required this.theme});
 
   @override
   Widget build(BuildContext context) {
-    final hasMemory = calc.memory != 0.0;
-    final memButtons = ['MC', 'MR', 'M+', 'M-'];
-    return Row(
-      children: [
-        if (hasMemory)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text('M', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.onPrimaryContainer)),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+      alignment: Alignment.bottomRight,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (calc.memory != 0.0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text('M', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.onPrimaryContainer)),
+                )
+              else
+                const SizedBox.shrink(),
+              if (settings.scientificMode)
+                Chip(
+                  avatar: const Icon(Icons.science_outlined, size: 14),
+                  label: const Text('SCI', style: TextStyle(fontSize: 10)),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  labelPadding: const EdgeInsets.only(right: 4),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            reverse: true,
+            child: Text(
+              calc.expression.isEmpty ? '0' : calc.expression,
+              style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              maxLines: 1,
             ),
           ),
-        ...memButtons.map((label) {
-          final isDisabled = (label == 'MC' || label == 'MR') && !hasMemory;
+          const SizedBox(height: 4),
+          Text(
+            calc.result.isEmpty ? '' : calc.result,
+            style: theme.textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold),
+            maxLines: 1,
+          ),
+          const SizedBox(height: 8),
+          if (calc.history.isNotEmpty)
+            SizedBox(
+              height: 44,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                reverse: true,
+                itemCount: calc.history.length,
+                itemBuilder: (_, i) {
+                  final h = calc.history[i];
+                  return Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: ActionChip(
+                      avatar: Icon(Icons.history, size: 12, color: theme.colorScheme.onSurfaceVariant),
+                      label: Text('${h['expression']!} = ${h['result']!}', style: const TextStyle(fontSize: 11)),
+                      onPressed: () => calc.loadExpression(h['expression']!),
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MemoryRow extends StatelessWidget {
+  final CalculatorProvider calc;
+  final ThemeData theme;
+  const _MemoryRow({required this.calc, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    final memButtons = ['MC', 'MR', 'M+', 'M-'];
+    final hasMemory = calc.memory != 0.0;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Row(
+        children: memButtons.map((label) {
+          final disabled = (label == 'MC' || label == 'MR') && !hasMemory;
           return Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(3),
+              padding: const EdgeInsets.all(2),
               child: TextButton(
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  foregroundColor: isDisabled ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4) : theme.colorScheme.onSurfaceVariant,
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  foregroundColor: disabled ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3) : theme.colorScheme.onSurfaceVariant,
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                onPressed: isDisabled ? null : () {
+                onPressed: disabled ? null : () {
                   switch (label) {
                     case 'MC': calc.memoryClear();
                     case 'MR': calc.memoryRecall();
@@ -289,12 +340,49 @@ class _MemoryButtonRow extends StatelessWidget {
                     case 'M-': calc.memorySubtract();
                   }
                 },
-                child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
               ),
             ),
           );
-        }),
-      ],
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _ScientificToggle extends StatelessWidget {
+  final CalculatorProvider calc;
+  final SettingsProvider settings;
+  const _ScientificToggle({required this.calc, required this.settings});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Row(
+        children: [
+          TextButton.icon(
+            icon: Icon(settings.scientificMode ? Icons.science : Icons.science_outlined, size: 16),
+            label: Text(settings.scientificMode ? 'Scientific ON' : 'Scientific OFF', style: const TextStyle(fontSize: 11)),
+            onPressed: () => settings.setScientificMode(!settings.scientificMode),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              backgroundColor: settings.scientificMode ? Theme.of(context).colorScheme.primaryContainer : null,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+          const Spacer(),
+          TextButton.icon(
+            icon: const Icon(Icons.delete_sweep_outlined, size: 16),
+            label: const Text('Clear history', style: TextStyle(fontSize: 11)),
+            onPressed: calc.history.isEmpty ? null : () => calc.clearHistory(),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -307,41 +395,91 @@ class _ButtonGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const sciRows = [
-      ['sin(', 'cos(', 'tan(', 'log(', 'C'],
-      ['√(', 'ln(', 'π', 'e', '⌫'],
+    final sciRows = [
+      ['sin(', 'cos(', 'tan(', 'log(', 'ln('],
+      ['√(', 'π', 'e', 'x²', '^'],
     ];
     const basicRows = [
-      ['7', '8', '9', '÷', '^'],
-      ['4', '5', '6', '×', '('],
-      ['1', '2', '3', '-', ')'],
-      ['0', '.', '=', '+', '%'],
+      ['C', '⌫', '%', '÷'],
+      ['7', '8', '9', '×'],
+      ['4', '5', '6', '-'],
+      ['1', '2', '3', '+'],
+      ['±', '0', '.', '='],
     ];
 
     final allRows = scientific ? [...sciRows, ...basicRows] : basicRows;
-    final opLabels = ['+', '-', '×', '÷', '=', '^', 'C', '⌫'];
-    final fnLabels = ['sin(', 'cos(', 'tan(', 'log(', '√(', 'ln(', 'π', 'e', '(', ')', '%'];
 
-    return Column(
-      children: allRows.map((row) => Row(
-        children: row.map((label) {
-          final isOp = opLabels.contains(label);
-          final isFn = fnLabels.contains(label);
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(3),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  backgroundColor: isOp ? theme.colorScheme.primaryContainer : (isFn ? theme.colorScheme.surfaceContainerHighest : null),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Column(
+        children: allRows.map((row) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 3),
+          child: Row(
+            children: row.map((label) {
+              final isNumber = RegExp(r'^[0-9]$').hasMatch(label);
+              final isOp = ['+', '-', '×', '÷', '=', '^'].contains(label);
+              final isClear = label == 'C' || label == '⌫';
+              final isEquals = label == '=';
+              final isFn = ['sin(', 'cos(', 'tan(', 'log(', 'ln(', '√(', 'π', 'e', 'x²', '%', '(', ')', '±'].contains(label);
+              final isZero = label == '0';
+
+              Color? bg;
+              Color? fg;
+              if (isNumber) {
+                bg = theme.colorScheme.surfaceContainerHighest;
+              } else if (isOp) {
+                bg = theme.colorScheme.primaryContainer;
+                fg = theme.colorScheme.onPrimaryContainer;
+              } else if (isEquals) {
+                bg = theme.colorScheme.primary;
+                fg = theme.colorScheme.onPrimary;
+              } else if (isClear) {
+                bg = theme.colorScheme.errorContainer;
+                fg = theme.colorScheme.onErrorContainer;
+              } else if (isFn) {
+                bg = theme.colorScheme.secondaryContainer;
+                fg = theme.colorScheme.onSecondaryContainer;
+              }
+
+              return Expanded(
+                flex: isZero ? 2 : 1,
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: SizedBox(
+                    height: 48,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: bg,
+                        foregroundColor: fg,
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                      onPressed: () => _handlePress(calc, label),
+                      child: Text(
+                        label == '×' ? '×' : label == '÷' ? '÷' : label,
+                        style: TextStyle(
+                          fontSize: isNumber || isZero ? 22 : 15,
+                          fontWeight: isOp || isEquals ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                onPressed: () => calc.input(label),
-                child: Text(label, style: TextStyle(fontSize: isOp || isFn ? 14 : 18)),
-              ),
-            ),
-          );
-        }).toList(),
-      )).toList(),
+              );
+            }).toList(),
+          ),
+        )).toList(),
+      ),
     );
   }
+
+  void _handlePress(CalculatorProvider calc, String label) {
+    if (label == 'x²') {
+      calc.input('^2');
+    } else {
+      calc.input(label);
+    }
+  }
 }
+
