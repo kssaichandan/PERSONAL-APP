@@ -442,6 +442,7 @@ class _EventEditorState extends State<EventEditor> {
 
   void _save() async {
     if (_titleCtrl.text.isEmpty) return;
+    final provider = context.read<CalendarProvider>();
     final event = CalendarEvent(
       id: widget.event?.id,
       title: _titleCtrl.text,
@@ -449,7 +450,7 @@ class _EventEditorState extends State<EventEditor> {
       time: _time != null ? '${_time!.hour.toString().padLeft(2, '0')}:${_time!.minute.toString().padLeft(2, '0')}' : null,
       notes: _notesCtrl.text,
     );
-    await context.read<CalendarProvider>().save(event);
+    await provider.save(event);
     if (mounted) Navigator.pop(context);
   }
 

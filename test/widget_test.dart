@@ -197,7 +197,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.add_circle_outline_rounded));
       await tester.pump();
 
-      expect(find.text('Add Custom Habit'), findsOneWidget);
+      expect(find.text('New Habit'), findsOneWidget);
       expect(find.byType(TextField), findsOneWidget);
     });
   });

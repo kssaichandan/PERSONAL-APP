@@ -921,19 +921,28 @@ class _HabitsScreenState extends State<HabitsScreen> {
     final titleCtrl = TextEditingController();
     String selectedIcon = 'star';
     int selectedColor = _colorPresets[0];
-    final provider = context.read<HabitsProvider>();
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => Dialog(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+        builder: (context, setDialogState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 24, right: 24, top: 24,
+          ),
+          child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Add Custom Habit', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('New Habit', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                  ],
+                ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: titleCtrl,
@@ -945,36 +954,35 @@ class _HabitsScreenState extends State<HabitsScreen> {
                   autofocus: true,
                 ),
                 const SizedBox(height: 20),
-                const Text('Select Icon', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                const Text('Icon', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                 const SizedBox(height: 8),
                 _HabitIconPicker(
                   selectedIcon: selectedIcon,
                   onIconSelected: (icon) => setDialogState(() => selectedIcon = icon),
                 ),
                 const SizedBox(height: 20),
-                const Text('Choose Color', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                const Text('Color', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                 const SizedBox(height: 8),
                 _ColorPicker(
                   selectedColor: selectedColor,
                   onColorSelected: (color) => setDialogState(() => selectedColor = color),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                    const SizedBox(width: 8),
-                    TextButton(
-                      onPressed: () {
-                        if (titleCtrl.text.trim().isNotEmpty) {
-                          provider.saveHabit(titleCtrl.text.trim(), selectedIcon, selectedColor, null, ctx);
-                          Navigator.pop(ctx);
-                        }
-                      },
-                      child: const Text('Add'),
-                    ),
-                  ],
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('Create Habit'),
+                    onPressed: () {
+                      if (titleCtrl.text.trim().isNotEmpty) {
+                        final provider = context.read<HabitsProvider>();
+                        provider.saveHabit(titleCtrl.text.trim(), selectedIcon, selectedColor, null);
+                        Navigator.pop(ctx);
+                      }
+                    },
+                  ),
                 ),
+                const SizedBox(height: 8),
               ],
             ),
           ),
@@ -1023,17 +1031,27 @@ class _HabitsScreenState extends State<HabitsScreen> {
     int selectedColor = habit.color;
     String? selectedReminder = habit.reminderTime;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => Dialog(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+        builder: (context, setDialogState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 24, right: 24, top: 24,
+          ),
+          child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Edit Habit', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Edit Habit', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                  ],
+                ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: titleCtrl,
@@ -1045,21 +1063,21 @@ class _HabitsScreenState extends State<HabitsScreen> {
                   autofocus: true,
                 ),
                 const SizedBox(height: 20),
-                const Text('Select Icon', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                const Text('Icon', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                 const SizedBox(height: 8),
                 _HabitIconPicker(
                   selectedIcon: selectedIcon,
                   onIconSelected: (icon) => setDialogState(() => selectedIcon = icon),
                 ),
                 const SizedBox(height: 20),
-                const Text('Choose Color', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                const Text('Color', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                 const SizedBox(height: 8),
                 _ColorPicker(
                   selectedColor: selectedColor,
                   onColorSelected: (color) => setDialogState(() => selectedColor = color),
                 ),
                 const SizedBox(height: 20),
-                const Text('Reminder Time (optional)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                const Text('Reminder (optional)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                 const SizedBox(height: 8),
                 InkWell(
                   onTap: () async {
@@ -1098,23 +1116,30 @@ class _HabitsScreenState extends State<HabitsScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 24),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                    const SizedBox(width: 8),
-                    TextButton(
-                      onPressed: () {
-                        if (titleCtrl.text.trim().isNotEmpty) {
-                          provider.updateHabit(habit.id!, titleCtrl.text.trim(), selectedIcon, selectedColor, selectedReminder, context);
-                          Navigator.pop(ctx);
-                        }
-                      },
-                      child: const Text('Save'),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () {
+                          if (titleCtrl.text.trim().isNotEmpty) {
+                            provider.updateHabit(habit.id!, titleCtrl.text.trim(), selectedIcon, selectedColor, selectedReminder);
+                            Navigator.pop(ctx);
+                          }
+                        },
+                        child: const Text('Save'),
+                      ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 8),
               ],
             ),
           ),
