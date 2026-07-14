@@ -567,27 +567,25 @@ class _HabitsScreenState extends State<HabitsScreen> {
               if (provider.isSelectionMode)
                 Container(
                   color: theme.colorScheme.primaryContainer,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   child: Row(
                     children: [
-                      Text('${provider.selectedHabits.length} selected', style: theme.textTheme.titleMedium),
+                      Text('${provider.selectedHabits.length} selected', style: theme.textTheme.titleSmall),
                       const Spacer(),
-                      TextButton.icon(
-                        icon: const Icon(Icons.select_all_rounded),
-                        label: const Text('Select All'),
+                      TextButton(
+                        style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 6), visualDensity: VisualDensity.compact),
                         onPressed: provider.selectAll,
+                        child: const Text('All', style: TextStyle(fontSize: 12)),
                       ),
-                      TextButton.icon(
-                        icon: const Icon(Icons.clear_rounded),
-                        label: const Text('Clear'),
+                      TextButton(
+                        style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 6), visualDensity: VisualDensity.compact),
                         onPressed: provider.clearSelection,
+                        child: const Text('Clear', style: TextStyle(fontSize: 12)),
                       ),
-                      TextButton.icon(
-                        icon: Icon(Icons.delete_rounded, color: theme.colorScheme.error),
-                        label: Text('Delete', style: TextStyle(color: theme.colorScheme.error)),
-                        onPressed: () {
-                          provider.deleteMultiple(provider.selectedHabits);
-                        },
+                      TextButton(
+                        style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 6), visualDensity: VisualDensity.compact, foregroundColor: theme.colorScheme.error),
+                        onPressed: () => provider.deleteMultiple(provider.selectedHabits),
+                        child: const Text('Delete', style: TextStyle(fontSize: 12)),
                       ),
                     ],
                   ),
@@ -622,7 +620,9 @@ class _HabitsScreenState extends State<HabitsScreen> {
                             ? () => provider.toggleHabitSelection(h.id!)
                             : () => setState(() => _selectedHabit = h),
                         onLongPress: () => provider.toggleHabitSelection(h.id!),
-                        child: Container(
+                          Padding(
+                          padding: EdgeInsets.only(top: provider.isSelectionMode ? 14 : 0),
+                          child: Container(
                           width: 96,
                           margin: const EdgeInsets.only(right: 12),
                           decoration: BoxDecoration(
@@ -642,7 +642,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                               Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  // Color accent dot + icon
+                                  const SizedBox(height: 4),
                                   Stack(
                                     clipBehavior: Clip.none,
                                     children: [
@@ -671,16 +671,19 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                     ],
                                   ),
                                   const SizedBox(height: 4),
-                                  Text(
-                                    h.name,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: isSel || provider.selectedHabits.contains(h.id) ? FontWeight.bold : FontWeight.normal,
-                                      color: isSel || provider.selectedHabits.contains(h.id) ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.onSurfaceVariant,
+                                  Padding(
+                                    padding: EdgeInsets.only(left: 4, right: provider.isSelectionMode ? 8 : 4),
+                                    child: Text(
+                                      h.name,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: isSel || provider.selectedHabits.contains(h.id) ? FontWeight.bold : FontWeight.normal,
+                                        color: isSel || provider.selectedHabits.contains(h.id) ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.center,
+                                      maxLines: 2,
                                     ),
-                                    overflow: TextOverflow.ellipsis,
-                                    textAlign: TextAlign.center,
-                                    maxLines: 2,
                                   ),
                                   if (currentStreak > 0) ...[
                                     const SizedBox(height: 2),
@@ -692,12 +695,13 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                       ],
                                     ),
                                   ],
+                                  const SizedBox(height: 4),
                                 ],
                               ),
                               if (provider.isSelectionMode)
                                 Positioned(
-                                  top: 4,
-                                  right: 4,
+                                  top: 2,
+                                  right: 2,
                                   child: SizedBox(
                                     width: 20,
                                     height: 20,
@@ -1427,6 +1431,7 @@ class _MonthlyLogCalendar extends StatelessWidget {
                 crossAxisCount: 7,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
+                childAspectRatio: 1.0,
                 children: cells,
               ),
               const Divider(height: 24),

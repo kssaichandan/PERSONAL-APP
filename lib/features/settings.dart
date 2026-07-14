@@ -209,8 +209,8 @@ class _AppearanceSection extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
+              spacing: 8,
+              runSpacing: 8,
               children: colors.map((color) => GestureDetector(
                 onTap: () {
                   settings.setColorSeed(color);

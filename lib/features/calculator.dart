@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../database.dart';
+import '../utils/snackbar_utils.dart';
 import 'settings_provider.dart';
 
 class CalculatorProvider extends ChangeNotifier {
@@ -63,11 +64,17 @@ class CalculatorProvider extends ChangeNotifier {
     try {
       final db = await AppDatabase.instance.database;
       await db.delete('calculator_history');
-    } catch (_) {}
+    } catch (e) {
+      debugLog('Failed to clear history: $e');
+    }
     await loadHistory();
   }
 
   void input(String value) {
+    if (_result == 'Error') {
+      _expression = '';
+      _result = '';
+    }
     if (value == 'C') {
       _expression = '';
       _result = '';
@@ -106,7 +113,8 @@ class CalculatorProvider extends ChangeNotifier {
   String _formatResult(num value) {
     if (value is double && (value.isNaN || value.isInfinite)) return 'Error';
     if (value == value.toInt()) return value.toInt().toString();
-    return value.toStringAsFixed(10).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
+    final s = value.toStringAsFixed(10).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
+    return s.length > 15 ? value.toStringAsExponential(6) : s;
   }
 
   Future<void> _saveToHistory(String expr, String res) async {
@@ -116,8 +124,17 @@ class CalculatorProvider extends ChangeNotifier {
         'expression': expr, 'result': res,
         'created_at': DateTime.now().toIso8601String(),
       });
-    } catch (_) {}
+    } catch (e) {
+      debugLog('Failed to save history: $e');
+    }
     await loadHistory();
+  }
+
+  void square() {
+    if (_expression.isNotEmpty) {
+      _expression = '($_expression)^2';
+      notifyListeners();
+    }
   }
 
   // ponytail: recursive descent parser, no external dep
@@ -158,6 +175,10 @@ class CalculatorProvider extends ChangeNotifier {
       _pos++;
       result = pow(result, _factor()).toDouble();
     }
+    if (_pos < _input.length && _input[_pos] == '%') {
+      _pos++;
+      result /= 100;
+    }
     return result;
   }
 
@@ -193,7 +214,6 @@ class CalculatorProvider extends ChangeNotifier {
     while (_pos < _input.length && (RegExp(r'[0-9.]').hasMatch(_input[_pos]))) { _pos++; }
     if (_pos == start) throw FormatException('Unexpected: ${_input[_pos]}');
     var result = double.parse(_input.substring(start, _pos));
-    if (_pos < _input.length && _input[_pos] == '%') { _pos++; result /= 100; }
     return result;
   }
 }
@@ -211,10 +231,17 @@ class CalculatorScreen extends StatelessWidget {
           return Column(
             children: [
               Expanded(child: _DisplayArea(calc: calc, settings: settings, theme: theme)),
-              _MemoryRow(calc: calc, theme: theme),
-              _ScientificToggle(calc: calc, settings: settings),
-              _ButtonGrid(calc: calc, scientific: settings.scientificMode, theme: theme),
-              const SizedBox(height: 8),
+              SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _MemoryRow(calc: calc, theme: theme),
+                    _ScientificToggle(calc: calc, settings: settings),
+                    _ButtonGrid(calc: calc, scientific: settings.scientificMode, theme: theme),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
             ],
           );
         },
@@ -239,7 +266,6 @@ class _DisplayArea extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               if (calc.memory != 0.0)
                 Container(
@@ -249,9 +275,8 @@ class _DisplayArea extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text('M', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.onPrimaryContainer)),
-                )
-              else
-                const SizedBox.shrink(),
+                ),
+              const Spacer(),
               if (settings.scientificMode)
                 Chip(
                   avatar: const Icon(Icons.science_outlined, size: 14),
@@ -274,10 +299,14 @@ class _DisplayArea extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            calc.result.isEmpty ? '' : calc.result,
-            style: theme.textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold),
-            maxLines: 1,
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            reverse: true,
+            child: Text(
+              calc.result.isEmpty ? '' : calc.result,
+              style: theme.textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold),
+              maxLines: 1,
+            ),
           ),
           const SizedBox(height: 8),
           if (calc.history.isNotEmpty)
@@ -459,7 +488,7 @@ class _ButtonGrid extends StatelessWidget {
                       child: Text(
                         label == '×' ? '×' : label == '÷' ? '÷' : label,
                         style: TextStyle(
-                          fontSize: isNumber || isZero ? 22 : 15,
+                          fontSize: isNumber || isZero ? 22 : (isFn ? 13 : 15),
                           fontWeight: isOp || isEquals ? FontWeight.w600 : FontWeight.normal,
                         ),
                       ),
@@ -476,7 +505,7 @@ class _ButtonGrid extends StatelessWidget {
 
   void _handlePress(CalculatorProvider calc, String label) {
     if (label == 'x²') {
-      calc.input('^2');
+      calc.square();
     } else {
       calc.input(label);
     }

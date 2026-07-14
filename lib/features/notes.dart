@@ -2,22 +2,53 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:intl/intl.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../database.dart';
+import '../services/notification_service.dart';
 import '../utils/text_utils.dart';
+import '../utils/snackbar_utils.dart';
 
 class Note {
   final int? id;
   final String title;
   final String content;
   final bool pinned;
+  final bool favorite;
+  final int? color;
+  final bool archived;
+  final DateTime? deletedAt;
+  final DateTime? reminderTime;
+  final int priority;
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  Note({this.id, required this.title, required this.content, this.pinned = false, required this.createdAt, required this.updatedAt});
+  Note({
+    this.id,
+    required this.title,
+    required this.content,
+    this.pinned = false,
+    this.favorite = false,
+    this.color,
+    this.archived = false,
+    this.deletedAt,
+    this.reminderTime,
+    this.priority = 0,
+    required this.createdAt,
+    required this.updatedAt,
+  });
 
   Map<String, dynamic> toMap() => {
     'id': id, 'title': title, 'content': content,
     'pinned': pinned ? 1 : 0,
+    'favorite': favorite ? 1 : 0,
+    'color': color,
+    'archived': archived ? 1 : 0,
+    'deleted_at': deletedAt?.toIso8601String(),
+    'reminder_time': reminderTime?.toIso8601String(),
+    'priority': priority,
     'created_at': createdAt.toIso8601String(),
     'updated_at': updatedAt.toIso8601String(),
   };
@@ -25,17 +56,45 @@ class Note {
   factory Note.fromMap(Map<String, dynamic> m) => Note(
     id: m['id'], title: m['title'], content: m['content'],
     pinned: m['pinned'] == 1,
+    favorite: m['favorite'] == 1,
+    color: m['color'],
+    archived: m['archived'] == 1,
+    deletedAt: m['deleted_at'] != null ? DateTime.parse(m['deleted_at']) : null,
+    reminderTime: m['reminder_time'] != null ? DateTime.parse(m['reminder_time']) : null,
+    priority: m['priority'] ?? 0,
     createdAt: DateTime.parse(m['created_at']),
     updatedAt: DateTime.parse(m['updated_at']),
   );
 
-  Note copyWith({String? title, String? content, bool? pinned, DateTime? updatedAt}) => Note(
-    id: id, title: title ?? this.title, content: content ?? this.content,
-    pinned: pinned ?? this.pinned, createdAt: createdAt, updatedAt: updatedAt ?? this.updatedAt,
+  Note copyWith({int? id, String? title, String? content, bool? pinned, bool? favorite, int? color, bool? archived, DateTime? deletedAt, DateTime? reminderTime, int? priority, DateTime? updatedAt}) => Note(
+    id: id ?? this.id, title: title ?? this.title, content: content ?? this.content,
+    pinned: pinned ?? this.pinned, favorite: favorite ?? this.favorite,
+    color: color ?? this.color, archived: archived ?? this.archived,
+    deletedAt: deletedAt ?? this.deletedAt,
+    reminderTime: reminderTime ?? this.reminderTime,
+    priority: priority ?? this.priority,
+    createdAt: createdAt, updatedAt: updatedAt ?? this.updatedAt,
   );
 }
 
+String _wordCount(String deltaJson) {
+  try {
+    final text = deltaToPlainText(deltaJson);
+    return '${text.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length} words';
+  } catch (_) {
+    return '0 words';
+  }
+}
+
+const _noteColors = <int?>[
+  null,
+  0xFFFDDDE6, 0xFFFFF3E0, 0xFFFFF9C4, 0xFFC8E6C9,
+  0xFFBBDEFB, 0xFFE1BEE7, 0xFFD7CCC8, 0xFFCFD8DC,
+  0xFFFFCCBC, 0xFFDCEDC8, 0xFFB2EBF2, 0xFFF0F4C3,
+];
+
 class NotesProvider extends ChangeNotifier {
+  final NotificationService? _notificationService;
   List<Note> _notes = [];
   List<Note> _filtered = [];
   bool _loading = true;
@@ -43,21 +102,58 @@ class NotesProvider extends ChangeNotifier {
   String _query = '';
   final Set<int> _selectedNotes = {};
   String _selectedTag = '';
+  bool _showArchived = false;
+  bool _gridView = false;
+  String _sortBy = 'updated';
 
-  List<Note> get notes => _query.isNotEmpty ? _filtered : _notes;
+  static const _noteIdOffset = 5000;
+
+  List<Note> get notes {
+    var list = _query.isNotEmpty ? _filtered : _notes;
+    if (!_showArchived) list = list.where((n) => !n.archived && n.deletedAt == null).toList();
+    return _sorted(list);
+  }
+
+  List<Note> get archivedNotes => _notes.where((n) => n.archived && n.deletedAt == null).toList();
+  List<Note> get trashedNotes => _notes.where((n) => n.deletedAt != null).toList();
+  int get trashCount => trashedNotes.length;
+  int get totalCount => _notes.where((n) => n.deletedAt == null).length;
+  int get pinnedCount => _notes.where((n) => n.pinned && n.deletedAt == null).length;
+  int get favoriteCount => _notes.where((n) => n.favorite && n.deletedAt == null).length;
+
   bool get loading => _loading;
   String? get error => _error;
   String get query => _query;
   Set<int> get selectedNotes => _selectedNotes;
   bool get isSelectionMode => _selectedNotes.isNotEmpty;
   String get selectedTag => _selectedTag;
+  bool get showArchived => _showArchived;
+  bool get gridView => _gridView;
+  String get sortBy => _sortBy;
 
-  NotesProvider() { load(); }
+  NotesProvider({NotificationService? notificationService}) : _notificationService = notificationService { load(); }
+
+  List<Note> _sorted(List<Note> list) {
+    switch (_sortBy) {
+      case 'created': return List.from(list)..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      case 'title': return List.from(list)..sort((a, b) => a.title.compareTo(b.title));
+      default: return List.from(list)..sort((a, b) {
+        if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
+        return b.updatedAt.compareTo(a.updatedAt);
+      });
+    }
+  }
+
+  void setSortBy(String sort) { _sortBy = sort; notifyListeners(); }
+  void toggleShowArchived() { _showArchived = !_showArchived; notifyListeners(); }
 
   void search(String q) {
     _query = q;
     if (q.isEmpty) { _filtered = []; }
-    else { _filtered = _notes.where((n) => n.title.toLowerCase().contains(q.toLowerCase()) || deltaToPlainText(n.content).toLowerCase().contains(q.toLowerCase())).toList(); }
+    else { _filtered = _notes.where((n) =>
+      n.title.toLowerCase().contains(q.toLowerCase()) ||
+      deltaToPlainText(n.content).toLowerCase().contains(q.toLowerCase())
+    ).toList(); }
     notifyListeners();
   }
 
@@ -80,12 +176,15 @@ class NotesProvider extends ChangeNotifier {
     try {
       final db = await AppDatabase.instance.database;
       if (note.id == null) {
-        await db.insert('notes', note.toMap()..remove('id'));
+        final id = await db.insert('notes', note.toMap()..remove('id'));
+        if (note.reminderTime != null) _scheduleReminder(note.copyWith(id: id));
       } else {
         await db.update('notes', note.toMap(), where: 'id = ?', whereArgs: [note.id]);
+        _rescheduleReminder(note);
       }
     } catch (e) {
       _error = 'Failed to save note';
+      debugLog('Failed to save note: $e');
       notifyListeners();
       return;
     }
@@ -96,8 +195,10 @@ class NotesProvider extends ChangeNotifier {
     try {
       final db = await AppDatabase.instance.database;
       await db.delete('notes', where: 'id = ?', whereArgs: [id]);
+      _cancelReminder(id);
     } catch (e) {
       _error = 'Failed to delete note';
+      debugLog('Failed to delete note: $e');
       notifyListeners();
       return;
     }
@@ -108,23 +209,87 @@ class NotesProvider extends ChangeNotifier {
     await save(note.copyWith(pinned: !note.pinned));
   }
 
-  void selectTag(String tag) {
-    _selectedTag = tag;
-    notifyListeners();
+  Future<void> toggleFavorite(Note note) async {
+    await save(note.copyWith(favorite: !note.favorite));
   }
+
+  Future<void> setColor(Note note, int? color) async {
+    await save(note.copyWith(color: color));
+  }
+
+  Future<void> setPriority(Note note, int priority) async {
+    await save(note.copyWith(priority: priority));
+  }
+
+  Future<void> archive(Note note) async {
+    await save(note.copyWith(archived: !note.archived));
+  }
+
+  Future<void> trash(Note note) async {
+    await save(note.copyWith(deletedAt: DateTime.now()));
+  }
+
+  Future<void> restore(Note note) async {
+    await save(note.copyWith(deletedAt: null));
+  }
+
+  Future<void> duplicate(Note note) async {
+    await save(Note(
+      title: '${note.title} (copy)',
+      content: note.content,
+      pinned: false, favorite: false,
+      color: note.color, priority: 0,
+      archived: false,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    ));
+  }
+
+  Future<void> setReminder(Note note, DateTime? time) async {
+    await save(note.copyWith(reminderTime: time));
+  }
+
+  void _scheduleReminder(Note note) {
+    final ns = _notificationService;
+    if (ns == null || note.reminderTime == null || note.id == null) return;
+    final scheduled = tz.TZDateTime.from(note.reminderTime!, tz.local);
+    if (scheduled.isBefore(tz.TZDateTime.now(tz.local))) return;
+    ns.zonedSchedule(
+      _noteIdOffset + note.id!,
+      'Note Reminder: ${note.title}',
+      deltaToPlainText(note.content),
+      scheduled,
+      const NotificationDetails(
+        android: AndroidNotificationDetails('notes', 'Note Reminders'),
+      ),
+    );
+  }
+
+  void _rescheduleReminder(Note note) {
+    _cancelReminder(note.id);
+    _scheduleReminder(note);
+  }
+
+  void _cancelReminder(int? id) {
+    if (id == null) return;
+    _notificationService?.cancel(_noteIdOffset + id);
+  }
+
+  void toggleGridView() { _gridView = !_gridView; notifyListeners(); }
+
+  void selectTag(String tag) { _selectedTag = tag; notifyListeners(); }
 
   void toggleSelection(int id) {
-    if (_selectedNotes.contains(id)) {
-      _selectedNotes.remove(id);
-    } else {
-      _selectedNotes.add(id);
-    }
+    if (_selectedNotes.contains(id)) { _selectedNotes.remove(id); }
+    else { _selectedNotes.add(id); }
     notifyListeners();
   }
 
-  void clearSelection() {
-    _selectedNotes.clear();
-    notifyListeners();
+  void clearSelection() { _selectedNotes.clear(); notifyListeners(); }
+
+  Future<void> deleteMultiple() async {
+    for (final id in _selectedNotes) { await delete(id); }
+    clearSelection();
   }
 }
 
@@ -134,73 +299,226 @@ class NotesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Notes')),
-      body: Consumer<NotesProvider>(
-        builder: (context, provider, _) {
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Search notes...',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: provider.query.isNotEmpty
-                      ? IconButton(icon: const Icon(Icons.clear), tooltip: 'Clear search', onPressed: () => provider.search(''))
-                      : null,
-                    border: const OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  onChanged: provider.search,
+      appBar: AppBar(
+        title: Consumer<NotesProvider>(builder: (_, p, __) => Text(p.isSelectionMode ? '${p.selectedNotes.length} selected' : 'Notes')),
+        actions: [
+          Consumer<NotesProvider>(builder: (context, p, _) {
+            if (p.isSelectionMode) {
+              return Row(mainAxisSize: MainAxisSize.min, children: [
+                IconButton(icon: const Icon(Icons.delete), tooltip: 'Delete selected', onPressed: () async {
+                  await p.deleteMultiple();
+                  if (context.mounted) showSuccessSnackBar(context, 'Deleted ${p.selectedNotes.length} notes');
+                }),
+                IconButton(icon: const Icon(Icons.close), tooltip: 'Cancel', onPressed: p.clearSelection),
+              ]);
+            }
+            return Row(mainAxisSize: MainAxisSize.min, children: [
+              if (p.trashCount > 0)
+                IconButton(icon: const Icon(Icons.delete_outline), tooltip: 'Trash (${p.trashCount})', onPressed: () => _showTrash(context)),
+              PopupMenuButton<String>(
+                tooltip: 'More options',
+                onSelected: (v) {
+                  if (v == 'archived') p.toggleShowArchived();
+                  else if (v == 'grid') p.toggleGridView();
+                  else p.setSortBy(v);
+                },
+                itemBuilder: (_) => [
+                  PopupMenuItem(value: 'grid', child: Row(children: [Icon(p.gridView ? Icons.grid_view : Icons.list, size: 18), const SizedBox(width: 8), Text(p.gridView ? 'List view' : 'Grid view')])),
+                  const PopupMenuDivider(),
+                  PopupMenuItem(value: 'updated', child: Row(children: [Icon(p.sortBy == 'updated' ? Icons.radio_button_checked : Icons.radio_button_off, size: 18), const SizedBox(width: 8), const Text('Sort by Updated')])),
+                  PopupMenuItem(value: 'created', child: Row(children: [Icon(p.sortBy == 'created' ? Icons.radio_button_checked : Icons.radio_button_off, size: 18), const SizedBox(width: 8), const Text('Sort by Created')])),
+                  PopupMenuItem(value: 'title', child: Row(children: [Icon(p.sortBy == 'title' ? Icons.radio_button_checked : Icons.radio_button_off, size: 18), const SizedBox(width: 8), const Text('Sort by Title')])),
+                  const PopupMenuDivider(),
+                  PopupMenuItem(value: 'archived', child: Row(children: [Icon(p.showArchived ? Icons.check_box : Icons.check_box_outline_blank, size: 18), const SizedBox(width: 8), const Text('Show Archived')])),
+                ],
+              ),
+            ]);
+          }),
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search notes...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: Consumer<NotesProvider>(builder: (_, p, __) =>
+                  p.query.isNotEmpty ? IconButton(icon: const Icon(Icons.clear), tooltip: 'Clear search', onPressed: () => p.search('')) : const SizedBox.shrink()
                 ),
+                border: const OutlineInputBorder(), isDense: true,
               ),
-              Expanded(
-                child: _buildList(provider),
-              ),
-            ],
-          );
-        },
+              onChanged: context.read<NotesProvider>().search,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Consumer<NotesProvider>(builder: (_, p, __) =>
+              Row(children: [
+                Flexible(child: Text('${p.totalCount} notes', style: Theme.of(context).textTheme.labelSmall, overflow: TextOverflow.ellipsis)),
+                if (p.favoriteCount > 0)
+                  Padding(padding: const EdgeInsets.only(left: 12), child: Text('${p.favoriteCount} ⭐', style: Theme.of(context).textTheme.labelSmall)),
+              ]),
+            ),
+          ),
+          Expanded(child: Consumer<NotesProvider>(builder: (context, p, _) {
+            if (p.error != null) return Center(child: Text(p.error!, style: const TextStyle(color: Colors.red)));
+            if (p.loading) return const Center(child: CircularProgressIndicator());
+            if (p.notes.isEmpty) return Center(child: Text(p.query.isNotEmpty ? 'No matching notes' : 'No notes yet'));
+            if (p.gridView) {
+              return GridView.builder(
+                  padding: const EdgeInsets.all(8),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2, mainAxisSpacing: 8, crossAxisSpacing: 8, childAspectRatio: 0.85,
+                  ),
+                  itemCount: p.notes.length,
+                  itemBuilder: (_, i) => _NoteCard(note: p.notes[i], grid: true),
+                );
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.only(bottom: 8),
+                itemCount: p.notes.length,
+                itemBuilder: (_, i) => _NoteCard(note: p.notes[i], grid: false),
+              );
+            })),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         tooltip: 'Create note',
         child: const Icon(Icons.add),
-        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NoteEditorScreen())),
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NoteEditorScreen(provider: context.read<NotesProvider>()))),
       ),
     );
   }
 
-  Widget _buildList(NotesProvider provider) {
-    if (provider.error != null) return Center(child: Text(provider.error!, style: const TextStyle(color: Colors.red)));
-    if (provider.loading) return const Center(child: CircularProgressIndicator());
-    if (provider.notes.isEmpty) {
-      return Center(child: Text(provider.query.isNotEmpty ? 'No matching notes' : 'No notes yet'));
-    }
-    return ListView.builder(
-      itemCount: provider.notes.length,
-      itemBuilder: (context, i) {
-        final note = provider.notes[i];
-        return Dismissible(
-          key: ValueKey(note.id),
-          direction: DismissDirection.endToStart,
-          onDismissed: (_) => provider.delete(note.id!),
-          background: Container(color: Colors.red, alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 16), child: const Icon(Icons.delete, color: Colors.white)),
-          child: ListTile(
-            title: Text(note.title.isEmpty ? 'Untitled' : note.title, maxLines: 1),
-            subtitle: Text(deltaToPlainText(note.content), maxLines: 2, overflow: TextOverflow.ellipsis),
-            leading: note.pinned ? const Icon(Icons.push_pin) : null,
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note))),
-          ),
-        );
-      },
+  void _showTrash(BuildContext context) {
+    final provider = context.read<NotesProvider>();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.6, minChildSize: 0.3, maxChildSize: 0.9,
+        expand: false,
+        builder: (_, scrollController) => Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(children: [
+                const Text('Trash', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                Text('${provider.trashCount} notes', style: Theme.of(context).textTheme.labelMedium),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: () async {
+                    for (final n in provider.trashedNotes) await provider.delete(n.id!);
+                    if (context.mounted) Navigator.pop(context);
+                  },
+                  child: const Text('Empty Trash', style: TextStyle(color: Colors.red)),
+                ),
+              ]),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: provider.trashedNotes.isEmpty
+                ? const Center(child: Text('Trash is empty'))
+                : ListView.builder(
+                    controller: scrollController,
+                    itemCount: provider.trashedNotes.length,
+                    itemBuilder: (_, i) {
+                      final note = provider.trashedNotes[i];
+                      return ListTile(
+                        title: Text(note.title.isEmpty ? 'Untitled' : note.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        subtitle: Text(DateFormat.yMMMd().format(note.deletedAt!), style: Theme.of(context).textTheme.bodySmall),
+                        leading: const Icon(Icons.delete_outline),
+                        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                          IconButton(icon: const Icon(Icons.restore), tooltip: 'Restore', onPressed: () => provider.restore(note)),
+                          IconButton(icon: const Icon(Icons.delete_forever, color: Colors.red), tooltip: 'Delete permanently', onPressed: () => provider.delete(note.id!)),
+                        ]),
+                      );
+                    },
+                  ),
+            ),
+          ],
+        ),
+      ),
     );
   }
+}
 
+class _NoteCard extends StatelessWidget {
+  final Note note;
+  final bool grid;
+  const _NoteCard({required this.note, required this.grid});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final provider = context.read<NotesProvider>();
+
+    Color? bg;
+    if (note.color != null) {
+      bg = Color(note.color!).withValues(alpha: 0.3);
+    }
+
+    final card = Card(
+      color: bg,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note, provider: provider))),
+        child: Padding(
+          padding: EdgeInsets.all(grid ? 10 : 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Flexible(child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  if (note.pinned) Padding(padding: EdgeInsets.only(right: grid ? 2 : 4), child: Icon(Icons.push_pin, size: grid ? 12 : 14)),
+                  if (note.favorite) Padding(padding: EdgeInsets.only(right: grid ? 2 : 4), child: Icon(Icons.star, size: grid ? 12 : 14, color: Colors.amber)),
+                  if (note.reminderTime != null) Padding(padding: EdgeInsets.only(right: grid ? 2 : 4), child: Icon(Icons.notifications, size: grid ? 12 : 14)),
+                  if (note.priority > 0 && !grid) ...[
+                    const SizedBox(width: 2),
+                    ...List.generate(note.priority, (_) => const Icon(Icons.flag, size: 10, color: Colors.orange)),
+                  ],
+                ])),
+                GestureDetector(
+                  onTap: () => provider.toggleSelection(note.id!),
+                  child: Icon(
+                    provider.selectedNotes.contains(note.id) ? Icons.check_circle : Icons.circle_outlined,
+                    size: grid ? 16 : 18, color: provider.selectedNotes.contains(note.id) ? theme.colorScheme.primary : theme.colorScheme.outline,
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 6),
+              Text(note.title.isEmpty ? 'Untitled' : note.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+              if (!grid) ...[
+                const SizedBox(height: 4),
+                Text(deltaToPlainText(note.content), maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (grid) return card;
+    return Dismissible(
+      key: ValueKey(note.id),
+      direction: DismissDirection.endToStart,
+      background: Container(color: Colors.orange, alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 16), child: const Icon(Icons.delete_outline, color: Colors.white)),
+      onDismissed: (_) {
+        provider.trash(note);
+        if (context.mounted) showSuccessSnackBar(context, 'Moved to trash');
+      },
+      child: card,
+    );
+  }
 }
 
 class NoteEditorScreen extends StatefulWidget {
   final Note? note;
-  const NoteEditorScreen({super.key, this.note});
+  final NotesProvider provider;
+  const NoteEditorScreen({super.key, this.note, required this.provider});
 
   @override
   State<NoteEditorScreen> createState() => _NoteEditorScreenState();
@@ -209,6 +527,7 @@ class NoteEditorScreen extends StatefulWidget {
 class _NoteEditorScreenState extends State<NoteEditorScreen> {
   late QuillController _controller;
   late TextEditingController _titleController;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -234,68 +553,185 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   void _save() async {
-    final provider = context.read<NotesProvider>();
+    if (_saving) return;
+    setState(() => _saving = true);
     final content = jsonEncode(_controller.document.toDelta().toJson());
     final note = Note(
       id: widget.note?.id,
       title: _titleController.text,
       content: content,
       pinned: widget.note?.pinned ?? false,
+      favorite: widget.note?.favorite ?? false,
+      color: widget.note?.color,
+      archived: widget.note?.archived ?? false,
+      reminderTime: widget.note?.reminderTime,
+      priority: widget.note?.priority ?? 0,
       createdAt: widget.note?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
     );
-    await provider.save(note);
-    if (mounted) Navigator.pop(context);
+    await widget.provider.save(note);
+    if (mounted) {
+      setState(() => _saving = false);
+      Navigator.pop(context);
+    }
+  }
+
+  void _share() {
+    final text = '${_titleController.text}\n\n${deltaToPlainText(jsonEncode(_controller.document.toDelta().toJson()))}';
+    Share.share(text);
+  }
+
+  Future<void> _pickReminder() async {
+    final initial = widget.note?.reminderTime ?? DateTime.now().add(const Duration(hours: 1));
+    final date = await showDatePicker(context: context, initialDate: initial, firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 365)));
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(initial));
+    if (time == null || !mounted) return;
+    final reminder = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    final note = (widget.note ?? Note(title: _titleController.text, content: jsonEncode(_controller.document.toDelta().toJson()), createdAt: DateTime.now(), updatedAt: DateTime.now()))
+        .copyWith(reminderTime: reminder);
+    setState(() {});
+    await widget.provider.setReminder(note, reminder);
+    if (mounted) showSuccessSnackBar(context, 'Reminder set');
+  }
+
+  void _pickColor() {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Note Color', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: _noteColors.map((c) {
+              final selected = widget.note?.color == c;
+              return GestureDetector(
+                onTap: () {
+                  final note = (widget.note ?? Note(title: _titleController.text, content: jsonEncode(_controller.document.toDelta().toJson()), createdAt: DateTime.now(), updatedAt: DateTime.now()))
+                      .copyWith(color: c);
+                  widget.provider.setColor(note, c);
+                  Navigator.pop(context);
+                },
+                child: Container(
+                  width: 40, height: 40,
+                  decoration: BoxDecoration(
+                    color: c != null ? Color(c).withValues(alpha: 0.5) : theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                    border: selected ? Border.all(color: Theme.of(context).colorScheme.primary, width: 3) : null,
+                  ),
+                  child: c == null ? const Icon(Icons.block, size: 20) : null,
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 12),
+        ]),
+      ),
+    );
+  }
+
+  void _duplicate() async {
+    await widget.provider.duplicate(widget.note!);
+    if (mounted) showSuccessSnackBar(context, 'Note duplicated');
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: TextField(controller: _titleController, decoration: const InputDecoration(hintText: 'Title', border: InputBorder.none)),
-        actions: [
-          IconButton(icon: const Icon(Icons.save), onPressed: _save),
-          if (widget.note != null)
-            PopupMenuButton(itemBuilder: (context) => [
-              PopupMenuItem(value: 'pin', child: Text(widget.note!.pinned ? 'Unpin' : 'Pin')),
-              const PopupMenuItem(value: 'delete', child: Text('Delete')),
-            ], onSelected: (v) async {
-              final provider = context.read<NotesProvider>();
-              if (v == 'delete') {
-                await provider.delete(widget.note!.id!);
-                if (mounted) Navigator.pop(context);
-              } else if (v == 'pin') {
-                await provider.togglePin(widget.note!);
-                if (mounted) Navigator.pop(context);
-              }
-            }),
-        ],
-      ),
-      body: Column(
-        children: [
-          QuillSimpleToolbar(
-            controller: _controller,
-            config: const QuillSimpleToolbarConfig(
-              showBackgroundColorButton: false,
-              showColorButton: false,
-              showSubscript: false,
-              showSuperscript: false,
-              showInlineCode: false,
-              showCodeBlock: false,
-              showIndent: false,
-              showDirection: false,
-              showLink: false,
-              showSearchButton: false,
-              showFontFamily: false,
-              showFontSize: false,
-              showSmallButton: false,
-              showAlignmentButtons: false,
-              showLineHeightButton: false,
+    final wordCount = _wordCount(jsonEncode(_controller.document.toDelta().toJson()));
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && !_saving) _save();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: TextField(controller: _titleController, decoration: const InputDecoration(hintText: 'Title', border: InputBorder.none)),
+          actions: [
+            if (widget.note != null) ...[
+              IconButton(icon: Icon(widget.note!.favorite ? Icons.star : Icons.star_border, color: widget.note!.favorite ? Colors.amber : null), tooltip: 'Favorite', onPressed: () {
+                widget.provider.toggleFavorite(widget.note!);
+                setState(() {});
+              }),
+              IconButton(icon: const Icon(Icons.color_lens_outlined), tooltip: 'Color', onPressed: _pickColor),
+              IconButton(icon: const Icon(Icons.notifications_outlined), tooltip: widget.note!.reminderTime != null ? 'Reminder set' : 'Set reminder',
+                onPressed: _pickReminder, color: widget.note!.reminderTime != null ? Theme.of(context).colorScheme.primary : null),
+              PopupMenuButton(tooltip: 'More', onSelected: (v) {
+                if (v == 'duplicate') _duplicate();
+                else if (v == 'share') _share();
+                else if (v == 'pin') { widget.provider.togglePin(widget.note!); setState(() {}); }
+                else if (v == 'archive') { widget.provider.archive(widget.note!); if (mounted) Navigator.pop(context); }
+              }, itemBuilder: (_) => [
+                PopupMenuItem(value: 'pin', child: Text(widget.note!.pinned ? 'Unpin' : 'Pin')),
+                PopupMenuItem(value: 'duplicate', child: const Text('Duplicate')),
+                PopupMenuItem(value: 'share', child: const Text('Share')),
+                PopupMenuItem(value: 'archive', child: Text(widget.note!.archived ? 'Unarchive' : 'Archive')),
+              ]),
+            ],
+            IconButton(icon: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save), onPressed: _saving ? null : _save),
+          ],
+        ),
+        body: Column(
+          children: [
+            QuillSimpleToolbar(
+              controller: _controller,
+              config: const QuillSimpleToolbarConfig(
+                showBackgroundColorButton: false,
+                showColorButton: false,
+                showSubscript: false,
+                showSuperscript: false,
+                showInlineCode: false,
+                showCodeBlock: false,
+                showIndent: false,
+                showDirection: false,
+                showLink: false,
+                showSearchButton: false,
+                showFontFamily: false,
+                showFontSize: false,
+                showSmallButton: false,
+                showAlignmentButtons: false,
+                showLineHeightButton: false,
+              ),
             ),
-          ),
-          Expanded(child: QuillEditor.basic(controller: _controller)),
-        ],
+            Expanded(child: QuillEditor.basic(controller: _controller)),
+            if (widget.note != null && widget.note!.reminderTime != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                child: Row(children: [
+                  const Icon(Icons.notifications, size: 14),
+                  const SizedBox(width: 6),
+                  Text('Reminder: ${DateFormat.yMMMd().add_jm().format(widget.note!.reminderTime!)}', style: Theme.of(context).textTheme.bodySmall),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () async {
+                      final note = widget.note!.copyWith(reminderTime: null);
+                      await widget.provider.setReminder(note, null);
+                      if (mounted) setState(() {});
+                    },
+                    child: const Icon(Icons.close, size: 16),
+                  ),
+                ]),
+              ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+              ),
+              child: Row(children: [
+                Text(wordCount, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                if (widget.note != null) ...[
+                  const Spacer(),
+                  Text('Created: ${DateFormat.yMMMd().add_jm().format(widget.note!.createdAt)}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 10)),
+                ],
+              ]),
+            ),
+          ],
+        ),
       ),
     );
   }
+
+  ThemeData get theme => Theme.of(context);
 }

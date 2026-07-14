@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../database.dart';
-import '../services/notification_service.dart';
 import 'settings_provider.dart';
 
 class CalendarEvent {
@@ -45,8 +44,6 @@ class CalendarEvent {
 }
 
 class CalendarProvider extends ChangeNotifier {
-  // ignore: unused_field
-  final NotificationService _notificationService;
   List<CalendarEvent> _events = [];
   DateTime _currentMonth = DateTime(DateTime.now().year, DateTime.now().month);
   bool _loading = true;
@@ -76,7 +73,7 @@ class CalendarProvider extends ChangeNotifier {
     return result;
   }
 
-  CalendarProvider(this._notificationService) { load(); }
+  CalendarProvider() { load(); }
 
   void setSearchQuery(String query) {
     _searchQuery = query;
@@ -346,6 +343,7 @@ class _MonthGrid extends StatelessWidget {
 
     return GridView.count(
       crossAxisCount: 7,
+      childAspectRatio: 1.0,
       children: cells,
     );
   }
@@ -364,16 +362,16 @@ class _MonthGrid extends StatelessWidget {
           ),
           if (events.isEmpty) const Padding(padding: EdgeInsets.all(16), child: Text('No events')),
           ...events.map((e) => ListTile(
-            title: Text(e.title),
+            title: Text(e.title, overflow: TextOverflow.ellipsis),
             subtitle: e.time != null ? Text(e.time!) : null,
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(icon: const Icon(Icons.edit, size: 20), onPressed: () {
+                IconButton(icon: const Icon(Icons.edit, size: 18), tooltip: 'Edit', onPressed: () {
                   Navigator.pop(context);
                   showModalBottomSheet(context: context, isScrollControlled: true, builder: (_) => EventEditor(event: e));
                 }),
-                IconButton(icon: const Icon(Icons.delete, size: 20), onPressed: () => provider.delete(e.id!)),
+                IconButton(icon: const Icon(Icons.delete, size: 18), tooltip: 'Delete', onPressed: () => provider.delete(e.id!)),
               ],
             ),
           )),
@@ -464,11 +462,12 @@ class _EventEditorState extends State<EventEditor> {
           children: [
             TextField(controller: _titleCtrl, decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()), autofocus: true),
             const SizedBox(height: 12),
-            Row(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Flexible(child: TextButton.icon(icon: const Icon(Icons.calendar_today), label: Text(DateFormat('MMM d, yyyy').format(_date)), onPressed: _pickDate)),
-                const SizedBox(width: 8),
-                Flexible(child: TextButton.icon(icon: const Icon(Icons.access_time), label: Text(_time != null ? _time!.format(context) : 'Add time'), onPressed: _pickTime)),
+                TextButton.icon(icon: const Icon(Icons.calendar_today), label: Text(DateFormat('MMM d, yyyy').format(_date)), onPressed: _pickDate),
+                const SizedBox(height: 4),
+                TextButton.icon(icon: const Icon(Icons.access_time), label: Text(_time != null ? _time!.format(context) : 'Add time'), onPressed: _pickTime),
               ],
             ),
             TextField(controller: _notesCtrl, decoration: const InputDecoration(labelText: 'Notes', border: OutlineInputBorder()), maxLines: 2),
