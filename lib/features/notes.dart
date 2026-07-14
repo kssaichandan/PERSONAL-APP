@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
@@ -100,6 +101,7 @@ class NotesProvider extends ChangeNotifier {
   bool _loading = true;
   String? _error;
   String _query = '';
+  Timer? _searchTimer;
   final Set<int> _selectedNotes = {};
   String _selectedTag = '';
   bool _showArchived = false;
@@ -149,12 +151,16 @@ class NotesProvider extends ChangeNotifier {
 
   void search(String q) {
     _query = q;
-    if (q.isEmpty) { _filtered = []; }
-    else { _filtered = _notes.where((n) =>
-      n.title.toLowerCase().contains(q.toLowerCase()) ||
-      deltaToPlainText(n.content).toLowerCase().contains(q.toLowerCase())
-    ).toList(); }
     notifyListeners();
+    _searchTimer?.cancel();
+    _searchTimer = Timer(const Duration(milliseconds: 200), () {
+      if (q.isEmpty) { _filtered = []; }
+      else { _filtered = _notes.where((n) =>
+        n.title.toLowerCase().contains(q.toLowerCase()) ||
+        deltaToPlainText(n.content).toLowerCase().contains(q.toLowerCase())
+      ).toList(); }
+      notifyListeners();
+    });
   }
 
   Future<void> load() async {
@@ -287,6 +293,12 @@ class NotesProvider extends ChangeNotifier {
 
   void clearSelection() { _selectedNotes.clear(); notifyListeners(); }
 
+  void selectAll() {
+    final ids = notes.map((n) => n.id!).toSet();
+    _selectedNotes.addAll(ids);
+    notifyListeners();
+  }
+
   Future<void> deleteMultiple() async {
     for (final id in _selectedNotes) { await delete(id); }
     clearSelection();
@@ -305,9 +317,11 @@ class NotesScreen extends StatelessWidget {
           Consumer<NotesProvider>(builder: (context, p, _) {
             if (p.isSelectionMode) {
               return Row(mainAxisSize: MainAxisSize.min, children: [
+                IconButton(icon: const Icon(Icons.select_all), tooltip: 'Select all', onPressed: p.selectAll),
                 IconButton(icon: const Icon(Icons.delete), tooltip: 'Delete selected', onPressed: () async {
+                  final count = p.selectedNotes.length;
                   await p.deleteMultiple();
-                  if (context.mounted) showSuccessSnackBar(context, 'Deleted ${p.selectedNotes.length} notes');
+                  if (context.mounted) showSuccessSnackBar(context, 'Deleted $count notes');
                 }),
                 IconButton(icon: const Icon(Icons.close), tooltip: 'Cancel', onPressed: p.clearSelection),
               ]);
@@ -336,58 +350,125 @@ class NotesScreen extends StatelessWidget {
           }),
         ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search notes...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: Consumer<NotesProvider>(builder: (_, p, __) =>
-                  p.query.isNotEmpty ? IconButton(icon: const Icon(Icons.clear), tooltip: 'Clear search', onPressed: () => p.search('')) : const SizedBox.shrink()
-                ),
-                border: const OutlineInputBorder(), isDense: true,
-              ),
-              onChanged: context.read<NotesProvider>().search,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Consumer<NotesProvider>(builder: (_, p, __) =>
-              Row(children: [
-                Flexible(child: Text('${p.totalCount} notes', style: Theme.of(context).textTheme.labelSmall, overflow: TextOverflow.ellipsis)),
-                if (p.favoriteCount > 0)
-                  Padding(padding: const EdgeInsets.only(left: 12), child: Text('${p.favoriteCount} ⭐', style: Theme.of(context).textTheme.labelSmall)),
-              ]),
-            ),
-          ),
-          Expanded(child: Consumer<NotesProvider>(builder: (context, p, _) {
-            if (p.error != null) return Center(child: Text(p.error!, style: const TextStyle(color: Colors.red)));
-            if (p.loading) return const Center(child: CircularProgressIndicator());
-            if (p.notes.isEmpty) return Center(child: Text(p.query.isNotEmpty ? 'No matching notes' : 'No notes yet'));
-            if (p.gridView) {
-              return GridView.builder(
-                  padding: const EdgeInsets.all(8),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2, mainAxisSpacing: 8, crossAxisSpacing: 8, childAspectRatio: 0.85,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search notes...',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: Consumer<NotesProvider>(builder: (_, p, __) =>
+                    p.query.isNotEmpty ? IconButton(icon: const Icon(Icons.clear), tooltip: 'Clear search', onPressed: () => p.search('')) : const SizedBox.shrink()
                   ),
-                  itemCount: p.notes.length,
-                  itemBuilder: (_, i) => _NoteCard(note: p.notes[i], grid: true),
+                  border: const OutlineInputBorder(),
+                ),
+                onChanged: context.read<NotesProvider>().search,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: Consumer<NotesProvider>(builder: (_, p, __) =>
+                Row(children: [
+                  Flexible(child: Text('${p.totalCount} notes', style: Theme.of(context).textTheme.bodySmall, overflow: TextOverflow.ellipsis)),
+                  if (p.favoriteCount > 0)
+                    Padding(padding: const EdgeInsets.only(left: 12), child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.star, size: 12, color: Colors.amber),
+                      const SizedBox(width: 2),
+                      Text('${p.favoriteCount}', style: Theme.of(context).textTheme.bodySmall, overflow: TextOverflow.ellipsis),
+                    ])),
+                ]),
+              ),
+            ),
+            Expanded(child: Consumer<NotesProvider>(builder: (context, p, _) {
+              if (p.error != null) return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+                    const SizedBox(height: 12),
+                    Text(p.error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                    const SizedBox(height: 16),
+                    FilledButton.tonalIcon(
+                      onPressed: () => context.read<NotesProvider>().load(),
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              );
+              if (p.loading) return const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Loading notes...'),
+                  ],
+                ),
+              );
+              if (p.notes.isEmpty) {
+                if (p.query.isNotEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.search_off, size: 64, color: Theme.of(context).colorScheme.outline),
+                        const SizedBox(height: 16),
+                        Text('No matching notes', style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 8),
+                        Text('Try a different search term', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                        const SizedBox(height: 12),
+                        TextButton.icon(
+                          onPressed: () => context.read<NotesProvider>().search(''),
+                          icon: const Icon(Icons.clear, size: 18),
+                          label: const Text('Clear search'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.note_add_outlined, size: 64, color: Theme.of(context).colorScheme.outline),
+                      const SizedBox(height: 16),
+                      Text('No notes yet', style: Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: 8),
+                      Text('Tap + to create your first note', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                    ],
+                  ),
                 );
               }
-              return ListView.builder(
-                padding: const EdgeInsets.only(bottom: 8),
-                itemCount: p.notes.length,
-                itemBuilder: (_, i) => _NoteCard(note: p.notes[i], grid: false),
-              );
-            })),
-        ],
+              final textScale = MediaQuery.textScalerOf(context).textScaleFactor;
+              if (p.gridView) {
+                return GridView.builder(
+                    padding: const EdgeInsets.all(12),
+                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 200, mainAxisSpacing: 12, crossAxisSpacing: 12,
+                      childAspectRatio: textScale > 1.2 ? 0.7 : 0.85,
+                    ),
+                    itemCount: p.notes.length,
+                    itemBuilder: (_, i) => _NoteCard(note: p.notes[i], grid: true),
+                  );
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  itemCount: p.notes.length,
+                  itemBuilder: (_, i) => _NoteCard(note: p.notes[i], grid: false),
+                );
+              })),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         tooltip: 'Create note',
         child: const Icon(Icons.add),
-        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NoteEditorScreen(provider: context.read<NotesProvider>()))),
+        onPressed: () async {
+          await Navigator.push(context, MaterialPageRoute(builder: (_) => NoteEditorScreen(provider: context.read<NotesProvider>())));
+        },
       ),
     );
   }
@@ -414,14 +495,23 @@ class NotesScreen extends StatelessWidget {
                     for (final n in provider.trashedNotes) await provider.delete(n.id!);
                     if (context.mounted) Navigator.pop(context);
                   },
-                  child: const Text('Empty Trash', style: TextStyle(color: Colors.red)),
+                  child: Text('Empty Trash', style: TextStyle(color: Theme.of(context).colorScheme.error)),
                 ),
               ]),
             ),
             const Divider(height: 1),
             Expanded(
               child: provider.trashedNotes.isEmpty
-                ? const Center(child: Text('Trash is empty'))
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.delete_outline, size: 48, color: Theme.of(context).colorScheme.outline),
+                        const SizedBox(height: 12),
+                        const Text('Trash is empty'),
+                      ],
+                    ),
+                  )
                 : ListView.builder(
                     controller: scrollController,
                     itemCount: provider.trashedNotes.length,
@@ -433,7 +523,7 @@ class NotesScreen extends StatelessWidget {
                         leading: const Icon(Icons.delete_outline),
                         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                           IconButton(icon: const Icon(Icons.restore), tooltip: 'Restore', onPressed: () => provider.restore(note)),
-                          IconButton(icon: const Icon(Icons.delete_forever, color: Colors.red), tooltip: 'Delete permanently', onPressed: () => provider.delete(note.id!)),
+                          IconButton(icon: Icon(Icons.delete_forever, color: Theme.of(context).colorScheme.error), tooltip: 'Delete permanently', onPressed: () => provider.delete(note.id!)),
                         ]),
                       );
                     },
@@ -473,19 +563,22 @@ class _NoteCard extends StatelessWidget {
             children: [
               Row(children: [
                 Flexible(child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  if (note.pinned) Padding(padding: EdgeInsets.only(right: grid ? 2 : 4), child: Icon(Icons.push_pin, size: grid ? 12 : 14)),
-                  if (note.favorite) Padding(padding: EdgeInsets.only(right: grid ? 2 : 4), child: Icon(Icons.star, size: grid ? 12 : 14, color: Colors.amber)),
-                  if (note.reminderTime != null) Padding(padding: EdgeInsets.only(right: grid ? 2 : 4), child: Icon(Icons.notifications, size: grid ? 12 : 14)),
+                  if (note.pinned) Padding(padding: EdgeInsets.only(right: grid ? 2 : 4), child: Icon(Icons.push_pin, size: 14, color: theme.colorScheme.primary)),
+                  if (note.favorite) Padding(padding: EdgeInsets.only(right: grid ? 2 : 4), child: Icon(Icons.star, size: 14, color: Colors.amber)),
+                  if (note.reminderTime != null) Padding(padding: EdgeInsets.only(right: grid ? 2 : 4), child: Icon(Icons.notifications, size: 14)),
                   if (note.priority > 0 && !grid) ...[
                     const SizedBox(width: 2),
-                    ...List.generate(note.priority, (_) => const Icon(Icons.flag, size: 10, color: Colors.orange)),
+                    ...List.generate(note.priority, (_) => Icon(Icons.flag, size: 14, color: theme.colorScheme.tertiary)),
                   ],
                 ])),
-                GestureDetector(
-                  onTap: () => provider.toggleSelection(note.id!),
-                  child: Icon(
-                    provider.selectedNotes.contains(note.id) ? Icons.check_circle : Icons.circle_outlined,
-                    size: grid ? 16 : 18, color: provider.selectedNotes.contains(note.id) ? theme.colorScheme.primary : theme.colorScheme.outline,
+                SizedBox(
+                  width: 48, height: 48,
+                  child: GestureDetector(
+                    onTap: () => provider.toggleSelection(note.id!),
+                    child: Icon(
+                      provider.selectedNotes.contains(note.id) ? Icons.check_circle : Icons.circle_outlined,
+                      size: grid ? 18 : 20, color: provider.selectedNotes.contains(note.id) ? theme.colorScheme.primary : theme.colorScheme.outline,
+                    ),
                   ),
                 ),
               ]),
@@ -505,7 +598,20 @@ class _NoteCard extends StatelessWidget {
     return Dismissible(
       key: ValueKey(note.id),
       direction: DismissDirection.endToStart,
-      background: Container(color: Colors.orange, alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 16), child: const Icon(Icons.delete_outline, color: Colors.white)),
+      background: Container(color: theme.colorScheme.tertiary, alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 16), child: const Icon(Icons.delete_outline, color: Colors.white)),
+      confirmDismiss: (_) async {
+        return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Move to trash?'),
+            content: const Text('You can restore it later from the trash.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Trash')),
+            ],
+          ),
+        ) ?? false;
+      },
       onDismissed: (_) {
         provider.trash(note);
         if (context.mounted) showSuccessSnackBar(context, 'Moved to trash');
@@ -572,6 +678,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     await widget.provider.save(note);
     if (mounted) {
       setState(() => _saving = false);
+      showSuccessSnackBar(context, 'Note saved');
       Navigator.pop(context);
     }
   }
@@ -588,6 +695,10 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     final time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(initial));
     if (time == null || !mounted) return;
     final reminder = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    if (reminder.isBefore(DateTime.now())) {
+      if (mounted) showErrorSnackBar(context, 'Reminder time must be in the future');
+      return;
+    }
     final note = (widget.note ?? Note(title: _titleController.text, content: jsonEncode(_controller.document.toDelta().toJson()), createdAt: DateTime.now(), updatedAt: DateTime.now()))
         .copyWith(reminderTime: reminder);
     setState(() {});
@@ -607,21 +718,25 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
             spacing: 8, runSpacing: 8,
             children: _noteColors.map((c) {
               final selected = widget.note?.color == c;
-              return GestureDetector(
-                onTap: () {
-                  final note = (widget.note ?? Note(title: _titleController.text, content: jsonEncode(_controller.document.toDelta().toJson()), createdAt: DateTime.now(), updatedAt: DateTime.now()))
-                      .copyWith(color: c);
-                  widget.provider.setColor(note, c);
-                  Navigator.pop(context);
-                },
-                child: Container(
-                  width: 40, height: 40,
-                  decoration: BoxDecoration(
-                    color: c != null ? Color(c).withValues(alpha: 0.5) : theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                    border: selected ? Border.all(color: Theme.of(context).colorScheme.primary, width: 3) : null,
+              return Semantics(
+                label: c != null ? 'Color $c' : 'No color',
+                button: true,
+                child: GestureDetector(
+                  onTap: () {
+                    final note = (widget.note ?? Note(title: _titleController.text, content: jsonEncode(_controller.document.toDelta().toJson()), createdAt: DateTime.now(), updatedAt: DateTime.now()))
+                        .copyWith(color: c);
+                    widget.provider.setColor(note, c);
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    width: 48, height: 48,
+                    decoration: BoxDecoration(
+                      color: c != null ? Color(c).withValues(alpha: 0.5) : theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                      border: selected ? Border.all(color: Theme.of(context).colorScheme.primary, width: 3) : null,
+                    ),
+                    child: c == null ? const Icon(Icons.block, size: 20) : null,
                   ),
-                  child: c == null ? const Icon(Icons.block, size: 20) : null,
                 ),
               );
             }).toList(),
@@ -669,7 +784,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                 PopupMenuItem(value: 'archive', child: Text(widget.note!.archived ? 'Unarchive' : 'Archive')),
               ]),
             ],
-            IconButton(icon: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save), onPressed: _saving ? null : _save),
+            IconButton(icon: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save), tooltip: 'Save', onPressed: _saving ? null : _save),
           ],
         ),
         body: Column(
@@ -704,13 +819,16 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                   const SizedBox(width: 6),
                   Text('Reminder: ${DateFormat.yMMMd().add_jm().format(widget.note!.reminderTime!)}', style: Theme.of(context).textTheme.bodySmall),
                   const Spacer(),
-                  GestureDetector(
-                    onTap: () async {
-                      final note = widget.note!.copyWith(reminderTime: null);
-                      await widget.provider.setReminder(note, null);
-                      if (mounted) setState(() {});
-                    },
-                    child: const Icon(Icons.close, size: 16),
+                  SizedBox(
+                    width: 48, height: 48,
+                    child: GestureDetector(
+                      onTap: () async {
+                        final note = widget.note!.copyWith(reminderTime: null);
+                        await widget.provider.setReminder(note, null);
+                        if (mounted) setState(() {});
+                      },
+                      child: const Icon(Icons.close, size: 16),
+                    ),
                   ),
                 ]),
               ),
@@ -723,7 +841,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                 Text(wordCount, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                 if (widget.note != null) ...[
                   const Spacer(),
-                  Text('Created: ${DateFormat.yMMMd().add_jm().format(widget.note!.createdAt)}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 10)),
+                  Text('Created: ${DateFormat.yMMMd().add_jm().format(widget.note!.createdAt)}', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                 ],
               ]),
             ),

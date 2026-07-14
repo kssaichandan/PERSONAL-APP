@@ -620,7 +620,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                             ? () => provider.toggleHabitSelection(h.id!)
                             : () => setState(() => _selectedHabit = h),
                         onLongPress: () => provider.toggleHabitSelection(h.id!),
-                          Padding(
+                        child: Padding(
                           padding: EdgeInsets.only(top: provider.isSelectionMode ? 14 : 0),
                           child: Container(
                           width: 96,
@@ -718,8 +718,9 @@ class _HabitsScreenState extends State<HabitsScreen> {
                           ),
                         ),
                       ),
+                    ),
                     );
-                  },
+                    },
                 ),
               ),
 
