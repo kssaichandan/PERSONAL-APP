@@ -234,6 +234,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   void _save() async {
+    final provider = context.read<NotesProvider>();
     final content = jsonEncode(_controller.document.toDelta().toJson());
     final note = Note(
       id: widget.note?.id,
@@ -243,7 +244,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       createdAt: widget.note?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
     );
-    await context.read<NotesProvider>().save(note);
+    await provider.save(note);
     if (mounted) Navigator.pop(context);
   }
 
@@ -259,11 +260,12 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
               PopupMenuItem(value: 'pin', child: Text(widget.note!.pinned ? 'Unpin' : 'Pin')),
               const PopupMenuItem(value: 'delete', child: Text('Delete')),
             ], onSelected: (v) async {
+              final provider = context.read<NotesProvider>();
               if (v == 'delete') {
-                await context.read<NotesProvider>().delete(widget.note!.id!);
+                await provider.delete(widget.note!.id!);
                 if (mounted) Navigator.pop(context);
               } else if (v == 'pin') {
-                await context.read<NotesProvider>().togglePin(widget.note!);
+                await provider.togglePin(widget.note!);
                 if (mounted) Navigator.pop(context);
               }
             }),

@@ -585,8 +585,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
                       TextButton.icon(
                         icon: Icon(Icons.delete_rounded, color: theme.colorScheme.error),
                         label: Text('Delete', style: TextStyle(color: theme.colorScheme.error)),
-                        onPressed: () async {
-                          await provider.deleteMultiple(provider.selectedHabits, context);
+                        onPressed: () {
+                          provider.deleteMultiple(provider.selectedHabits);
                         },
                       ),
                     ],
@@ -1244,52 +1244,55 @@ class _WeeklyChecklist extends StatelessWidget {
           final isToday = date == today;
           final isFuture = date.isAfter(today);
 
-          return GestureDetector(
-            onTap: isFuture ? null : () => provider.toggleLog(habit.id!, date),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  dayLabels[index],
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                    color: isToday ? Color(habit.color) : theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${date.day}',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                    color: isToday ? Color(habit.color) : theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: completed
-                        ? Color(habit.color)
-                        : (isToday ? Color(habit.color).withValues(alpha: 0.08) : theme.colorScheme.surfaceContainerHighest),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: completed
-                          ? Color(habit.color)
-                          : (isToday ? Color(habit.color).withValues(alpha: 0.4) : Colors.transparent),
-                      width: 1.5,
+          return Expanded(
+            child: GestureDetector(
+              onTap: isFuture ? null : () => provider.toggleLog(habit.id!, date),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    dayLabels[index],
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                      color: isToday ? Color(habit.color) : theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  child: completed
-                      ? const Icon(Icons.check_rounded, color: Colors.white, size: 22)
-                      : (isFuture
-                          ? Icon(Icons.lock_outline_rounded, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4), size: 16)
-                          : null),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    '${date.day}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                      color: isToday ? Color(habit.color) : theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  AspectRatio(
+                    aspectRatio: 1,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      decoration: BoxDecoration(
+                        color: completed
+                            ? Color(habit.color)
+                            : (isToday ? Color(habit.color).withValues(alpha: 0.08) : theme.colorScheme.surfaceContainerHighest),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: completed
+                              ? Color(habit.color)
+                              : (isToday ? Color(habit.color).withValues(alpha: 0.4) : Colors.transparent),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: completed
+                          ? const Icon(Icons.check_rounded, color: Colors.white, size: 22)
+                          : (isFuture
+                              ? Icon(Icons.lock_outline_rounded, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4), size: 16)
+                              : null),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         }),

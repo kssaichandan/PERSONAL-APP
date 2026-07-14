@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:provider/provider.dart';
 import 'database.dart';
 import 'features/notes.dart';
@@ -38,6 +40,14 @@ class PersonalApp extends StatelessWidget {
           return MaterialApp(
             title: 'Personal App',
             debugShowCheckedModeBanner: false,
+            localizationsDelegates: const [
+              FlutterQuillLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('en'),
+            ],
             theme: ThemeData(
               colorSchemeSeed: settings.colorSeed,
               useMaterial3: true,

@@ -457,23 +457,25 @@ class _EventEditorState extends State<EventEditor> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 16, right: 16, top: 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(controller: _titleCtrl, decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()), autofocus: true),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              TextButton.icon(icon: const Icon(Icons.calendar_today), label: Text(DateFormat('MMM d, yyyy').format(_date)), onPressed: _pickDate),
-              const SizedBox(width: 8),
-              TextButton.icon(icon: const Icon(Icons.access_time), label: Text(_time != null ? _time!.format(context) : 'Add time'), onPressed: _pickTime),
-            ],
-          ),
-          TextField(controller: _notesCtrl, decoration: const InputDecoration(labelText: 'Notes', border: OutlineInputBorder()), maxLines: 2),
-          const SizedBox(height: 16),
-          FilledButton.icon(icon: const Icon(Icons.save), label: const Text('Save'), onPressed: _save),
-          const SizedBox(height: 16),
-        ],
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: _titleCtrl, decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()), autofocus: true),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Flexible(child: TextButton.icon(icon: const Icon(Icons.calendar_today), label: Text(DateFormat('MMM d, yyyy').format(_date)), onPressed: _pickDate)),
+                const SizedBox(width: 8),
+                Flexible(child: TextButton.icon(icon: const Icon(Icons.access_time), label: Text(_time != null ? _time!.format(context) : 'Add time'), onPressed: _pickTime)),
+              ],
+            ),
+            TextField(controller: _notesCtrl, decoration: const InputDecoration(labelText: 'Notes', border: OutlineInputBorder()), maxLines: 2),
+            const SizedBox(height: 16),
+            FilledButton.icon(icon: const Icon(Icons.save), label: const Text('Save'), onPressed: _save),
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }

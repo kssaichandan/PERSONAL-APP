@@ -400,7 +400,6 @@ class _LifeScreenContent extends StatelessWidget {
           final totalHours = difference.inHours;
           final totalMinutes = difference.inMinutes;
           final totalSeconds = difference.inSeconds;
-          final totalMillis = difference.inMilliseconds;
           final totalExpectedDays = expectedYears * 365.25;
           final lifePercentage = (totalDays / totalExpectedDays) * 100;
           final formattedPercentage = lifePercentage.toStringAsFixed(2);
@@ -554,38 +553,16 @@ class _LifeScreenContent extends StatelessWidget {
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
                       children: [
-                        _MetricCard(title: 'Total Days', value: NumberFormat.compact().format(totalDays), icon: Icons.today_rounded, color: theme.colorScheme.tertiary),
+                        _MetricCard(title: 'Total Days', value: NumberFormat('#,###').format(totalDays), icon: Icons.today_rounded, color: theme.colorScheme.tertiary),
                         _MetricCard(title: 'Total Weeks', value: (totalDays / 7).toStringAsFixed(1), icon: Icons.date_range_rounded, color: theme.colorScheme.primary),
-                        _MetricCard(title: 'Total Hours', value: NumberFormat.compact().format(totalHours), icon: Icons.watch_later_rounded, color: theme.colorScheme.secondary),
-                        _MetricCard(title: 'Total Minutes', value: NumberFormat.compact().format(totalMinutes), icon: Icons.timer_rounded, color: theme.colorScheme.tertiary),
-                        _MetricCard(title: 'Total Seconds', value: NumberFormat.compact().format(totalSeconds), icon: Icons.hourglass_full_rounded, color: theme.colorScheme.error),
+                        _MetricCard(title: 'Total Hours', value: NumberFormat('#,###').format(totalHours), icon: Icons.watch_later_rounded, color: theme.colorScheme.secondary),
+                        _MetricCard(title: 'Total Minutes', value: NumberFormat('#,###').format(totalMinutes), icon: Icons.timer_rounded, color: theme.colorScheme.tertiary),
+                        _MetricCard(title: 'Total Seconds', value: NumberFormat('#,###').format(totalSeconds), icon: Icons.hourglass_full_rounded, color: theme.colorScheme.error),
                       ],
                     );
                   },
                 ),
                 const SizedBox(height: 16),
-                Card(
-                  elevation: 0,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.bolt, color: theme.colorScheme.tertiary),
-                            const SizedBox(width: 8),
-                            Text('Ticking milliseconds:', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
-                          ],
-                        ),
-                        Text(
-                          NumberFormat('#,###').format(totalMillis),
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: theme.colorScheme.tertiary),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
           );
@@ -688,7 +665,7 @@ class _MetricCard extends StatelessWidget {
                   Icon(icon, color: color, size: 18),
                 ],
               ),
-              Text(value, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: color)),
+              FittedBox(fit: BoxFit.scaleDown, child: Text(value, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: color))),
             ],
           ),
         ),
