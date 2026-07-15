@@ -591,6 +591,25 @@ class _EventEditorState extends State<EventEditor> {
     if (picked != null) setState(() => _time = picked);
   }
 
+  bool _hasUnsavedChanges() {
+    final originalTitle = widget.event?.title ?? '';
+    final originalNotes = widget.event?.notes ?? '';
+    final originalDate = widget.event?.date ?? widget.selectedDate ?? DateTime.now();
+
+    String? originalTimeStr;
+    if (widget.event?.time != null) {
+      originalTimeStr = widget.event!.time;
+    }
+    final currentTimeStr = _time != null ? '${_time!.hour.toString().padLeft(2, '0')}:${_time!.minute.toString().padLeft(2, '0')}' : null;
+
+    final titleChanged = _titleCtrl.text != originalTitle;
+    final notesChanged = _notesCtrl.text != originalNotes;
+    final dateChanged = DateUtils.dateOnly(_date) != DateUtils.dateOnly(originalDate);
+    final timeChanged = currentTimeStr != originalTimeStr;
+
+    return titleChanged || notesChanged || dateChanged || timeChanged;
+  }
+
   void _save() async {
     if (_titleCtrl.text.isEmpty) return;
     final provider = context.read<CalendarProvider>();
@@ -607,27 +626,54 @@ class _EventEditorState extends State<EventEditor> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 16, right: 16, top: 16),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: _titleCtrl, decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()), autofocus: true),
-            const SizedBox(height: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextButton.icon(icon: const Icon(Icons.calendar_today), label: Text(DateFormat('MMM d, yyyy').format(_date)), onPressed: _pickDate),
-                const SizedBox(height: 4),
-                TextButton.icon(icon: const Icon(Icons.access_time), label: Text(_time != null ? _time!.format(context) : 'Add time'), onPressed: _pickTime),
-              ],
-            ),
-            TextField(controller: _notesCtrl, decoration: const InputDecoration(labelText: 'Notes', border: OutlineInputBorder()), maxLines: 2),
-            const SizedBox(height: 16),
-            FilledButton.icon(icon: const Icon(Icons.save), label: const Text('Save'), onPressed: _save),
-            const SizedBox(height: 16),
-          ],
+    return PopScope(
+      canPop: !_hasUnsavedChanges(),
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final discard = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Discard event?'),
+            content: const Text('You have unsaved changes. Are you sure you want to discard them?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Keep editing'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
+                child: const Text('Discard'),
+              ),
+            ],
+          ),
+        );
+        if (discard == true && context.mounted) {
+          Navigator.pop(context);
+        }
+      },
+      child: Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 16, right: 16, top: 16),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: _titleCtrl, decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()), autofocus: true),
+              const SizedBox(height: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextButton.icon(icon: const Icon(Icons.calendar_today), label: Text(DateFormat('MMM d, yyyy').format(_date)), onPressed: _pickDate),
+                  const SizedBox(height: 4),
+                  TextButton.icon(icon: const Icon(Icons.access_time), label: Text(_time != null ? _time!.format(context) : 'Add time'), onPressed: _pickTime),
+                ],
+              ),
+              TextField(controller: _notesCtrl, decoration: const InputDecoration(labelText: 'Notes', border: OutlineInputBorder()), maxLines: 2),
+              const SizedBox(height: 16),
+              FilledButton.icon(icon: const Icon(Icons.save), label: const Text('Save'), onPressed: _save),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );

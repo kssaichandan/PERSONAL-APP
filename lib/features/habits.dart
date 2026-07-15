@@ -952,64 +952,88 @@ class _HabitsScreenState extends State<HabitsScreen> {
       context: context,
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 24, right: 24, top: 24,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('New Habit', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: titleCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Habit Name',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.edit_rounded),
+        builder: (context, setDialogState) => PopScope(
+          canPop: titleCtrl.text.trim().isEmpty,
+          onPopInvokedWithResult: (didPop, _) async {
+            if (didPop) return;
+            final discard = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Discard habit?'),
+                content: const Text('You have unsaved changes. Are you sure you want to discard this habit?'),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep editing')),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    style: TextButton.styleFrom(foregroundColor: Theme.of(ctx).colorScheme.error),
+                    child: const Text('Discard'),
                   ),
-                  autofocus: true,
-                ),
-                const SizedBox(height: 20),
-                const Text('Icon', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                const SizedBox(height: 8),
-                _HabitIconPicker(
-                  selectedIcon: selectedIcon,
-                  onIconSelected: (icon) => setDialogState(() => selectedIcon = icon),
-                ),
-                const SizedBox(height: 20),
-                const Text('Color', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                const SizedBox(height: 8),
-                _ColorPicker(
-                  selectedColor: selectedColor,
-                  onColorSelected: (color) => setDialogState(() => selectedColor = color),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: const Text('Create Habit'),
-                    onPressed: () {
-                      if (titleCtrl.text.trim().isNotEmpty) {
-                        final provider = context.read<HabitsProvider>();
-                        provider.saveHabit(titleCtrl.text.trim(), selectedIcon, selectedColor, null);
-                        Navigator.pop(ctx);
-                      }
-                    },
+                ],
+              ),
+            );
+            if (discard == true && ctx.mounted) {
+              Navigator.pop(ctx);
+            }
+          },
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              left: 24, right: 24, top: 24,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('New Habit', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 8),
-              ],
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: titleCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Habit Name',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.edit_rounded),
+                    ),
+                    autofocus: true,
+                  ),
+                  const SizedBox(height: 20),
+                  const Text('Icon', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                  const SizedBox(height: 8),
+                  _HabitIconPicker(
+                    selectedIcon: selectedIcon,
+                    onIconSelected: (icon) => setDialogState(() => selectedIcon = icon),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text('Color', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                  const SizedBox(height: 8),
+                  _ColorPicker(
+                    selectedColor: selectedColor,
+                    onColorSelected: (color) => setDialogState(() => selectedColor = color),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      icon: const Icon(Icons.add),
+                      label: const Text('Create Habit'),
+                      onPressed: () {
+                        if (titleCtrl.text.trim().isNotEmpty) {
+                          final provider = context.read<HabitsProvider>();
+                          provider.saveHabit(titleCtrl.text.trim(), selectedIcon, selectedColor, null);
+                          Navigator.pop(ctx);
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
           ),
         ),
@@ -1061,115 +1085,145 @@ class _HabitsScreenState extends State<HabitsScreen> {
       context: context,
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 24, right: 24, top: 24,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Edit Habit', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+        builder: (context, setDialogState) {
+          final hasChanges = titleCtrl.text.trim() != habit.name ||
+              selectedIcon != habit.icon ||
+              selectedColor != habit.color ||
+              selectedReminder != habit.reminderTime;
+          return PopScope(
+            canPop: !hasChanges,
+            onPopInvokedWithResult: (didPop, _) async {
+              if (didPop) return;
+              final discard = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Discard edits?'),
+                  content: const Text('You have unsaved changes. Are you sure you want to discard your edits?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep editing')),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      style: TextButton.styleFrom(foregroundColor: Theme.of(ctx).colorScheme.error),
+                      child: const Text('Discard'),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: titleCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Habit Name',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.edit_rounded),
-                  ),
-                  autofocus: true,
-                ),
-                const SizedBox(height: 20),
-                const Text('Icon', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                const SizedBox(height: 8),
-                _HabitIconPicker(
-                  selectedIcon: selectedIcon,
-                  onIconSelected: (icon) => setDialogState(() => selectedIcon = icon),
-                ),
-                const SizedBox(height: 20),
-                const Text('Color', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                const SizedBox(height: 8),
-                _ColorPicker(
-                  selectedColor: selectedColor,
-                  onColorSelected: (color) => setDialogState(() => selectedColor = color),
-                ),
-                const SizedBox(height: 20),
-                const Text('Reminder (optional)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                const SizedBox(height: 8),
-                InkWell(
-                  onTap: () async {
-                    TimeOfDay? initial;
-                    if (selectedReminder != null) {
-                      final parts = selectedReminder!.split(':');
-                      initial = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
-                    }
-                    final picked = await showTimePicker(context: context, initialTime: initial ?? TimeOfDay.now());
-                    if (picked != null) {
-                      setDialogState(() => selectedReminder = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}');
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Theme.of(context).colorScheme.outline),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
+              );
+              if (discard == true && ctx.mounted) {
+                Navigator.pop(ctx);
+              }
+            },
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 24, right: 24, top: 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Icon(Icons.access_time_rounded, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                            const SizedBox(width: 8),
-                            Text(selectedReminder ?? 'No reminder set'),
-                          ],
-                        ),
-                        if (selectedReminder != null)
-                          GestureDetector(
-                            onTap: () => setDialogState(() => selectedReminder = null),
-                            child: Icon(Icons.clear_rounded, size: 18, color: Theme.of(context).colorScheme.error),
-                          ),
+                        const Text('Edit Habit', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                        IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
                       ],
                     ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Cancel'),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: titleCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Habit Name',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.edit_rounded),
+                      ),
+                      autofocus: true,
+                    ),
+                    const SizedBox(height: 20),
+                    const Text('Icon', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    _HabitIconPicker(
+                      selectedIcon: selectedIcon,
+                      onIconSelected: (icon) => setDialogState(() => selectedIcon = icon),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text('Color', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    _ColorPicker(
+                      selectedColor: selectedColor,
+                      onColorSelected: (color) => setDialogState(() => selectedColor = color),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text('Reminder (optional)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () async {
+                        TimeOfDay? initial;
+                        if (selectedReminder != null) {
+                          final parts = selectedReminder!.split(':');
+                          initial = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+                        }
+                        final picked = await showTimePicker(context: context, initialTime: initial ?? TimeOfDay.now());
+                        if (picked != null) {
+                          setDialogState(() => selectedReminder = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}');
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Theme.of(context).colorScheme.outline),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.access_time_rounded, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                const SizedBox(width: 8),
+                                Text(selectedReminder ?? 'No reminder set'),
+                              ],
+                            ),
+                            if (selectedReminder != null)
+                              GestureDetector(
+                                onTap: () => setDialogState(() => selectedReminder = null),
+                                child: Icon(Icons.clear_rounded, size: 18, color: Theme.of(context).colorScheme.error),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: () {
-                          if (titleCtrl.text.trim().isNotEmpty) {
-                            provider.updateHabit(habit.id!, titleCtrl.text.trim(), selectedIcon, selectedColor, selectedReminder);
-                            Navigator.pop(ctx);
-                          }
-                        },
-                        child: const Text('Save'),
-                      ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Cancel'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () {
+                              if (titleCtrl.text.trim().isNotEmpty) {
+                                provider.updateHabit(habit.id!, titleCtrl.text.trim(), selectedIcon, selectedColor, selectedReminder);
+                                Navigator.pop(ctx);
+                              }
+                            },
+                            child: const Text('Save'),
+                          ),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 8),
                   ],
                 ),
-                const SizedBox(height: 8),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     ).then((_) => titleCtrl.dispose());
   }
