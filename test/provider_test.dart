@@ -1,13 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:personal_app/features/notes.dart';
 import 'package:personal_app/features/habits.dart';
 import 'package:personal_app/features/calendar.dart';
 import 'package:personal_app/features/calculator.dart';
 import 'package:personal_app/features/life.dart';
+import 'package:personal_app/features/settings_provider.dart';
 import 'package:personal_app/database.dart';
 import 'package:personal_app/services/notification_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest_all.dart' as tz_data;
 
 class MockNotificationService extends Mock implements NotificationService {}
 
@@ -15,7 +20,21 @@ class MockDatabase extends Mock implements Database {}
 
 class MockAppDatabase extends Mock implements AppDatabase {}
 
+class FakeTZDateTime extends Fake implements tz.TZDateTime {}
+
+class FakeNotificationDetails extends Fake implements NotificationDetails {}
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  SharedPreferences.setMockInitialValues({});
+  tz_data.initializeTimeZones();
+  setUpAll(() {
+    registerFallbackValue(FakeTZDateTime());
+    registerFallbackValue(FakeNotificationDetails());
+    registerFallbackValue(AndroidScheduleMode.exactAllowWhileIdle);
+    registerFallbackValue(UILocalNotificationDateInterpretation.absoluteTime);
+  });
+
   late MockDatabase mockDb;
   late MockAppDatabase mockAppDb;
 
@@ -281,6 +300,63 @@ void main() {
       await provider.deleteMultiple({});
       expect(provider.loading, isFalse);
     });
+
+    test(
+      'saving a habit with a reminder schedules a daily notification',
+      () async {
+        when(
+          () => mockNotifications.zonedSchedule(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            androidScheduleMode: any(named: 'androidScheduleMode'),
+            matchDateTimeComponents: any(named: 'matchDateTimeComponents'),
+            uiLocalNotificationDateInterpretation: any(
+              named: 'uiLocalNotificationDateInterpretation',
+            ),
+          ),
+        ).thenAnswer((_) async {});
+
+        await provider.saveHabit(
+          'Drink water',
+          'water_drop',
+          0xFF6750A4,
+          '08:30',
+        );
+
+        verify(
+          () => mockNotifications.zonedSchedule(
+            1000,
+            'Habit Reminder: Drink water',
+            'Time to complete your habit! Tap to log it.',
+            any(),
+            any(),
+            androidScheduleMode: any(named: 'androidScheduleMode'),
+            matchDateTimeComponents: DateTimeComponents.time,
+            uiLocalNotificationDateInterpretation: any(
+              named: 'uiLocalNotificationDateInterpretation',
+            ),
+          ),
+        ).called(1);
+      },
+    );
+  });
+
+  group('Notification Settings Tests', () {
+    test(
+      'disabling notifications cancels all scheduled notifications',
+      () async {
+        final notifications = MockNotificationService();
+        when(() => notifications.cancelAll()).thenAnswer((_) async {});
+        final settings = SettingsProvider(notificationService: notifications);
+
+        await settings.setNotificationsEnabled(false);
+
+        verify(() => notifications.cancelAll()).called(1);
+      },
+    );
   });
 
   group('CalendarProvider Tests', () {

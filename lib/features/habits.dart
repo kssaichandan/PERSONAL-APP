@@ -1,8 +1,8 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import '../database.dart';
 import '../services/notification_service.dart';
@@ -468,7 +468,7 @@ class HabitsProvider extends ChangeNotifier {
         createdAt: habit.createdAt,
         displayOrder: maxOrder + 1,
       );
-      if (reminderTime != null) _scheduleHabitNotification(savedHabit);
+      if (reminderTime != null) await _scheduleHabitNotification(savedHabit);
       if (context != null && context.mounted) {
         showSuccessSnackBar(context, 'Habit created');
       }
@@ -513,6 +513,7 @@ class HabitsProvider extends ChangeNotifier {
         color: current.color,
         reminderTime: reminderTime,
         createdAt: current.createdAt,
+        displayOrder: current.displayOrder,
       );
       await db.update(
         'habits',
@@ -521,7 +522,7 @@ class HabitsProvider extends ChangeNotifier {
         whereArgs: [habitId],
       );
       await _notificationService.cancel(1000 + habitId);
-      if (reminderTime != null) _scheduleHabitNotification(updated);
+      if (reminderTime != null) await _scheduleHabitNotification(updated);
       if (context != null && context.mounted) {
         showSuccessSnackBar(context, 'Reminder updated');
       }
@@ -561,7 +562,7 @@ class HabitsProvider extends ChangeNotifier {
         whereArgs: [habitId],
       );
       await _notificationService.cancel(1000 + habitId);
-      if (reminderTime != null) _scheduleHabitNotification(updated);
+      if (reminderTime != null) await _scheduleHabitNotification(updated);
       if (context != null && context.mounted) {
         showSuccessSnackBar(context, 'Habit updated');
       }
@@ -639,33 +640,40 @@ class HabitsProvider extends ChangeNotifier {
     await load();
   }
 
-  void _scheduleHabitNotification(Habit habit) {
+  Future<void> _scheduleHabitNotification(Habit habit) async {
     if (habit.id == null || habit.reminderTime == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    if (!(prefs.getBool('notifications_enabled') ?? true) ||
+        !(prefs.getBool('habit_reminders_enabled') ?? true)) {
+      return;
+    }
     final parts = habit.reminderTime!.split(':');
-    final hour = int.parse(parts[0]);
-    final minute = int.parse(parts[1]);
-    unawaited(
-      _notificationService
-          .zonedSchedule(
-            1000 + habit.id!,
-            'Habit Reminder: ${habit.name}',
-            'Time to complete your habit! Tap to log it.',
-            _nextInstanceOfTime(hour, minute),
-            const NotificationDetails(
-              android: AndroidNotificationDetails(
-                'habits',
-                'Habit Reminders',
-                importance: Importance.high,
-                priority: Priority.high,
-              ),
-            ),
-            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-            matchDateTimeComponents: DateTimeComponents.time,
-            uiLocalNotificationDateInterpretation:
-                UILocalNotificationDateInterpretation.absoluteTime,
-          )
-          .catchError((_) {}),
-    );
+    if (parts.length != 2) return;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null || hour > 23 || minute > 59) return;
+    try {
+      await _notificationService.zonedSchedule(
+        1000 + habit.id!,
+        'Habit Reminder: ${habit.name}',
+        'Time to complete your habit! Tap to log it.',
+        _nextInstanceOfTime(hour, minute),
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'habits',
+            'Habit Reminders',
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    } catch (e) {
+      debugLog('Failed to schedule habit reminder: $e');
+    }
   }
 
   tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {

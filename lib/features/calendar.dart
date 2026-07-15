@@ -237,6 +237,12 @@ class CalendarProvider extends ChangeNotifier {
 
     final scheduled = tz.TZDateTime.from(alertTime, tz.local);
     if (scheduled.isBefore(tz.TZDateTime.now(tz.local))) return;
+    final recurrenceComponents = switch (event.recurrence) {
+      'daily' => DateTimeComponents.time,
+      'weekly' => DateTimeComponents.dayOfWeekAndTime,
+      'monthly' => DateTimeComponents.dayOfMonthAndTime,
+      _ => null,
+    };
 
     try {
       await ns.zonedSchedule(
@@ -252,6 +258,7 @@ class CalendarProvider extends ChangeNotifier {
             priority: Priority.high,
           ),
         ),
+        matchDateTimeComponents: recurrenceComponents,
       );
     } catch (_) {}
   }

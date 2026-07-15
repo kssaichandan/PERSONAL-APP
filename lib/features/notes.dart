@@ -5,6 +5,7 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../database.dart';
@@ -262,7 +263,9 @@ class NotesProvider extends ChangeNotifier {
       if (note.id == null) {
         final id = await db.insert('notes', note.toMap()..remove('id'));
         noteId = id;
-        if (note.reminderTime != null) _scheduleReminder(note.copyWith(id: id));
+        if (note.reminderTime != null) {
+          await _scheduleReminder(note.copyWith(id: id));
+        }
       } else {
         await db.update(
           'notes',
@@ -270,7 +273,7 @@ class NotesProvider extends ChangeNotifier {
           where: 'id = ?',
           whereArgs: [note.id],
         );
-        _rescheduleReminder(note);
+        await _rescheduleReminder(note);
       }
     } catch (e) {
       _error = 'Failed to save note';
@@ -286,7 +289,7 @@ class NotesProvider extends ChangeNotifier {
     try {
       final db = await AppDatabase.instance.database;
       await db.delete('notes', where: 'id = ?', whereArgs: [id]);
-      _cancelReminder(id);
+      await _cancelReminder(id);
     } catch (e) {
       _error = 'Failed to delete note';
       debugLog('Failed to delete note: $e');
@@ -344,30 +347,36 @@ class NotesProvider extends ChangeNotifier {
     await save(note.copyWith(reminderTime: time));
   }
 
-  void _scheduleReminder(Note note) {
+  Future<void> _scheduleReminder(Note note) async {
     final ns = _notificationService;
     if (ns == null || note.reminderTime == null || note.id == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    if (!(prefs.getBool('notifications_enabled') ?? true)) return;
     final scheduled = tz.TZDateTime.from(note.reminderTime!, tz.local);
     if (scheduled.isBefore(tz.TZDateTime.now(tz.local))) return;
-    ns.zonedSchedule(
-      _noteIdOffset + note.id!,
-      'Note Reminder: ${note.title}',
-      deltaToPlainText(note.content),
-      scheduled,
-      const NotificationDetails(
-        android: AndroidNotificationDetails('notes', 'Note Reminders'),
-      ),
-    );
+    try {
+      await ns.zonedSchedule(
+        _noteIdOffset + note.id!,
+        'Note Reminder: ${note.title}',
+        deltaToPlainText(note.content),
+        scheduled,
+        const NotificationDetails(
+          android: AndroidNotificationDetails('notes', 'Note Reminders'),
+        ),
+      );
+    } catch (e) {
+      debugLog('Failed to schedule note reminder: $e');
+    }
   }
 
-  void _rescheduleReminder(Note note) {
-    _cancelReminder(note.id);
-    _scheduleReminder(note);
+  Future<void> _rescheduleReminder(Note note) async {
+    await _cancelReminder(note.id);
+    await _scheduleReminder(note);
   }
 
-  void _cancelReminder(int? id) {
+  Future<void> _cancelReminder(int? id) async {
     if (id == null) return;
-    _notificationService?.cancel(_noteIdOffset + id);
+    await _notificationService?.cancel(_noteIdOffset + id);
   }
 
   void toggleGridView() {

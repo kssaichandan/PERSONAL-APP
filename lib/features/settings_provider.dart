@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/notification_service.dart';
 import '../utils/snackbar_utils.dart';
 
 class SettingsProvider extends ChangeNotifier {
+  final NotificationService? _notificationService;
   ThemeMode _themeMode = ThemeMode.system;
   Color _colorSeed = Colors.deepPurple;
   bool _notificationsEnabled = true;
@@ -23,7 +25,8 @@ class SettingsProvider extends ChangeNotifier {
   bool get weekStartsMonday => _weekStartsMonday;
   bool get loading => _loading;
 
-  SettingsProvider() {
+  SettingsProvider({NotificationService? notificationService})
+    : _notificationService = notificationService {
     _loadSettings();
   }
 
@@ -85,6 +88,14 @@ class SettingsProvider extends ChangeNotifier {
     } catch (e) {
       debugLog('Failed to save notifications setting: $e');
     }
+    final notificationService = _notificationService;
+    if (notificationService != null) {
+      if (enabled) {
+        await notificationService.rescheduleStoredNotifications();
+      } else {
+        await notificationService.cancelAll();
+      }
+    }
   }
 
   Future<void> setHabitRemindersEnabled(bool enabled) async {
@@ -96,6 +107,14 @@ class SettingsProvider extends ChangeNotifier {
     } catch (e) {
       debugLog('Failed to save habit reminders setting: $e');
     }
+    final notificationService = _notificationService;
+    if (notificationService != null) {
+      if (enabled) {
+        await notificationService.rescheduleStoredNotifications();
+      } else {
+        await notificationService.cancelHabitReminders();
+      }
+    }
   }
 
   Future<void> setEventRemindersEnabled(bool enabled) async {
@@ -106,6 +125,14 @@ class SettingsProvider extends ChangeNotifier {
       await prefs.setBool('event_reminders_enabled', enabled);
     } catch (e) {
       debugLog('Failed to save event reminders setting: $e');
+    }
+    final notificationService = _notificationService;
+    if (notificationService != null) {
+      if (enabled) {
+        await notificationService.rescheduleStoredNotifications();
+      } else {
+        await notificationService.cancelEventReminders();
+      }
     }
   }
 

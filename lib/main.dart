@@ -17,6 +17,11 @@ void main() async {
   await AppDatabase.instance.database;
   final notificationService = NotificationService();
   await notificationService.initialize();
+  try {
+    await notificationService.rescheduleStoredNotifications();
+  } catch (_) {
+    // Notification setup must never prevent the app from opening.
+  }
   runApp(PersonalApp(notificationService: notificationService));
 }
 
@@ -41,7 +46,10 @@ class PersonalApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(create: (_) => CalculatorProvider()),
         ChangeNotifierProvider(create: (_) => LifeProvider()),
-        ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider(
+          create:
+              (_) => SettingsProvider(notificationService: notificationService),
+        ),
       ],
       child: Consumer<SettingsProvider>(
         builder: (context, settings, _) {
