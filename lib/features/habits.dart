@@ -599,12 +599,12 @@ class _HabitsScreenState extends State<HabitsScreen> {
 
               // Today's progress card
               _TodayProgressCard(provider: provider, theme: theme),
-
               // Habit cards horizontal scroll
               SizedBox(
-                height: 130,
+                height: 112,
                 child: ReorderableListView.builder(
                   scrollDirection: Axis.horizontal,
+                  buildDefaultDragHandles: false,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: displayHabits.length,
                   onReorderItem: (Object oldItem, int newIndex) {
@@ -629,82 +629,85 @@ class _HabitsScreenState extends State<HabitsScreen> {
                         child: Padding(
                           padding: EdgeInsets.only(top: provider.isSelectionMode ? 14 : 0),
                           child: Container(
-                          width: 112,
-                          margin: const EdgeInsets.only(right: 12),
-                          decoration: BoxDecoration(
-                            color: isSel || provider.selectedHabits.contains(h.id)
-                                ? theme.colorScheme.primaryContainer
-                                : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
+                            width: 90,
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
                               color: isSel || provider.selectedHabits.contains(h.id)
-                                  ? h.color == _defaultHabitColor ? theme.colorScheme.primary : Color(h.color)
-                                  : Colors.transparent,
-                              width: 2,
+                                  ? theme.colorScheme.primaryContainer
+                                  : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isSel || provider.selectedHabits.contains(h.id)
+                                    ? h.color == _defaultHabitColor ? theme.colorScheme.primary : Color(h.color)
+                                    : Colors.transparent,
+                                width: 2,
+                              ),
                             ),
-                          ),
-                          child: Stack(
-                            children: [
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const SizedBox(height: 4),
-                                  Stack(
-                                    clipBehavior: Clip.none,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(
-                                        _getIconData(h.icon),
-                                        size: 28,
-                                        color: isSel || provider.selectedHabits.contains(h.id)
-                                            ? (h.color == _defaultHabitColor ? theme.colorScheme.primary : Color(h.color))
-                                            : theme.colorScheme.onSurfaceVariant,
-                                      ),
-                                      if (completedToday)
-                                        Positioned(
-                                          right: 0,
-                                          bottom: 0,
-                                          child: Container(
-                                            width: 12,
-                                            height: 12,
-                                            decoration: BoxDecoration(
-                                              color: Colors.green,
-                                              shape: BoxShape.circle,
-                                              border: Border.all(color: theme.colorScheme.surface, width: 1.5),
-                                            ),
-                                            child: const Icon(Icons.check_rounded, size: 8, color: Colors.white),
+                                      const SizedBox(height: 4),
+                                      Stack(
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          Icon(
+                                            _getIconData(h.icon),
+                                            size: 24,
+                                            color: isSel || provider.selectedHabits.contains(h.id)
+                                                ? (h.color == _defaultHabitColor ? theme.colorScheme.primary : Color(h.color))
+                                                : theme.colorScheme.onSurfaceVariant,
                                           ),
+                                          if (completedToday)
+                                            Positioned(
+                                              right: -2,
+                                              bottom: -2,
+                                              child: Container(
+                                                width: 10,
+                                                height: 10,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.green,
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(color: theme.colorScheme.surface, width: 1.2),
+                                                ),
+                                                child: const Icon(Icons.check_rounded, size: 6.5, color: Colors.white),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Padding(
+                                        padding: EdgeInsets.only(left: 4, right: provider.isSelectionMode ? 8 : 4),
+                                        child: Text(
+                                          h.name,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: isSel || provider.selectedHabits.contains(h.id) ? FontWeight.bold : FontWeight.normal,
+                                            color: isSel || provider.selectedHabits.contains(h.id) ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.onSurfaceVariant,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
+                                          maxLines: 2,
                                         ),
+                                      ),
+                                      if (currentStreak > 0) ...[
+                                        const SizedBox(height: 2),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            const Icon(Icons.local_fire_department, color: Colors.orange, size: 10),
+                                            Text('$currentStreak', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange)),
+                                          ],
+                                        ),
+                                      ],
+                                      const SizedBox(height: 4),
                                     ],
                                   ),
-                                  const SizedBox(height: 4),
-                                  Padding(
-                                    padding: EdgeInsets.only(left: 4, right: provider.isSelectionMode ? 8 : 4),
-                                    child: Text(
-                                      h.name,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: isSel || provider.selectedHabits.contains(h.id) ? FontWeight.bold : FontWeight.normal,
-                                        color: isSel || provider.selectedHabits.contains(h.id) ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.onSurfaceVariant,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.center,
-                                      maxLines: 2,
-                                    ),
-                                  ),
-                                  if (currentStreak > 0) ...[
-                                    const SizedBox(height: 2),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(Icons.local_fire_department, color: Colors.orange, size: 10),
-                                        Text('$currentStreak', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.orange)),
-                                      ],
-                                    ),
-                                  ],
-                                  const SizedBox(height: 4),
-                                ],
-                              ),
-                              if (provider.isSelectionMode)
+                                ),
+                                if (provider.isSelectionMode)
                                 Positioned(
                                   top: 2,
                                   right: 2,

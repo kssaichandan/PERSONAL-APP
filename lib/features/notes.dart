@@ -570,7 +570,10 @@ class _NoteCard extends StatelessWidget {
       color: bg,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note, provider: provider))),
+        onTap: provider.isSelectionMode
+            ? () => provider.toggleSelection(note.id!)
+            : () => Navigator.push(context, MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note, provider: provider))),
+        onLongPress: () => provider.toggleSelection(note.id!),
         child: Padding(
           padding: EdgeInsets.all(grid ? 10 : 12),
           child: Column(
@@ -586,20 +589,21 @@ class _NoteCard extends StatelessWidget {
                     ...List.generate(note.priority, (_) => Icon(Icons.flag, size: 14, color: theme.colorScheme.tertiary)),
                   ])),
                 ])),
-                Semantics(
-                  label: provider.selectedNotes.contains(note.id) ? 'Selected' : 'Not selected',
-                  button: true,
-                  child: SizedBox(
-                    width: 48, height: 48,
-                    child: GestureDetector(
-                      onTap: () => provider.toggleSelection(note.id!),
-                      child: Icon(
-                        provider.selectedNotes.contains(note.id) ? Icons.check_circle : Icons.circle_outlined,
-                        size: grid ? 18 : 20, color: provider.selectedNotes.contains(note.id) ? theme.colorScheme.primary : theme.colorScheme.outline,
+                if (provider.isSelectionMode)
+                  Semantics(
+                    label: provider.selectedNotes.contains(note.id) ? 'Selected' : 'Not selected',
+                    button: true,
+                    child: SizedBox(
+                      width: 32, height: 32,
+                      child: GestureDetector(
+                        onTap: () => provider.toggleSelection(note.id!),
+                        child: Icon(
+                          provider.selectedNotes.contains(note.id) ? Icons.check_circle : Icons.circle_outlined,
+                          size: grid ? 18 : 20, color: provider.selectedNotes.contains(note.id) ? theme.colorScheme.primary : theme.colorScheme.outline,
+                        ),
                       ),
                     ),
                   ),
-                ),
               ]),
               const SizedBox(height: 6),
               Text(note.title.isEmpty ? 'Untitled' : note.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
