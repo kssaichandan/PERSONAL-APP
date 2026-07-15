@@ -218,12 +218,14 @@ void main() {
       expect(find.text('0'), findsWidgets);
     });
 
-    testWidgets('Shows memory buttons', (WidgetTester tester) async {
+    testWidgets('Shows memory buttons in scientific mode', (WidgetTester tester) async {
+      final settings = SettingsProvider();
+      settings.setScientificMode(true);
       await tester.pumpWidget(MaterialApp(
         home: MultiProvider(
           providers: [
             ChangeNotifierProvider(create: (_) => CalculatorProvider()),
-            ChangeNotifierProvider(create: (_) => SettingsProvider()),
+            ChangeNotifierProvider.value(value: settings),
           ],
           child: const CalculatorScreen(),
         ),

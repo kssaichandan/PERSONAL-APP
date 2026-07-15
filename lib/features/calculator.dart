@@ -235,7 +235,8 @@ class CalculatorScreen extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _MemoryRow(calc: calc, scientific: settings.scientificMode, theme: theme),
+                    if (settings.scientificMode)
+                      _MemoryRow(calc: calc, scientific: settings.scientificMode, theme: theme),
                     _ScientificToggle(calc: calc, settings: settings),
                     _ButtonGrid(calc: calc, scientific: settings.scientificMode, theme: theme),
                     SizedBox(height: settings.scientificMode ? 4 : 8),
@@ -311,28 +312,6 @@ class _DisplayArea extends StatelessWidget {
             ),
           ),
           SizedBox(height: isSci ? 4 : 8),
-          if (calc.history.isNotEmpty)
-            SizedBox(
-              height: 44,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                reverse: true,
-                itemCount: calc.history.length,
-                itemBuilder: (_, i) {
-                  final h = calc.history[i];
-                  return Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: ActionChip(
-                      avatar: Icon(Icons.history, size: 12, color: theme.colorScheme.onSurfaceVariant),
-                      label: Text('${h['expression']!} = ${h['result']!}', style: const TextStyle(fontSize: 11)),
-                      onPressed: () => calc.loadExpression(h['expression']!),
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                    ),
-                  );
-                },
-              ),
-            ),
         ],
       ),
     ),
@@ -407,9 +386,9 @@ class _ScientificToggle extends StatelessWidget {
           ),
           const Spacer(),
           TextButton.icon(
-            icon: const Icon(Icons.delete_sweep_outlined, size: 16),
-            label: const Text('Clear history', style: TextStyle(fontSize: 11)),
-            onPressed: calc.history.isEmpty ? null : () => calc.clearHistory(),
+            icon: const Icon(Icons.history_rounded, size: 16),
+            label: const Text('History', style: TextStyle(fontSize: 11)),
+            onPressed: () => _showHistoryBottomSheet(context, calc),
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -419,6 +398,93 @@ class _ScientificToggle extends StatelessWidget {
       ),
     );
   }
+}
+
+void _showHistoryBottomSheet(BuildContext context, CalculatorProvider calc) {
+  final theme = Theme.of(context);
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (context) {
+      return Consumer<CalculatorProvider>(
+        builder: (context, provider, _) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Calculation History',
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      if (provider.history.isNotEmpty)
+                        TextButton.icon(
+                          icon: const Icon(Icons.delete_sweep_outlined, size: 16),
+                          label: const Text('Clear All', style: TextStyle(fontSize: 12)),
+                          onPressed: () {
+                            provider.clearHistory();
+                            Navigator.pop(context);
+                          },
+                          style: TextButton.styleFrom(
+                            foregroundColor: theme.colorScheme.error,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  if (provider.history.isEmpty)
+                    const SizedBox(
+                      height: 150,
+                      child: Center(
+                        child: Text('No history yet', style: TextStyle(color: Colors.grey)),
+                      ),
+                    )
+                  else
+                    SizedBox(
+                      height: 300,
+                      child: ListView.builder(
+                        itemCount: provider.history.length,
+                        itemBuilder: (context, index) {
+                          final h = provider.history[index];
+                          return ListTile(
+                            leading: const Icon(Icons.history_rounded),
+                            title: Text(h['expression'] ?? ''),
+                            subtitle: Text(
+                              h['result'] ?? '',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                            trailing: const Icon(Icons.keyboard_arrow_right),
+                            onTap: () {
+                              provider.loadExpression(h['expression'] ?? '');
+                              Navigator.pop(context);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
 }
 
 class _ButtonGrid extends StatelessWidget {
