@@ -318,7 +318,14 @@ void main() {
       await tester.pumpAndSettle();
 
       // Navigate to each tab
-      final tabs = ['Notes', 'Habits', 'Calendar', 'Calculator', 'Life', 'Settings'];
+      final tabs = [
+        'Notes',
+        'Habits',
+        'Calendar',
+        'Calculator',
+        'Life',
+        'Settings',
+      ];
       for (final tab in tabs) {
         await tester.tap(find.text(tab));
         await tester.pumpAndSettle();

@@ -108,7 +108,9 @@ class AppDatabase {
           };
           for (final entry in notesColumns.entries) {
             try {
-              await db.execute('ALTER TABLE notes ADD COLUMN ${entry.key} ${entry.value}');
+              await db.execute(
+                'ALTER TABLE notes ADD COLUMN ${entry.key} ${entry.value}',
+              );
             } catch (_) {}
           }
 
@@ -119,7 +121,9 @@ class AppDatabase {
           };
           for (final entry in habitsColumns.entries) {
             try {
-              await db.execute('ALTER TABLE habits ADD COLUMN ${entry.key} ${entry.value}');
+              await db.execute(
+                'ALTER TABLE habits ADD COLUMN ${entry.key} ${entry.value}',
+              );
             } catch (_) {}
           }
 
@@ -132,7 +136,9 @@ class AppDatabase {
           };
           for (final entry in calendarColumns.entries) {
             try {
-              await db.execute('ALTER TABLE calendar_events ADD COLUMN ${entry.key} ${entry.value}');
+              await db.execute(
+                'ALTER TABLE calendar_events ADD COLUMN ${entry.key} ${entry.value}',
+              );
             } catch (_) {}
           }
         }

@@ -13,11 +13,12 @@ import 'package:personal_app/features/life.dart';
 import 'package:personal_app/features/settings_provider.dart';
 import 'package:personal_app/services/notification_service.dart';
 import 'package:personal_app/database.dart';
-import 'package:sqflite_sqlcipher/sqflite.dart' as sqlcipher;
 
 class MockNotificationService extends Mock implements NotificationService {}
+
 class MockAppDatabase extends Mock implements AppDatabase {}
-class MockDatabase extends Mock implements sqlcipher.Database {}
+
+class MockDatabase extends Mock implements Database {}
 
 void main() {
   sqfliteFfiInit();
@@ -31,20 +32,32 @@ void main() {
     when(() => mockAppDb.database).thenAnswer((_) async => mockDb);
     AppDatabase.setInstanceForTesting(mockAppDb);
 
-    when(() => mockDb.query(any(),
-            where: any(named: 'where'),
-            whereArgs: any(named: 'whereArgs'),
-            orderBy: any(named: 'orderBy'),
-            limit: any(named: 'limit')))
-        .thenAnswer((_) async => []);
+    when(
+      () => mockDb.query(
+        any(),
+        where: any(named: 'where'),
+        whereArgs: any(named: 'whereArgs'),
+        orderBy: any(named: 'orderBy'),
+        limit: any(named: 'limit'),
+      ),
+    ).thenAnswer((_) async => []);
     when(() => mockDb.rawQuery(any(), any())).thenAnswer((_) async => []);
     when(() => mockDb.insert(any(), any())).thenAnswer((_) async => 0);
-    when(() => mockDb.update(any(), any(),
-            where: any(named: 'where'), whereArgs: any(named: 'whereArgs')))
-        .thenAnswer((_) async => 0);
-    when(() => mockDb.delete(any(),
-            where: any(named: 'where'), whereArgs: any(named: 'whereArgs')))
-        .thenAnswer((_) async => 0);
+    when(
+      () => mockDb.update(
+        any(),
+        any(),
+        where: any(named: 'where'),
+        whereArgs: any(named: 'whereArgs'),
+      ),
+    ).thenAnswer((_) async => 0);
+    when(
+      () => mockDb.delete(
+        any(),
+        where: any(named: 'where'),
+        whereArgs: any(named: 'whereArgs'),
+      ),
+    ).thenAnswer((_) async => 0);
   });
 
   tearDown(() {
@@ -56,7 +69,9 @@ void main() {
       home: MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => NotesProvider()),
-          ChangeNotifierProvider(create: (_) => HabitsProvider(MockNotificationService())),
+          ChangeNotifierProvider(
+            create: (_) => HabitsProvider(MockNotificationService()),
+          ),
           ChangeNotifierProvider(create: (_) => CalendarProvider()),
           ChangeNotifierProvider(create: (_) => CalculatorProvider()),
           ChangeNotifierProvider(create: (_) => LifeProvider()),
@@ -68,7 +83,12 @@ void main() {
   }
 
   group('MainScreen', () {
-    Future<void> navigateToTab(WidgetTester tester, String label, Type expectedScreen) async {
+    Future<void> navigateToTab(
+      WidgetTester tester,
+      String label,
+      Type expectedScreen,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
       final oldHandler = FlutterError.onError;
       FlutterError.onError = (details) {
         if (!details.toString().contains('overflowed')) {
@@ -83,7 +103,10 @@ void main() {
       expect(find.byType(expectedScreen), findsOneWidget);
     }
 
-    testWidgets('Shows bottom navigation with 6 tabs', (WidgetTester tester) async {
+    testWidgets('Shows bottom navigation with 6 tabs', (
+      WidgetTester tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
       await tester.pumpWidget(buildTestApp());
       await tester.pump();
 
@@ -98,10 +121,22 @@ void main() {
     });
 
     testWidgets('Defaults to Notes tab', (WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
       await tester.pumpWidget(buildTestApp());
       await tester.pump();
 
       expect(find.byType(NotesScreen), findsOneWidget);
+    });
+
+    testWidgets('Uses a navigation rail on wide layouts', (
+      WidgetTester tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(800, 600));
+      await tester.pumpWidget(buildTestApp());
+      await tester.pump();
+
+      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(find.byType(NavigationBar), findsNothing);
     });
 
     testWidgets('Can navigate to Habits tab', (WidgetTester tester) async {
@@ -123,36 +158,42 @@ void main() {
 
   group('NotesScreen', () {
     testWidgets('Shows FAB to create notes', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: ChangeNotifierProvider(
-          create: (_) => NotesProvider(),
-          child: const NotesScreen(),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => NotesProvider(),
+            child: const NotesScreen(),
+          ),
         ),
-      ));
+      );
       await tester.pump();
 
       expect(find.byType(FloatingActionButton), findsOneWidget);
     });
 
     testWidgets('Shows AppBar with Notes title', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: ChangeNotifierProvider(
-          create: (_) => NotesProvider(),
-          child: const NotesScreen(),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => NotesProvider(),
+            child: const NotesScreen(),
+          ),
         ),
-      ));
+      );
       await tester.pump();
 
       expect(find.text('Notes'), findsOneWidget);
     });
 
     testWidgets('Shows search icon in AppBar', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: ChangeNotifierProvider(
-          create: (_) => NotesProvider(),
-          child: const NotesScreen(),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => NotesProvider(),
+            child: const NotesScreen(),
+          ),
         ),
-      ));
+      );
       await tester.pump();
 
       expect(find.byIcon(Icons.search), findsOneWidget);
@@ -160,38 +201,95 @@ void main() {
   });
 
   group('HabitsScreen', () {
-    testWidgets('Shows empty state when no habits', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: ChangeNotifierProvider(
-          create: (_) => HabitsProvider(MockNotificationService()),
-          child: const HabitsScreen(),
+    testWidgets('Renders populated habits without framework assertions', (
+      WidgetTester tester,
+    ) async {
+      when(
+        () => mockDb.query('habits', orderBy: any(named: 'orderBy')),
+      ).thenAnswer(
+        (_) async => [
+          {
+            'id': 1,
+            'name': 'Exercise',
+            'icon': 'fitness_center',
+            'color': 0xFF6750A4,
+            'reminder_time': null,
+            'created_at': DateTime.now().toIso8601String(),
+            'display_order': 0,
+          },
+        ],
+      );
+      when(() => mockDb.query('habit_logs')).thenAnswer((_) async => []);
+
+      final errors = <String>[];
+      final previousHandler = FlutterError.onError;
+      FlutterError.onError = (details) {
+        errors.add(details.exceptionAsString());
+        previousHandler?.call(details);
+      };
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => HabitsProvider(MockNotificationService()),
+            child: const HabitsScreen(),
+          ),
         ),
-      ));
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Exercise'), findsWidgets);
+      expect(
+        errors.where((error) => error.contains('_dependents.isEmpty')),
+        isEmpty,
+      );
+      FlutterError.onError = previousHandler;
+    });
+
+    testWidgets('Shows empty state when no habits', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => HabitsProvider(MockNotificationService()),
+            child: const HabitsScreen(),
+          ),
+        ),
+      );
       await tester.pump();
 
       expect(find.text('No habits created yet'), findsOneWidget);
       expect(find.byIcon(Icons.checklist_rtl_rounded), findsOneWidget);
     });
 
-    testWidgets('Shows add habit button in AppBar', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: ChangeNotifierProvider(
-          create: (_) => HabitsProvider(MockNotificationService()),
-          child: const HabitsScreen(),
+    testWidgets('Shows add habit button in AppBar', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => HabitsProvider(MockNotificationService()),
+            child: const HabitsScreen(),
+          ),
         ),
-      ));
+      );
       await tester.pump();
 
       expect(find.byIcon(Icons.add_circle_outline_rounded), findsOneWidget);
     });
 
-    testWidgets('Opens add habit dialog on button tap', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: ChangeNotifierProvider(
-          create: (_) => HabitsProvider(MockNotificationService()),
-          child: const HabitsScreen(),
+    testWidgets('Opens add habit dialog on button tap', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => HabitsProvider(MockNotificationService()),
+            child: const HabitsScreen(),
+          ),
         ),
-      ));
+      );
       await tester.pump();
 
       await tester.tap(find.byIcon(Icons.add_circle_outline_rounded));
@@ -204,32 +302,38 @@ void main() {
 
   group('CalculatorScreen', () {
     testWidgets('Shows calculator display with 0', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => CalculatorProvider()),
-            ChangeNotifierProvider(create: (_) => SettingsProvider()),
-          ],
-          child: const CalculatorScreen(),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => CalculatorProvider()),
+              ChangeNotifierProvider(create: (_) => SettingsProvider()),
+            ],
+            child: const CalculatorScreen(),
+          ),
         ),
-      ));
+      );
       await tester.pump();
 
       expect(find.text('0'), findsWidgets);
     });
 
-    testWidgets('Shows memory buttons in scientific mode', (WidgetTester tester) async {
+    testWidgets('Shows memory buttons in scientific mode', (
+      WidgetTester tester,
+    ) async {
       final settings = SettingsProvider();
       settings.setScientificMode(true);
-      await tester.pumpWidget(MaterialApp(
-        home: MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => CalculatorProvider()),
-            ChangeNotifierProvider.value(value: settings),
-          ],
-          child: const CalculatorScreen(),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => CalculatorProvider()),
+              ChangeNotifierProvider.value(value: settings),
+            ],
+            child: const CalculatorScreen(),
+          ),
         ),
-      ));
+      );
       await tester.pump();
 
       expect(find.text('MC'), findsOneWidget);
@@ -239,15 +343,17 @@ void main() {
     });
 
     testWidgets('Shows number buttons', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => CalculatorProvider()),
-            ChangeNotifierProvider(create: (_) => SettingsProvider()),
-          ],
-          child: const CalculatorScreen(),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => CalculatorProvider()),
+              ChangeNotifierProvider(create: (_) => SettingsProvider()),
+            ],
+            child: const CalculatorScreen(),
+          ),
         ),
-      ));
+      );
       await tester.pump();
 
       for (int i = 1; i <= 9; i++) {
@@ -257,15 +363,17 @@ void main() {
     });
 
     testWidgets('Shows operator buttons', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => CalculatorProvider()),
-            ChangeNotifierProvider(create: (_) => SettingsProvider()),
-          ],
-          child: const CalculatorScreen(),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => CalculatorProvider()),
+              ChangeNotifierProvider(create: (_) => SettingsProvider()),
+            ],
+            child: const CalculatorScreen(),
+          ),
         ),
-      ));
+      );
       await tester.pump();
 
       expect(find.text('÷'), findsOneWidget);
@@ -275,16 +383,20 @@ void main() {
       expect(find.text('='), findsOneWidget);
     });
 
-    testWidgets('Tapping number updates expression', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => CalculatorProvider()),
-            ChangeNotifierProvider(create: (_) => SettingsProvider()),
-          ],
-          child: const CalculatorScreen(),
+    testWidgets('Tapping number updates expression', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => CalculatorProvider()),
+              ChangeNotifierProvider(create: (_) => SettingsProvider()),
+            ],
+            child: const CalculatorScreen(),
+          ),
         ),
-      ));
+      );
       await tester.pump();
 
       await tester.tap(find.text('5'));
@@ -295,12 +407,14 @@ void main() {
 
   group('LifeScreen', () {
     testWidgets('Shows DOB entry when not set', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: ChangeNotifierProvider(
-          create: (_) => LifeProvider(),
-          child: const LifeScreen(),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider(
+            create: (_) => LifeProvider(),
+            child: const LifeScreen(),
+          ),
         ),
-      ));
+      );
       await tester.pump();
 
       expect(find.text('How many days have you been alive?'), findsOneWidget);
@@ -308,16 +422,20 @@ void main() {
       expect(find.byIcon(Icons.hourglass_empty_rounded), findsOneWidget);
     });
 
-    testWidgets('Shows life metrics when DOB is set', (WidgetTester tester) async {
+    testWidgets('Shows life metrics when DOB is set', (
+      WidgetTester tester,
+    ) async {
       final provider = LifeProvider();
       await provider.saveDOB(DateTime(1990, 5, 15));
 
-      await tester.pumpWidget(MaterialApp(
-        home: ChangeNotifierProvider.value(
-          value: provider,
-          child: const LifeScreen(),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider.value(
+            value: provider,
+            child: const LifeScreen(),
+          ),
         ),
-      ));
+      );
       await tester.pump();
 
       expect(find.text('TIME ELAPSED SINCE BIRTH'), findsOneWidget);
@@ -328,18 +446,24 @@ void main() {
   });
 
   group('CalendarScreen', () {
-    testWidgets('Shows month header with navigation', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => HabitsProvider(MockNotificationService())),
-            ChangeNotifierProvider(create: (_) => NotesProvider()),
-            ChangeNotifierProvider(create: (_) => CalendarProvider()),
-            ChangeNotifierProvider(create: (_) => SettingsProvider()),
-          ],
-          child: const CalendarScreen(),
+    testWidgets('Shows month header with navigation', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider(
+                create: (_) => HabitsProvider(MockNotificationService()),
+              ),
+              ChangeNotifierProvider(create: (_) => NotesProvider()),
+              ChangeNotifierProvider(create: (_) => CalendarProvider()),
+              ChangeNotifierProvider(create: (_) => SettingsProvider()),
+            ],
+            child: const CalendarScreen(),
+          ),
         ),
-      ));
+      );
       await tester.pump();
 
       expect(find.byIcon(Icons.chevron_left), findsOneWidget);
@@ -347,17 +471,21 @@ void main() {
     });
 
     testWidgets('Shows day names', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => HabitsProvider(MockNotificationService())),
-            ChangeNotifierProvider(create: (_) => NotesProvider()),
-            ChangeNotifierProvider(create: (_) => CalendarProvider()),
-            ChangeNotifierProvider(create: (_) => SettingsProvider()),
-          ],
-          child: const CalendarScreen(),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider(
+                create: (_) => HabitsProvider(MockNotificationService()),
+              ),
+              ChangeNotifierProvider(create: (_) => NotesProvider()),
+              ChangeNotifierProvider(create: (_) => CalendarProvider()),
+              ChangeNotifierProvider(create: (_) => SettingsProvider()),
+            ],
+            child: const CalendarScreen(),
+          ),
         ),
-      ));
+      );
       await tester.pump();
 
       expect(find.text('Mon'), findsOneWidget);
@@ -370,17 +498,21 @@ void main() {
     });
 
     testWidgets('Shows FAB for adding event', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => HabitsProvider(MockNotificationService())),
-            ChangeNotifierProvider(create: (_) => NotesProvider()),
-            ChangeNotifierProvider(create: (_) => CalendarProvider()),
-            ChangeNotifierProvider(create: (_) => SettingsProvider()),
-          ],
-          child: const CalendarScreen(),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider(
+                create: (_) => HabitsProvider(MockNotificationService()),
+              ),
+              ChangeNotifierProvider(create: (_) => NotesProvider()),
+              ChangeNotifierProvider(create: (_) => CalendarProvider()),
+              ChangeNotifierProvider(create: (_) => SettingsProvider()),
+            ],
+            child: const CalendarScreen(),
+          ),
         ),
-      ));
+      );
       await tester.pump();
 
       expect(find.byType(FloatingActionButton), findsOneWidget);
@@ -388,17 +520,21 @@ void main() {
     });
 
     testWidgets('Shows search and filter buttons', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => HabitsProvider(MockNotificationService())),
-            ChangeNotifierProvider(create: (_) => NotesProvider()),
-            ChangeNotifierProvider(create: (_) => CalendarProvider()),
-            ChangeNotifierProvider(create: (_) => SettingsProvider()),
-          ],
-          child: const CalendarScreen(),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider(
+                create: (_) => HabitsProvider(MockNotificationService()),
+              ),
+              ChangeNotifierProvider(create: (_) => NotesProvider()),
+              ChangeNotifierProvider(create: (_) => CalendarProvider()),
+              ChangeNotifierProvider(create: (_) => SettingsProvider()),
+            ],
+            child: const CalendarScreen(),
+          ),
         ),
-      ));
+      );
       await tester.pump();
 
       expect(find.byIcon(Icons.search_rounded), findsOneWidget);

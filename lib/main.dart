@@ -28,9 +28,17 @@ class PersonalApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => NotesProvider(notificationService: notificationService)),
-        ChangeNotifierProvider(create: (_) => HabitsProvider(notificationService)),
-        ChangeNotifierProvider(create: (_) => CalendarProvider(notificationService: notificationService)),
+        ChangeNotifierProvider(
+          create:
+              (_) => NotesProvider(notificationService: notificationService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => HabitsProvider(notificationService),
+        ),
+        ChangeNotifierProvider(
+          create:
+              (_) => CalendarProvider(notificationService: notificationService),
+        ),
         ChangeNotifierProvider(create: (_) => CalculatorProvider()),
         ChangeNotifierProvider(create: (_) => LifeProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
@@ -45,9 +53,7 @@ class PersonalApp extends StatelessWidget {
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
             ],
-            supportedLocales: const [
-              Locale('en'),
-            ],
+            supportedLocales: const [Locale('en')],
             theme: ThemeData(
               colorSchemeSeed: settings.colorSeed,
               useMaterial3: true,
@@ -88,21 +94,63 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(index: _tab, children: _screens),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
-        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.note_rounded), label: 'Notes'),
-          NavigationDestination(icon: Icon(Icons.checklist_rtl_rounded), label: 'Habits'),
-          NavigationDestination(icon: Icon(Icons.calendar_month), label: 'Calendar'),
-          NavigationDestination(icon: Icon(Icons.calculate), label: 'Calculator'),
-          NavigationDestination(icon: Icon(Icons.hourglass_empty_rounded), label: 'Life'),
-          NavigationDestination(icon: Icon(Icons.settings_rounded), label: 'Settings'),
-        ],
+    const destinations = [
+      NavigationDestination(icon: Icon(Icons.note_rounded), label: 'Notes'),
+      NavigationDestination(
+        icon: Icon(Icons.checklist_rtl_rounded),
+        label: 'Habits',
       ),
+      NavigationDestination(
+        icon: Icon(Icons.calendar_month),
+        label: 'Calendar',
+      ),
+      NavigationDestination(icon: Icon(Icons.calculate), label: 'Calculator'),
+      NavigationDestination(
+        icon: Icon(Icons.hourglass_empty_rounded),
+        label: 'Life',
+      ),
+      NavigationDestination(
+        icon: Icon(Icons.settings_rounded),
+        label: 'Settings',
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 600;
+        return Scaffold(
+          body: Row(
+            children: [
+              if (isWide)
+                NavigationRail(
+                  selectedIndex: _tab,
+                  onDestinationSelected: (i) => setState(() => _tab = i),
+                  labelType: NavigationRailLabelType.all,
+                  destinations:
+                      destinations
+                          .map(
+                            (destination) => NavigationRailDestination(
+                              icon: destination.icon,
+                              label: Text(destination.label),
+                            ),
+                          )
+                          .toList(),
+                ),
+              Expanded(child: IndexedStack(index: _tab, children: _screens)),
+            ],
+          ),
+          bottomNavigationBar:
+              isWide
+                  ? null
+                  : NavigationBar(
+                    selectedIndex: _tab,
+                    onDestinationSelected: (i) => setState(() => _tab = i),
+                    labelBehavior:
+                        NavigationDestinationLabelBehavior.onlyShowSelected,
+                    destinations: destinations,
+                  ),
+        );
+      },
     );
   }
 }

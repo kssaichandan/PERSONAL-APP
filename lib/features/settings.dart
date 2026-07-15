@@ -24,12 +24,9 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(centerTitle: true, title: const Text('Settings')),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
           _AppearanceSection(),
           const SizedBox(height: 24),
@@ -60,7 +57,12 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Icon(icon, size: 20, color: theme.colorScheme.primary),
         const SizedBox(width: 8),
-        Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+        Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
@@ -94,7 +96,10 @@ class _AppearanceSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _SectionHeader(icon: Icons.palette_rounded, title: 'Appearance'),
+            const _SectionHeader(
+              icon: Icons.palette_rounded,
+              title: 'Appearance',
+            ),
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.brightness_6_rounded),
@@ -104,9 +109,15 @@ class _AppearanceSection extends StatelessWidget {
                 value: settings.themeMode,
                 underline: const SizedBox(),
                 items: const [
-                  DropdownMenuItem(value: ThemeMode.light, child: Text('Light')),
+                  DropdownMenuItem(
+                    value: ThemeMode.light,
+                    child: Text('Light'),
+                  ),
                   DropdownMenuItem(value: ThemeMode.dark, child: Text('Dark')),
-                  DropdownMenuItem(value: ThemeMode.system, child: Text('System')),
+                  DropdownMenuItem(
+                    value: ThemeMode.system,
+                    child: Text('System'),
+                  ),
                 ],
                 onChanged: (value) {
                   if (value != null) {
@@ -126,7 +137,10 @@ class _AppearanceSection extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: settings.colorSeed,
                   shape: BoxShape.circle,
-                  border: Border.all(color: theme.colorScheme.outline, width: 2),
+                  border: Border.all(
+                    color: theme.colorScheme.outline,
+                    width: 2,
+                  ),
                 ),
               ),
               onTap: () => _showColorPicker(context, settings),
@@ -134,17 +148,28 @@ class _AppearanceSection extends StatelessWidget {
             SwitchListTile(
               secondary: const Icon(Icons.calendar_view_week_rounded),
               title: const Text('Week starts Monday'),
-              subtitle: const Text('Calendar week starts on Monday instead of Sunday'),
+              subtitle: const Text(
+                'Calendar week starts on Monday instead of Sunday',
+              ),
               value: settings.weekStartsMonday,
               onChanged: (value) {
                 settings.setWeekStartsMonday(value);
-                showSuccessSnackBar(context, value ? 'Week starts Monday' : 'Week starts Sunday');
+                showSuccessSnackBar(
+                  context,
+                  value ? 'Week starts Monday' : 'Week starts Sunday',
+                );
               },
             ),
             const Divider(height: 24),
             ListTile(
-              leading: Icon(Icons.restart_alt_rounded, color: theme.colorScheme.error),
-              title: Text('Reset All Settings', style: TextStyle(color: theme.colorScheme.error)),
+              leading: Icon(
+                Icons.restart_alt_rounded,
+                color: theme.colorScheme.error,
+              ),
+              title: Text(
+                'Reset All Settings',
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
               subtitle: const Text('Restore all settings to defaults'),
               onTap: () => _confirmResetSettings(context, settings),
             ),
@@ -154,121 +179,188 @@ class _AppearanceSection extends StatelessWidget {
     );
   }
 
-  Future<void> _confirmResetSettings(BuildContext context, SettingsProvider settings) async {
+  Future<void> _confirmResetSettings(
+    BuildContext context,
+    SettingsProvider settings,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Reset Settings'),
-        content: const Text('This will reset all settings to their default values. Your data will not be affected.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Reset', style: TextStyle(color: Colors.red)),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Reset Settings'),
+            content: const Text(
+              'This will reset all settings to their default values. Your data will not be affected.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Reset', style: TextStyle(color: Colors.red)),
+              ),
+            ],
           ),
-        ],
-      ),
     );
     if (confirmed == true && context.mounted) {
       await settings.resetToDefaults();
-      if (context.mounted) showSuccessSnackBar(context, 'Settings reset to defaults');
+      if (context.mounted) {
+        showSuccessSnackBar(context, 'Settings reset to defaults');
+      }
     }
   }
 
   void _showColorPicker(BuildContext context, SettingsProvider settings) {
     final theme = Theme.of(context);
     final colors = [
-      Colors.deepPurple, Colors.purple, Colors.blue, Colors.lightBlue,
-      Colors.teal, Colors.green, Colors.lightGreen, Colors.lime,
-      Colors.yellow, Colors.amber, Colors.orange, Colors.deepOrange,
-      Colors.red, Colors.pink, Colors.indigo, Colors.cyan,
-      Colors.brown, Colors.blueGrey,
+      Colors.deepPurple,
+      Colors.purple,
+      Colors.blue,
+      Colors.lightBlue,
+      Colors.teal,
+      Colors.green,
+      Colors.lightGreen,
+      Colors.lime,
+      Colors.yellow,
+      Colors.amber,
+      Colors.orange,
+      Colors.deepOrange,
+      Colors.red,
+      Colors.pink,
+      Colors.indigo,
+      Colors.cyan,
+      Colors.brown,
+      Colors.blueGrey,
     ];
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (ctx) => Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.7,
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      builder:
+          (ctx) => Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.7,
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Accent Color', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(ctx),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Accent Color',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            const Divider(),
-            const SizedBox(height: 8),
-            Card(
-              elevation: 0,
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: ListTile(
-                leading: Icon(Icons.wallpaper_rounded, color: theme.colorScheme.primary),
-                title: const Text('Default Accent Color', style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('Reset to system default purple accent'),
-                onTap: () {
-                  settings.setColorSeed(Colors.deepPurple);
-                  Navigator.pop(ctx);
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text('Custom Palette', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 8),
-            Flexible(
-              child: GridView.builder(
-                shrinkWrap: true,
-                itemCount: colors.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 6,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                ),
-                itemBuilder: (ctx, index) {
-                  final color = colors[index];
-                  final isSelected = settings.colorSeed == color;
-                  return GestureDetector(
+                const Divider(),
+                const SizedBox(height: 8),
+                Card(
+                  elevation: 0,
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.3,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ListTile(
+                    leading: Icon(
+                      Icons.wallpaper_rounded,
+                      color: theme.colorScheme.primary,
+                    ),
+                    title: const Text(
+                      'Default Accent Color',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: const Text(
+                      'Reset to system default purple accent',
+                    ),
                     onTap: () {
-                      settings.setColorSeed(color);
+                      settings.setColorSeed(Colors.deepPurple);
                       Navigator.pop(ctx);
                     },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                        boxShadow: isSelected
-                            ? [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 8, spreadRadius: 2)]
-                            : null,
-                        border: Border.all(
-                          color: isSelected ? theme.colorScheme.primary : Colors.transparent,
-                          width: isSelected ? 3 : 0,
-                        ),
-                      ),
-                      child: isSelected
-                          ? Icon(Icons.check, color: color.computeLuminance() > 0.5 ? Colors.black87 : Colors.white, size: 20)
-                          : null,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    'Custom Palette',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.outline,
+                      fontWeight: FontWeight.bold,
                     ),
-                  );
-                },
-              ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    itemCount: colors.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 6,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                        ),
+                    itemBuilder: (ctx, index) {
+                      final color = colors[index];
+                      final isSelected = settings.colorSeed == color;
+                      return GestureDetector(
+                        onTap: () {
+                          settings.setColorSeed(color);
+                          Navigator.pop(ctx);
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            boxShadow:
+                                isSelected
+                                    ? [
+                                      BoxShadow(
+                                        color: color.withValues(alpha: 0.4),
+                                        blurRadius: 8,
+                                        spreadRadius: 2,
+                                      ),
+                                    ]
+                                    : null,
+                            border: Border.all(
+                              color:
+                                  isSelected
+                                      ? theme.colorScheme.primary
+                                      : Colors.transparent,
+                              width: isSelected ? 3 : 0,
+                            ),
+                          ),
+                          child:
+                              isSelected
+                                  ? Icon(
+                                    Icons.check,
+                                    color:
+                                        color.computeLuminance() > 0.5
+                                            ? Colors.black87
+                                            : Colors.white,
+                                    size: 20,
+                                  )
+                                  : null,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
             ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
+          ),
     );
   }
 }
@@ -284,7 +376,10 @@ class _NotificationsSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _SectionHeader(icon: Icons.notifications_rounded, title: 'Notifications'),
+            const _SectionHeader(
+              icon: Icons.notifications_rounded,
+              title: 'Notifications',
+            ),
             const SizedBox(height: 16),
             SwitchListTile(
               secondary: const Icon(Icons.notifications_rounded),
@@ -296,7 +391,10 @@ class _NotificationsSection extends StatelessWidget {
                   final status = await Permission.notification.request();
                   if (status.isDenied || status.isPermanentlyDenied) {
                     if (context.mounted) {
-                      showErrorSnackBar(context, 'Notification permission denied. Enable in system settings.');
+                      showErrorSnackBar(
+                        context,
+                        'Notification permission denied. Enable in system settings.',
+                      );
                     }
                     return;
                   }
@@ -342,7 +440,10 @@ class _DataSectionState extends State<_DataSection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _SectionHeader(icon: Icons.folder_rounded, title: 'Data Management'),
+            const _SectionHeader(
+              icon: Icons.folder_rounded,
+              title: 'Data Management',
+            ),
             const SizedBox(height: 16),
             if (_loading)
               const Padding(
@@ -353,22 +454,34 @@ class _DataSectionState extends State<_DataSection> {
               ListTile(
                 leading: const Icon(Icons.download_rounded),
                 title: const Text('Export All Data'),
-                subtitle: const Text('Download JSON backup of notes, habits, events, calculator history, and life data'),
+                subtitle: const Text(
+                  'Download JSON backup of notes, habits, events, calculator history, and life data',
+                ),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => _exportData(context),
               ),
               ListTile(
                 leading: const Icon(Icons.upload_rounded),
                 title: const Text('Import Data'),
-                subtitle: const Text('Restore from a previously exported JSON file'),
+                subtitle: const Text(
+                  'Restore from a previously exported JSON file',
+                ),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => _importData(context),
               ),
               const Divider(),
               ListTile(
-                leading: Icon(Icons.delete_forever_rounded, color: theme.colorScheme.error),
-                title: Text('Clear All Data', style: TextStyle(color: theme.colorScheme.error)),
-                subtitle: const Text('Permanently delete all notes, habits, events, and history'),
+                leading: Icon(
+                  Icons.delete_forever_rounded,
+                  color: theme.colorScheme.error,
+                ),
+                title: Text(
+                  'Clear All Data',
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+                subtitle: const Text(
+                  'Permanently delete all notes, habits, events, and history',
+                ),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => _confirmClearAllData(context),
               ),
@@ -408,7 +521,8 @@ class _DataSectionState extends State<_DataSection> {
 
       await Share.share(
         jsonString,
-        subject: 'Personal App Backup - ${DateFormat('yyyy-MM-dd').format(DateTime.now())}',
+        subject:
+            'Personal App Backup - ${DateFormat('yyyy-MM-dd').format(DateTime.now())}',
       );
 
       if (context.mounted) {
@@ -429,6 +543,7 @@ class _DataSectionState extends State<_DataSection> {
       final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['json'],
+        withData: true,
       );
 
       if (result == null || result.files.isEmpty) {
@@ -462,7 +577,10 @@ class _DataSectionState extends State<_DataSection> {
           await txn.insert('calendar_events', Map<String, dynamic>.from(event));
         }
         for (final calc in (data['calculator_history'] as List? ?? [])) {
-          await txn.insert('calculator_history', Map<String, dynamic>.from(calc));
+          await txn.insert(
+            'calculator_history',
+            Map<String, dynamic>.from(calc),
+          );
         }
         for (final habit in (data['habits'] as List? ?? [])) {
           await txn.insert('habits', Map<String, dynamic>.from(habit));
@@ -500,17 +618,26 @@ class _DataSectionState extends State<_DataSection> {
   Future<void> _confirmClearAllData(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Clear All Data'),
-        content: const Text('This will permanently delete ALL your notes, habits, events, calculator history, and settings. This action cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete Everything', style: TextStyle(color: Colors.red)),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Clear All Data'),
+            content: const Text(
+              'This will permanently delete ALL your notes, habits, events, calculator history, and settings. This action cannot be undone.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text(
+                  'Delete Everything',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
 
     if (confirmed != true || !context.mounted) return;
@@ -518,34 +645,45 @@ class _DataSectionState extends State<_DataSection> {
     final deleteController = TextEditingController();
     final doubleConfirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Are You Absolutely Sure?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('This will permanently delete ALL your data.'),
-            const SizedBox(height: 16),
-            const Text('Type DELETE to confirm:'),
-            const SizedBox(height: 8),
-            TextField(
-              controller: deleteController,
-              autofocus: true,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Type DELETE here',
-              ),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Are You Absolutely Sure?'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('This will permanently delete ALL your data.'),
+                const SizedBox(height: 16),
+                const Text('Type DELETE to confirm:'),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: deleteController,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Type DELETE here',
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, deleteController.text.trim() == 'DELETE'),
-            child: const Text('Confirm', style: TextStyle(color: Colors.red)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed:
+                    () => Navigator.pop(
+                      ctx,
+                      deleteController.text.trim() == 'DELETE',
+                    ),
+                child: const Text(
+                  'Confirm',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
 
     if (doubleConfirmed != true || !context.mounted) return;
@@ -561,11 +699,6 @@ class _DataSectionState extends State<_DataSection> {
         await txn.delete('habits');
         await txn.delete('settings');
       });
-
-      final now = DateTime.now().toIso8601String();
-      await db.insert('habits', {'name': 'Bathing', 'icon': 'bathtub', 'created_at': now});
-      await db.insert('habits', {'name': 'Playing', 'icon': 'sports_esports', 'created_at': now});
-      await db.insert('habits', {'name': 'Exercise', 'icon': 'fitness_center', 'created_at': now});
 
       setState(() => _loading = false);
 
@@ -602,7 +735,12 @@ class _LifeTrackerSection extends StatelessWidget {
       const _SectionHeader(icon: Icons.favorite_rounded, title: 'Life Tracker'),
       const SizedBox(height: 16),
       if (provider.dob == null) ...[
-        Text('Set your date of birth to enable life tracking', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        Text(
+          'Set your date of birth to enable life tracking',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 12),
         ElevatedButton.icon(
           onPressed: () => _pickDate(context, provider),
@@ -628,7 +766,9 @@ class _LifeTrackerSection extends StatelessWidget {
           SwitchListTile(
             secondary: const Icon(Icons.fingerprint_rounded),
             title: const Text('Biometric Lock'),
-            subtitle: const Text('Require fingerprint/face ID to view Life Tracker'),
+            subtitle: const Text(
+              'Require fingerprint/face ID to view Life Tracker',
+            ),
             value: provider.biometricEnabled,
             onChanged: (value) => provider.setBiometricEnabled(value, context),
           ),
@@ -637,12 +777,17 @@ class _LifeTrackerSection extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
               'Biometric authentication not available on this device',
-              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ListTile(
           leading: Icon(Icons.delete_rounded, color: theme.colorScheme.error),
-          title: Text('Reset Life Tracker', style: TextStyle(color: theme.colorScheme.error)),
+          title: Text(
+            'Reset Life Tracker',
+            style: TextStyle(color: theme.colorScheme.error),
+          ),
           subtitle: const Text('Remove your date of birth and start over'),
           onTap: () => _confirmReset(context, provider),
         ),
@@ -672,52 +817,70 @@ class _LifeTrackerSection extends StatelessWidget {
     }
   }
 
-  Future<void> _showLifeExpectancyDialog(BuildContext context, LifeProvider provider) async {
-    final controller = TextEditingController(text: provider.lifeExpectancy.toString());
+  Future<void> _showLifeExpectancyDialog(
+    BuildContext context,
+    LifeProvider provider,
+  ) async {
+    final controller = TextEditingController(
+      text: provider.lifeExpectancy.toString(),
+    );
     await showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Life Expectancy'),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Expected years',
-            border: OutlineInputBorder(),
-            helperText: 'Used for progress meter calculation',
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Life Expectancy'),
+            content: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Expected years',
+                border: OutlineInputBorder(),
+                helperText: 'Used for progress meter calculation',
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  final years = int.tryParse(controller.text);
+                  if (years != null && years > 0 && years <= 120) {
+                    provider.setLifeExpectancy(years, context);
+                    Navigator.pop(ctx);
+                  }
+                },
+                child: const Text('Save'),
+              ),
+            ],
           ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              final years = int.tryParse(controller.text);
-              if (years != null && years > 0 && years <= 120) {
-                provider.setLifeExpectancy(years, context);
-                Navigator.pop(ctx);
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
     );
   }
 
-  Future<void> _confirmReset(BuildContext context, LifeProvider provider) async {
+  Future<void> _confirmReset(
+    BuildContext context,
+    LifeProvider provider,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Reset Life Tracker'),
-        content: const Text('This will remove your date of birth and all life metrics. Are you sure?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Reset', style: TextStyle(color: Colors.red)),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Reset Life Tracker'),
+            content: const Text(
+              'This will remove your date of birth and all life metrics. Are you sure?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Reset', style: TextStyle(color: Colors.red)),
+              ),
+            ],
           ),
-        ],
-      ),
     );
     if (confirmed == true && context.mounted) {
       await provider.resetDOB(context);
@@ -736,12 +899,17 @@ class _CalculatorSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _SectionHeader(icon: Icons.calculate_rounded, title: 'Calculator'),
+            const _SectionHeader(
+              icon: Icons.calculate_rounded,
+              title: 'Calculator',
+            ),
             const SizedBox(height: 16),
             SwitchListTile(
               secondary: const Icon(Icons.functions_rounded),
               title: const Text('Scientific Mode'),
-              subtitle: const Text('Show advanced functions (sin, cos, log, π, e, etc.)'),
+              subtitle: const Text(
+                'Show advanced functions (sin, cos, log, π, e, etc.)',
+              ),
               value: settings.scientificMode,
               onChanged: settings.setScientificMode,
             ),
@@ -768,17 +936,21 @@ class _CalculatorSection extends StatelessWidget {
   Future<void> _confirmClearHistory(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Clear Calculator History'),
-        content: const Text('Delete all calculation history?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Clear', style: TextStyle(color: Colors.red)),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Clear Calculator History'),
+            content: const Text('Delete all calculation history?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Clear', style: TextStyle(color: Colors.red)),
+              ),
+            ],
           ),
-        ],
-      ),
     );
     if (confirmed == true && context.mounted) {
       await context.read<CalculatorProvider>().clearHistory();
@@ -803,7 +975,9 @@ class _AboutSectionState extends State<_AboutSection> {
   Future<void> _loadVersion() async {
     try {
       final info = await PackageInfo.fromPlatform();
-      if (mounted) setState(() => _version = '${info.version}+${info.buildNumber}');
+      if (mounted) {
+        setState(() => _version = '${info.version}+${info.buildNumber}');
+      }
     } catch (_) {
       if (mounted) setState(() => _version = '1.0.0+1');
     }
@@ -817,7 +991,10 @@ class _AboutSectionState extends State<_AboutSection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _SectionHeader(icon: Icons.info_outline_rounded, title: 'About'),
+            const _SectionHeader(
+              icon: Icons.info_outline_rounded,
+              title: 'About',
+            ),
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.info_rounded),
@@ -829,7 +1006,9 @@ class _AboutSectionState extends State<_AboutSection> {
               title: const Text('Source Code'),
               subtitle: const Text('github.com/kssaichandan/PERSONAL-APP'),
               onTap: () async {
-                final uri = Uri.parse('https://github.com/kssaichandan/PERSONAL-APP');
+                final uri = Uri.parse(
+                  'https://github.com/kssaichandan/PERSONAL-APP',
+                );
                 if (await canLaunchUrl(uri)) {
                   await launchUrl(uri, mode: LaunchMode.externalApplication);
                 } else if (context.mounted) {
@@ -853,7 +1032,10 @@ class _AboutSectionState extends State<_AboutSection> {
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.setBool('onboarding_complete_v1', false);
                 if (context.mounted) {
-                  showSuccessSnackBar(context, 'Tutorial will show on next app launch');
+                  showSuccessSnackBar(
+                    context,
+                    'Tutorial will show on next app launch',
+                  );
                 }
               },
             ),

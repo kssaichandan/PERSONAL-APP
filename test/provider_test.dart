@@ -7,10 +7,12 @@ import 'package:personal_app/features/calculator.dart';
 import 'package:personal_app/features/life.dart';
 import 'package:personal_app/database.dart';
 import 'package:personal_app/services/notification_service.dart';
-import 'package:sqflite_sqlcipher/sqflite.dart' as sqlcipher;
+import 'package:sqflite/sqflite.dart';
 
 class MockNotificationService extends Mock implements NotificationService {}
-class MockDatabase extends Mock implements sqlcipher.Database {}
+
+class MockDatabase extends Mock implements Database {}
+
 class MockAppDatabase extends Mock implements AppDatabase {}
 
 void main() {
@@ -23,20 +25,32 @@ void main() {
     when(() => mockAppDb.database).thenAnswer((_) async => mockDb);
     AppDatabase.setInstanceForTesting(mockAppDb);
 
-    when(() => mockDb.query(any(),
-            where: any(named: 'where'),
-            whereArgs: any(named: 'whereArgs'),
-            orderBy: any(named: 'orderBy'),
-            limit: any(named: 'limit')))
-        .thenAnswer((_) async => []);
+    when(
+      () => mockDb.query(
+        any(),
+        where: any(named: 'where'),
+        whereArgs: any(named: 'whereArgs'),
+        orderBy: any(named: 'orderBy'),
+        limit: any(named: 'limit'),
+      ),
+    ).thenAnswer((_) async => []);
     when(() => mockDb.rawQuery(any(), any())).thenAnswer((_) async => []);
     when(() => mockDb.insert(any(), any())).thenAnswer((_) async => 0);
-    when(() => mockDb.update(any(), any(),
-            where: any(named: 'where'), whereArgs: any(named: 'whereArgs')))
-        .thenAnswer((_) async => 0);
-    when(() => mockDb.delete(any(),
-            where: any(named: 'where'), whereArgs: any(named: 'whereArgs')))
-        .thenAnswer((_) async => 0);
+    when(
+      () => mockDb.update(
+        any(),
+        any(),
+        where: any(named: 'where'),
+        whereArgs: any(named: 'whereArgs'),
+      ),
+    ).thenAnswer((_) async => 0);
+    when(
+      () => mockDb.delete(
+        any(),
+        where: any(named: 'where'),
+        whereArgs: any(named: 'whereArgs'),
+      ),
+    ).thenAnswer((_) async => 0);
   });
 
   tearDown(() {
@@ -311,13 +325,17 @@ void main() {
     test('navigation updates current month', () {
       final initial = provider.currentMonth;
       provider.nextMonth();
-      expect(provider.currentMonth.month,
-          equals(initial.month == 12 ? 1 : initial.month + 1));
+      expect(
+        provider.currentMonth.month,
+        equals(initial.month == 12 ? 1 : initial.month + 1),
+      );
 
       provider.previousMonth();
       provider.previousMonth();
-      expect(provider.currentMonth.month,
-          equals(initial.month == 1 ? 11 : initial.month - 1));
+      expect(
+        provider.currentMonth.month,
+        equals(initial.month == 1 ? 11 : initial.month - 1),
+      );
     });
   });
 
@@ -388,11 +406,6 @@ void main() {
     test('search filters notes by query', () {
       provider.search('test');
       expect(provider.query, equals('test'));
-    });
-
-    test('selectTag filters by tag', () {
-      provider.selectTag('work');
-      expect(provider.selectedTag, equals('work'));
     });
 
     test('selection mode works correctly', () {

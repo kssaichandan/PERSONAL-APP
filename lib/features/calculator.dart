@@ -18,13 +18,27 @@ class CalculatorProvider extends ChangeNotifier {
   String? get error => _error;
   double get memory => _memory;
 
-  CalculatorProvider() { loadHistory(); }
+  CalculatorProvider() {
+    loadHistory();
+  }
 
   Future<void> loadHistory() async {
     try {
       final db = await AppDatabase.instance.database;
-      final maps = await db.query('calculator_history', orderBy: 'created_at DESC', limit: 50);
-      _history = maps.map((m) => {'expression': m['expression'] as String, 'result': m['result'] as String}).toList();
+      final maps = await db.query(
+        'calculator_history',
+        orderBy: 'created_at DESC',
+        limit: 50,
+      );
+      _history =
+          maps
+              .map(
+                (m) => {
+                  'expression': m['expression'] as String,
+                  'result': m['result'] as String,
+                },
+              )
+              .toList();
     } catch (e) {
       _error = 'Failed to load history';
     }
@@ -79,7 +93,9 @@ class CalculatorProvider extends ChangeNotifier {
       _expression = '';
       _result = '';
     } else if (value == '⌫') {
-      if (_expression.isNotEmpty) _expression = _expression.substring(0, _expression.length - 1);
+      if (_expression.isNotEmpty) {
+        _expression = _expression.substring(0, _expression.length - 1);
+      }
     } else if (value == '=') {
       _evaluate();
       return;
@@ -113,7 +129,10 @@ class CalculatorProvider extends ChangeNotifier {
   String _formatResult(num value) {
     if (value is double && (value.isNaN || value.isInfinite)) return 'Error';
     if (value == value.toInt()) return value.toInt().toString();
-    final s = value.toStringAsFixed(10).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
+    final s = value
+        .toStringAsFixed(10)
+        .replaceAll(RegExp(r'0+$'), '')
+        .replaceAll(RegExp(r'\.$'), '');
     return s.length > 15 ? value.toStringAsExponential(6) : s;
   }
 
@@ -121,7 +140,8 @@ class CalculatorProvider extends ChangeNotifier {
     try {
       final db = await AppDatabase.instance.database;
       await db.insert('calculator_history', {
-        'expression': expr, 'result': res,
+        'expression': expr,
+        'result': res,
         'created_at': DateTime.now().toIso8601String(),
       });
     } catch (e) {
@@ -145,13 +165,16 @@ class CalculatorProvider extends ChangeNotifier {
     _pos = 0;
     _input = input.replaceAll(' ', '');
     final result = _expr();
-    if (_pos < _input.length) throw FormatException('Unexpected: ${_input[_pos]}');
+    if (_pos < _input.length) {
+      throw FormatException('Unexpected: ${_input[_pos]}');
+    }
     return result;
   }
 
   num _expr() {
     num result = _term();
-    while (_pos < _input.length && (_input[_pos] == '+' || _input[_pos] == '-')) {
+    while (_pos < _input.length &&
+        (_input[_pos] == '+' || _input[_pos] == '-')) {
       final op = _input[_pos++];
       final right = _term();
       result = op == '+' ? result + right : result - right;
@@ -161,7 +184,8 @@ class CalculatorProvider extends ChangeNotifier {
 
   num _term() {
     num result = _factor();
-    while (_pos < _input.length && (_input[_pos] == '×' || _input[_pos] == '÷')) {
+    while (_pos < _input.length &&
+        (_input[_pos] == '×' || _input[_pos] == '÷')) {
       final op = _input[_pos++];
       final right = _factor();
       result = op == '×' ? result * right : result / right;
@@ -184,8 +208,14 @@ class CalculatorProvider extends ChangeNotifier {
 
   num _unary() {
     if (_pos >= _input.length) throw const FormatException('Unexpected end');
-    if (_input[_pos] == '-') { _pos++; return -_unary(); }
-    if (_input[_pos] == '+') { _pos++; return _unary(); }
+    if (_input[_pos] == '-') {
+      _pos++;
+      return -_unary();
+    }
+    if (_input[_pos] == '+') {
+      _pos++;
+      return _unary();
+    }
     return _primary();
   }
 
@@ -195,23 +225,53 @@ class CalculatorProvider extends ChangeNotifier {
     if (_input[_pos] == '(') {
       _pos++;
       final result = _expr();
-      if (_pos >= _input.length || _input[_pos] != ')') throw const FormatException('Missing )');
+      if (_pos >= _input.length || _input[_pos] != ')') {
+        throw const FormatException('Missing )');
+      }
       _pos++;
       return result;
     }
 
-    if (_input.substring(_pos).startsWith('sin(')) { _pos += 3; return sin(_primary().toDouble()); }
-    if (_input.substring(_pos).startsWith('cos(')) { _pos += 3; return cos(_primary().toDouble()); }
-    if (_input.substring(_pos).startsWith('tan(')) { _pos += 3; return tan(_primary().toDouble()); }
-    if (_input.substring(_pos).startsWith('log(')) { _pos += 3; return log(_primary().toDouble()) / ln10; }
-    if (_input.substring(_pos).startsWith('ln(')) { _pos += 2; return log(_primary().toDouble()); }
-    if (_input.substring(_pos).startsWith('sqrt(')) { _pos += 4; return sqrt(_primary().toDouble()); }
+    if (_input.substring(_pos).startsWith('sin(')) {
+      _pos += 3;
+      return sin(_primary().toDouble());
+    }
+    if (_input.substring(_pos).startsWith('cos(')) {
+      _pos += 3;
+      return cos(_primary().toDouble());
+    }
+    if (_input.substring(_pos).startsWith('tan(')) {
+      _pos += 3;
+      return tan(_primary().toDouble());
+    }
+    if (_input.substring(_pos).startsWith('log(')) {
+      _pos += 3;
+      return log(_primary().toDouble()) / ln10;
+    }
+    if (_input.substring(_pos).startsWith('ln(')) {
+      _pos += 2;
+      return log(_primary().toDouble());
+    }
+    if (_input.substring(_pos).startsWith('sqrt(')) {
+      _pos += 4;
+      return sqrt(_primary().toDouble());
+    }
 
-    if (_input.substring(_pos).startsWith('π')) { _pos++; return pi; }
-    if (_input.substring(_pos).startsWith('e') && (_pos + 1 >= _input.length || !RegExp(r'[a-zA-Z0-9]').hasMatch(_input[_pos + 1]))) { _pos++; return e; }
+    if (_input.substring(_pos).startsWith('π')) {
+      _pos++;
+      return pi;
+    }
+    if (_input.substring(_pos).startsWith('e') &&
+        (_pos + 1 >= _input.length ||
+            !RegExp(r'[a-zA-Z0-9]').hasMatch(_input[_pos + 1]))) {
+      _pos++;
+      return e;
+    }
 
     final start = _pos;
-    while (_pos < _input.length && (RegExp(r'[0-9.]').hasMatch(_input[_pos]))) { _pos++; }
+    while (_pos < _input.length && (RegExp(r'[0-9.]').hasMatch(_input[_pos]))) {
+      _pos++;
+    }
     if (_pos == start) throw FormatException('Unexpected: ${_input[_pos]}');
     var result = double.parse(_input.substring(start, _pos));
     return result;
@@ -230,15 +290,29 @@ class CalculatorScreen extends StatelessWidget {
         builder: (context, calc, settings, _) {
           return Column(
             children: [
-              Expanded(child: _DisplayArea(calc: calc, settings: settings, theme: theme)),
+              Expanded(
+                child: _DisplayArea(
+                  calc: calc,
+                  settings: settings,
+                  theme: theme,
+                ),
+              ),
               SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (settings.scientificMode)
-                      _MemoryRow(calc: calc, scientific: settings.scientificMode, theme: theme),
+                      _MemoryRow(
+                        calc: calc,
+                        scientific: settings.scientificMode,
+                        theme: theme,
+                      ),
                     _ScientificToggle(calc: calc, settings: settings),
-                    _ButtonGrid(calc: calc, scientific: settings.scientificMode, theme: theme),
+                    _ButtonGrid(
+                      calc: calc,
+                      scientific: settings.scientificMode,
+                      theme: theme,
+                    ),
                     SizedBox(height: settings.scientificMode ? 4 : 8),
                   ],
                 ),
@@ -255,7 +329,11 @@ class _DisplayArea extends StatelessWidget {
   final CalculatorProvider calc;
   final SettingsProvider settings;
   final ThemeData theme;
-  const _DisplayArea({required this.calc, required this.settings, required this.theme});
+  const _DisplayArea({
+    required this.calc,
+    required this.settings,
+    required this.theme,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -269,61 +347,81 @@ class _DisplayArea extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Row(
-            children: [
-              if (calc.memory != 0.0)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(6),
+              children: [
+                if (calc.memory != 0.0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'M',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onPrimaryContainer,
+                      ),
+                    ),
                   ),
-                  child: Text('M', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.onPrimaryContainer)),
-                ),
-              const Spacer(),
-              if (isSci)
-                const Chip(
-                  avatar: Icon(Icons.science_outlined, size: 14),
-                  label: Text('SCI', style: TextStyle(fontSize: 10)),
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  labelPadding: EdgeInsets.only(right: 4),
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-            ],
-          ),
-          SizedBox(height: isSci ? 4 : 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            reverse: true,
-            child: Text(
-              calc.expression.isEmpty ? '0' : calc.expression,
-              style: (isSci ? theme.textTheme.titleSmall : theme.textTheme.titleMedium)?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              maxLines: 1,
+                const Spacer(),
+                if (isSci)
+                  const Chip(
+                    avatar: Icon(Icons.science_outlined, size: 14),
+                    label: Text('SCI', style: TextStyle(fontSize: 10)),
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    labelPadding: EdgeInsets.only(right: 4),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+              ],
             ),
-          ),
-          SizedBox(height: isSci ? 2 : 4),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            reverse: true,
-            child: Text(
-              calc.result.isEmpty ? '' : calc.result,
-              style: (isSci ? theme.textTheme.headlineMedium : theme.textTheme.headlineLarge)?.copyWith(fontWeight: FontWeight.bold),
-              maxLines: 1,
+            SizedBox(height: isSci ? 4 : 12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              reverse: true,
+              child: Text(
+                calc.expression.isEmpty ? '0' : calc.expression,
+                style: (isSci
+                        ? theme.textTheme.titleSmall
+                        : theme.textTheme.titleMedium)
+                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                maxLines: 1,
+              ),
             ),
-          ),
-          SizedBox(height: isSci ? 4 : 8),
-        ],
+            SizedBox(height: isSci ? 2 : 4),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              reverse: true,
+              child: Text(
+                calc.result.isEmpty ? '' : calc.result,
+                style: (isSci
+                        ? theme.textTheme.headlineMedium
+                        : theme.textTheme.headlineLarge)
+                    ?.copyWith(fontWeight: FontWeight.bold),
+                maxLines: 1,
+              ),
+            ),
+            SizedBox(height: isSci ? 4 : 8),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class _MemoryRow extends StatelessWidget {
   final CalculatorProvider calc;
   final bool scientific;
   final ThemeData theme;
-  const _MemoryRow({required this.calc, required this.scientific, required this.theme});
+  const _MemoryRow({
+    required this.calc,
+    required this.scientific,
+    required this.theme,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -332,31 +430,55 @@ class _MemoryRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Row(
-        children: memButtons.map((label) {
-          final disabled = (label == 'MC' || label == 'MR') && !hasMemory;
-          return Expanded(
-            child: Padding(
-              padding: EdgeInsets.all(scientific ? 1 : 2),
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: scientific ? 3 : 6),
-                  foregroundColor: disabled ? theme.colorScheme.onSurface.withValues(alpha: 0.38) : theme.colorScheme.onSurfaceVariant,
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        children:
+            memButtons.map((label) {
+              final disabled = (label == 'MC' || label == 'MR') && !hasMemory;
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.all(scientific ? 1 : 2),
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.symmetric(
+                        vertical: scientific ? 3 : 6,
+                      ),
+                      foregroundColor:
+                          disabled
+                              ? theme.colorScheme.onSurface.withValues(
+                                alpha: 0.38,
+                              )
+                              : theme.colorScheme.onSurfaceVariant,
+                      backgroundColor: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed:
+                        disabled
+                            ? null
+                            : () {
+                              switch (label) {
+                                case 'MC':
+                                  calc.memoryClear();
+                                case 'MR':
+                                  calc.memoryRecall();
+                                case 'M+':
+                                  calc.memoryAdd();
+                                case 'M-':
+                                  calc.memorySubtract();
+                              }
+                            },
+                    child: Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ),
-                onPressed: disabled ? null : () {
-                  switch (label) {
-                    case 'MC': calc.memoryClear();
-                    case 'MR': calc.memoryRecall();
-                    case 'M+': calc.memoryAdd();
-                    case 'M-': calc.memorySubtract();
-                  }
-                },
-                child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-              ),
-            ),
-          );
-        }).toList(),
+              );
+            }).toList(),
       ),
     );
   }
@@ -375,13 +497,23 @@ class _ScientificToggle extends StatelessWidget {
       child: Row(
         children: [
           TextButton.icon(
-            icon: Icon(isSci ? Icons.science : Icons.science_outlined, size: 16),
-            label: Text(isSci ? 'Scientific ON' : 'Scientific OFF', style: const TextStyle(fontSize: 11)),
-            onPressed: () => settings.setScientificMode(!settings.scientificMode),
+            icon: Icon(
+              isSci ? Icons.science : Icons.science_outlined,
+              size: 16,
+            ),
+            label: Text(
+              isSci ? 'Scientific ON' : 'Scientific OFF',
+              style: const TextStyle(fontSize: 11),
+            ),
+            onPressed:
+                () => settings.setScientificMode(!settings.scientificMode),
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              backgroundColor: isSci ? Theme.of(context).colorScheme.primaryContainer : null,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              backgroundColor:
+                  isSci ? Theme.of(context).colorScheme.primaryContainer : null,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
           const Spacer(),
@@ -391,7 +523,9 @@ class _ScientificToggle extends StatelessWidget {
             onPressed: () => _showHistoryBottomSheet(context, calc),
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
         ],
@@ -426,12 +560,20 @@ void _showHistoryBottomSheet(BuildContext context, CalculatorProvider calc) {
                     children: [
                       Text(
                         'Calculation History',
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       if (provider.history.isNotEmpty)
                         TextButton.icon(
-                          icon: const Icon(Icons.delete_sweep_outlined, size: 16),
-                          label: const Text('Clear All', style: TextStyle(fontSize: 12)),
+                          icon: const Icon(
+                            Icons.delete_sweep_outlined,
+                            size: 16,
+                          ),
+                          label: const Text(
+                            'Clear All',
+                            style: TextStyle(fontSize: 12),
+                          ),
                           onPressed: () {
                             provider.clearHistory();
                             Navigator.pop(context);
@@ -447,7 +589,10 @@ void _showHistoryBottomSheet(BuildContext context, CalculatorProvider calc) {
                     const SizedBox(
                       height: 150,
                       child: Center(
-                        child: Text('No history yet', style: TextStyle(color: Colors.grey)),
+                        child: Text(
+                          'No history yet',
+                          style: TextStyle(color: Colors.grey),
+                        ),
                       ),
                     )
                   else
@@ -491,7 +636,11 @@ class _ButtonGrid extends StatelessWidget {
   final CalculatorProvider calc;
   final bool scientific;
   final ThemeData theme;
-  const _ButtonGrid({required this.calc, required this.scientific, required this.theme});
+  const _ButtonGrid({
+    required this.calc,
+    required this.scientific,
+    required this.theme,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -512,74 +661,127 @@ class _ButtonGrid extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Column(
-        children: allRows.map((row) => Padding(
-          padding: EdgeInsets.symmetric(vertical: scientific ? 1.5 : 3),
-          child: Row(
-            children: row.map((label) {
-              final isNumber = RegExp(r'^[0-9]$').hasMatch(label);
-              final isOp = ['+', '-', '×', '÷', '=', '^'].contains(label);
-              final isClear = label == 'C' || label == '⌫';
-              final isEquals = label == '=';
-              final isFn = ['sin(', 'cos(', 'tan(', 'log(', 'ln(', '√(', 'π', 'e', 'x²', '%', '(', ')', '±'].contains(label);
-              final isZero = label == '0';
+        children:
+            allRows
+                .map(
+                  (row) => Padding(
+                    padding: EdgeInsets.symmetric(
+                      vertical: scientific ? 1.5 : 3,
+                    ),
+                    child: Row(
+                      children:
+                          row.map((label) {
+                            final isNumber = RegExp(r'^[0-9]$').hasMatch(label);
+                            final isOp = [
+                              '+',
+                              '-',
+                              '×',
+                              '÷',
+                              '=',
+                              '^',
+                            ].contains(label);
+                            final isClear = label == 'C' || label == '⌫';
+                            final isEquals = label == '=';
+                            final isFn = [
+                              'sin(',
+                              'cos(',
+                              'tan(',
+                              'log(',
+                              'ln(',
+                              '√(',
+                              'π',
+                              'e',
+                              'x²',
+                              '%',
+                              '(',
+                              ')',
+                              '±',
+                            ].contains(label);
+                            final isZero = label == '0';
 
-              Color? bg;
-              Color? fg;
-              if (isNumber) {
-                bg = theme.colorScheme.surfaceContainerHighest;
-              } else if (isOp) {
-                bg = theme.colorScheme.primaryContainer;
-                fg = theme.colorScheme.onPrimaryContainer;
-              } else if (isEquals) {
-                bg = theme.colorScheme.primary;
-                fg = theme.colorScheme.onPrimary;
-              } else if (isClear) {
-                bg = theme.colorScheme.errorContainer;
-                fg = theme.colorScheme.onErrorContainer;
-              } else if (isFn) {
-                bg = theme.colorScheme.secondaryContainer;
-                fg = theme.colorScheme.onSecondaryContainer;
-              }
+                            Color? bg;
+                            Color? fg;
+                            if (isNumber) {
+                              bg = theme.colorScheme.surfaceContainerHighest;
+                            } else if (isOp) {
+                              bg = theme.colorScheme.primaryContainer;
+                              fg = theme.colorScheme.onPrimaryContainer;
+                            } else if (isEquals) {
+                              bg = theme.colorScheme.primary;
+                              fg = theme.colorScheme.onPrimary;
+                            } else if (isClear) {
+                              bg = theme.colorScheme.errorContainer;
+                              fg = theme.colorScheme.onErrorContainer;
+                            } else if (isFn) {
+                              bg = theme.colorScheme.secondaryContainer;
+                              fg = theme.colorScheme.onSecondaryContainer;
+                            }
 
-              return Expanded(
-                flex: isZero ? 2 : 1,
-                child: Padding(
-                  padding: EdgeInsets.all(scientific ? 1 : 2),
-                  child: SizedBox(
-                    height: scientific ? 38 : 48,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: bg,
-                        foregroundColor: fg,
-                        padding: EdgeInsets.zero,
-                        shape: isNumber
-                            ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: theme.colorScheme.outlineVariant, width: 0.5))
-                            : RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
-                      ),
-                      onPressed: () => _handlePress(calc, label),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Text(
-                            label,
-                            style: TextStyle(
-                              fontSize: scientific 
-                                  ? (isNumber || isZero ? 16 : (isFn ? 12 : 13))
-                                  : (isNumber || isZero ? 22 : (isFn ? 14 : 15)),
-                              fontWeight: isOp || isEquals ? FontWeight.w600 : FontWeight.normal,
-                            ),
-                          ),
-                        ),
-                      ),
+                            return Expanded(
+                              flex: isZero ? 2 : 1,
+                              child: Padding(
+                                padding: EdgeInsets.all(scientific ? 1 : 2),
+                                child: SizedBox(
+                                  height: scientific ? 38 : 48,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: bg,
+                                      foregroundColor: fg,
+                                      padding: EdgeInsets.zero,
+                                      shape:
+                                          isNumber
+                                              ? RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                side: BorderSide(
+                                                  color:
+                                                      theme
+                                                          .colorScheme
+                                                          .outlineVariant,
+                                                  width: 0.5,
+                                                ),
+                                              )
+                                              : RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                      elevation: 0,
+                                    ),
+                                    onPressed: () => _handlePress(calc, label),
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 4,
+                                        ),
+                                        child: Text(
+                                          label,
+                                          style: TextStyle(
+                                            fontSize:
+                                                scientific
+                                                    ? (isNumber || isZero
+                                                        ? 16
+                                                        : (isFn ? 12 : 13))
+                                                    : (isNumber || isZero
+                                                        ? 22
+                                                        : (isFn ? 14 : 15)),
+                                            fontWeight:
+                                                isOp || isEquals
+                                                    ? FontWeight.w600
+                                                    : FontWeight.normal,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
                     ),
                   ),
-                ),
-              );
-            }).toList(),
-          ),
-        )).toList(),
+                )
+                .toList(),
       ),
     );
   }
@@ -592,4 +794,3 @@ class _ButtonGrid extends StatelessWidget {
     }
   }
 }
-
