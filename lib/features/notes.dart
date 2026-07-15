@@ -658,6 +658,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   late TextEditingController _titleController;
   bool _saving = false;
   Note? _editingNote;
+  bool _isExiting = false;
 
   @override
   void initState() {
@@ -721,6 +722,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       setState(() {
         _editingNote = note.copyWith(id: id);
         _saving = false;
+        _isExiting = true;
       });
       showSuccessSnackBar(context, 'Note saved');
       Navigator.pop(context);
@@ -835,7 +837,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   Widget build(BuildContext context) {
     final wordCount = _wordCount(jsonEncode(_controller.document.toDelta().toJson()));
     return PopScope(
-      canPop: true,
+      canPop: _isExiting,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop && !_saving) _save();
       },
