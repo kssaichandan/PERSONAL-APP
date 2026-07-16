@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
+
 void showErrorSnackBar(BuildContext context, String message) {
   if (!context.mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(
+  final theme = (context.getElementForInheritedWidgetOfExactType<Theme>()?.widget as Theme?)?.data ?? ThemeData.light();
+  scaffoldMessengerKey.currentState?.showSnackBar(
     SnackBar(
       content: Text(message),
-      backgroundColor: Theme.of(context).colorScheme.error,
+      backgroundColor: theme.colorScheme.error,
       behavior: SnackBarBehavior.floating,
       duration: const Duration(seconds: 3),
     ),
@@ -15,10 +19,11 @@ void showErrorSnackBar(BuildContext context, String message) {
 
 void showSuccessSnackBar(BuildContext context, String message) {
   if (!context.mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(
+  final theme = (context.getElementForInheritedWidgetOfExactType<Theme>()?.widget as Theme?)?.data ?? ThemeData.light();
+  scaffoldMessengerKey.currentState?.showSnackBar(
     SnackBar(
       content: Text(message),
-      backgroundColor: Theme.of(context).colorScheme.primary,
+      backgroundColor: theme.colorScheme.primary,
       behavior: SnackBarBehavior.floating,
       duration: const Duration(seconds: 2),
     ),

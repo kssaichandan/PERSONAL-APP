@@ -7,6 +7,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../database.dart';
 import 'settings_provider.dart';
 import '../services/notification_service.dart';
+import '../utils/snackbar_utils.dart';
 
 const _calendarCategories = ['General', 'Work', 'Personal', 'Urgent'];
 
@@ -845,9 +846,7 @@ class _EventEditorState extends State<EventEditor> {
   void _save() async {
     final title = _titleCtrl.text.trim();
     if (title.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Enter an event title')));
+      showErrorSnackBar(context, 'Enter an event title');
       return;
     }
     final provider = context.read<CalendarProvider>();

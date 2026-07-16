@@ -232,28 +232,32 @@ class CalculatorProvider extends ChangeNotifier {
       return result;
     }
 
-    if (_input.substring(_pos).startsWith('sin(')) {
+    if (_input.substring(_pos).startsWith('sin')) {
       _pos += 3;
       return sin(_primary().toDouble());
     }
-    if (_input.substring(_pos).startsWith('cos(')) {
+    if (_input.substring(_pos).startsWith('cos')) {
       _pos += 3;
       return cos(_primary().toDouble());
     }
-    if (_input.substring(_pos).startsWith('tan(')) {
+    if (_input.substring(_pos).startsWith('tan')) {
       _pos += 3;
       return tan(_primary().toDouble());
     }
-    if (_input.substring(_pos).startsWith('log(')) {
+    if (_input.substring(_pos).startsWith('log')) {
       _pos += 3;
       return log(_primary().toDouble()) / ln10;
     }
-    if (_input.substring(_pos).startsWith('ln(')) {
+    if (_input.substring(_pos).startsWith('ln')) {
       _pos += 2;
       return log(_primary().toDouble());
     }
-    if (_input.substring(_pos).startsWith('sqrt(')) {
+    if (_input.substring(_pos).startsWith('sqrt')) {
       _pos += 4;
+      return sqrt(_primary().toDouble());
+    }
+    if (_input.substring(_pos).startsWith('√')) {
+      _pos += 1;
       return sqrt(_primary().toDouble());
     }
 
@@ -645,8 +649,9 @@ class _ButtonGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sciRows = [
-      ['sin(', 'cos(', 'tan(', 'log(', 'ln('],
-      ['√(', 'π', 'e', 'x²', '^'],
+      ['sin', 'cos', 'tan', '√'],
+      ['log', 'ln', '(', ')'],
+      ['π', 'e', 'x²', '^'],
     ];
     const basicRows = [
       ['C', '⌫', '%', '÷'],
@@ -683,12 +688,12 @@ class _ButtonGrid extends StatelessWidget {
                             final isClear = label == 'C' || label == '⌫';
                             final isEquals = label == '=';
                             final isFn = [
-                              'sin(',
-                              'cos(',
-                              'tan(',
-                              'log(',
-                              'ln(',
-                              '√(',
+                              'sin',
+                              'cos',
+                              'tan',
+                              'log',
+                              'ln',
+                              '√',
                               'π',
                               'e',
                               'x²',

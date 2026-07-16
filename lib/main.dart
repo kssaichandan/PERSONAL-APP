@@ -11,6 +11,7 @@ import 'features/life.dart';
 import 'features/settings.dart';
 import 'features/settings_provider.dart';
 import 'services/notification_service.dart';
+import 'utils/snackbar_utils.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,6 +55,7 @@ class PersonalApp extends StatelessWidget {
       child: Consumer<SettingsProvider>(
         builder: (context, settings, _) {
           return MaterialApp(
+            scaffoldMessengerKey: scaffoldMessengerKey,
             title: 'Personal App',
             debugShowCheckedModeBanner: false,
             localizationsDelegates: const [
