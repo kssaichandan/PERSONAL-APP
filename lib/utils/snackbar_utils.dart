@@ -6,7 +6,7 @@ final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
 
 void showErrorSnackBar(BuildContext context, String message) {
   if (!context.mounted) return;
-  final theme = (context.getElementForInheritedWidgetOfExactType<Theme>()?.widget as Theme?)?.data ?? ThemeData.light();
+  final theme = context.findAncestorWidgetOfExactType<Theme>()?.data ?? ThemeData.light();
   scaffoldMessengerKey.currentState?.showSnackBar(
     SnackBar(
       content: Text(message),
@@ -19,7 +19,7 @@ void showErrorSnackBar(BuildContext context, String message) {
 
 void showSuccessSnackBar(BuildContext context, String message) {
   if (!context.mounted) return;
-  final theme = (context.getElementForInheritedWidgetOfExactType<Theme>()?.widget as Theme?)?.data ?? ThemeData.light();
+  final theme = context.findAncestorWidgetOfExactType<Theme>()?.data ?? ThemeData.light();
   scaffoldMessengerKey.currentState?.showSnackBar(
     SnackBar(
       content: Text(message),
