@@ -1615,13 +1615,16 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                 if (titleCtrl.text.trim().isNotEmpty) {
                                   final provider =
                                       context.read<HabitsProvider>();
-                                  provider.saveHabit(
-                                    titleCtrl.text.trim(),
-                                    selectedIcon,
-                                    selectedColor,
-                                    null,
-                                  );
+                                  final name = titleCtrl.text.trim();
                                   Navigator.pop(ctx);
+                                  Future.microtask(() {
+                                    provider.saveHabit(
+                                      name,
+                                      selectedIcon,
+                                      selectedColor,
+                                      null,
+                                    );
+                                  });
                                 }
                               },
                             ),
@@ -1905,14 +1908,17 @@ class _HabitsScreenState extends State<HabitsScreen> {
                               child: FilledButton(
                                 onPressed: () {
                                   if (titleCtrl.text.trim().isNotEmpty) {
-                                    provider.updateHabit(
-                                      habit.id!,
-                                      titleCtrl.text.trim(),
-                                      selectedIcon,
-                                      selectedColor,
-                                      selectedReminder,
-                                    );
+                                    final name = titleCtrl.text.trim();
                                     Navigator.pop(ctx);
+                                    Future.microtask(() {
+                                      provider.updateHabit(
+                                        habit.id!,
+                                        name,
+                                        selectedIcon,
+                                        selectedColor,
+                                        selectedReminder,
+                                      );
+                                    });
                                   }
                                 },
                                 child: const Text('Save'),

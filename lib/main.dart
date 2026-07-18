@@ -11,6 +11,7 @@ import 'features/calculator.dart';
 import 'features/life.dart';
 import 'features/settings.dart';
 import 'features/settings_provider.dart';
+import 'features/onboarding.dart';
 import 'services/notification_service.dart';
 import 'utils/snackbar_utils.dart';
 
@@ -88,7 +89,9 @@ class PersonalApp extends StatelessWidget {
               brightness: Brightness.dark,
             ),
             themeMode: settings.themeMode,
-            home: const MainScreen(),
+            home: prefs.getBool('onboarding_complete_v1') ?? false
+                ? const MainScreen()
+                : const OnboardingScreen(),
           );
         },
       ),
