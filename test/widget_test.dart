@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:mocktail/mocktail.dart';
@@ -13,6 +14,7 @@ import 'package:personal_app/features/life.dart';
 import 'package:personal_app/features/settings_provider.dart';
 import 'package:personal_app/services/notification_service.dart';
 import 'package:personal_app/database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MockNotificationService extends Mock implements NotificationService {}
 
@@ -21,12 +23,37 @@ class MockAppDatabase extends Mock implements AppDatabase {}
 class MockDatabase extends Mock implements Database {}
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
 
-  late MockDatabase mockDb;
+  // Mock local_auth platform channel globally to prevent hanging in tests
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(
+    const MethodChannel('plugins.flutter.io/local_auth'),
+    (MethodCall methodCall) async {
+      switch (methodCall.method) {
+        case 'canCheckBiometrics':
+          return false;
+        case 'isDeviceSupported':
+          return true;
+        case 'authenticate':
+          return true;
+        case 'getEnrolledBiometrics':
+          return <String>[];
+        default:
+          return null;
+      }
+    },
+  );
 
-  setUp(() {
+  late MockDatabase mockDb;
+  late SharedPreferences testPrefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    testPrefs = await SharedPreferences.getInstance();
+
     mockDb = MockDatabase();
     final mockAppDb = MockAppDatabase();
     when(() => mockAppDb.database).thenAnswer((_) async => mockDb);
@@ -75,7 +102,9 @@ void main() {
           ChangeNotifierProvider(create: (_) => CalendarProvider()),
           ChangeNotifierProvider(create: (_) => CalculatorProvider()),
           ChangeNotifierProvider(create: (_) => LifeProvider()),
-          ChangeNotifierProvider(create: (_) => SettingsProvider()),
+          ChangeNotifierProvider(
+            create: (_) => SettingsProvider(prefs: testPrefs),
+          ),
         ],
         child: child ?? const MainScreen(),
       ),
@@ -307,7 +336,9 @@ void main() {
           home: MultiProvider(
             providers: [
               ChangeNotifierProvider(create: (_) => CalculatorProvider()),
-              ChangeNotifierProvider(create: (_) => SettingsProvider()),
+              ChangeNotifierProvider(
+                create: (_) => SettingsProvider(prefs: testPrefs),
+              ),
             ],
             child: const CalculatorScreen(),
           ),
@@ -321,7 +352,7 @@ void main() {
     testWidgets('Shows memory buttons in scientific mode', (
       WidgetTester tester,
     ) async {
-      final settings = SettingsProvider();
+      final settings = SettingsProvider(prefs: testPrefs);
       settings.setScientificMode(true);
       await tester.pumpWidget(
         MaterialApp(
@@ -348,7 +379,9 @@ void main() {
           home: MultiProvider(
             providers: [
               ChangeNotifierProvider(create: (_) => CalculatorProvider()),
-              ChangeNotifierProvider(create: (_) => SettingsProvider()),
+              ChangeNotifierProvider(
+                create: (_) => SettingsProvider(prefs: testPrefs),
+              ),
             ],
             child: const CalculatorScreen(),
           ),
@@ -368,7 +401,9 @@ void main() {
           home: MultiProvider(
             providers: [
               ChangeNotifierProvider(create: (_) => CalculatorProvider()),
-              ChangeNotifierProvider(create: (_) => SettingsProvider()),
+              ChangeNotifierProvider(
+                create: (_) => SettingsProvider(prefs: testPrefs),
+              ),
             ],
             child: const CalculatorScreen(),
           ),
@@ -391,7 +426,9 @@ void main() {
           home: MultiProvider(
             providers: [
               ChangeNotifierProvider(create: (_) => CalculatorProvider()),
-              ChangeNotifierProvider(create: (_) => SettingsProvider()),
+              ChangeNotifierProvider(
+                create: (_) => SettingsProvider(prefs: testPrefs),
+              ),
             ],
             child: const CalculatorScreen(),
           ),
@@ -406,11 +443,24 @@ void main() {
   });
 
   group('LifeScreen', () {
+    /// Helper: pump until LifeProvider finishes loading.
+    Future<void> pumpUntilLoaded(WidgetTester tester, LifeProvider provider) async {
+      int attempts = 0;
+      while (provider.loading && attempts < 50) {
+        await tester.pump(const Duration(milliseconds: 50));
+        attempts++;
+      }
+    }
+
     testWidgets('Shows DOB entry when not set', (WidgetTester tester) async {
+      // Create provider and wait for async init
+      final provider = LifeProvider();
+      await pumpUntilLoaded(tester, provider);
+
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider(
-            create: (_) => LifeProvider(),
+          home: ChangeNotifierProvider.value(
+            value: provider,
             child: const LifeScreen(),
           ),
         ),
@@ -427,6 +477,7 @@ void main() {
     ) async {
       final provider = LifeProvider();
       await provider.saveDOB(DateTime(1990, 5, 15));
+      await pumpUntilLoaded(tester, provider);
 
       await tester.pumpWidget(
         MaterialApp(
@@ -458,7 +509,9 @@ void main() {
               ),
               ChangeNotifierProvider(create: (_) => NotesProvider()),
               ChangeNotifierProvider(create: (_) => CalendarProvider()),
-              ChangeNotifierProvider(create: (_) => SettingsProvider()),
+              ChangeNotifierProvider(
+                create: (_) => SettingsProvider(prefs: testPrefs),
+              ),
             ],
             child: const CalendarScreen(),
           ),
@@ -480,7 +533,9 @@ void main() {
               ),
               ChangeNotifierProvider(create: (_) => NotesProvider()),
               ChangeNotifierProvider(create: (_) => CalendarProvider()),
-              ChangeNotifierProvider(create: (_) => SettingsProvider()),
+              ChangeNotifierProvider(
+                create: (_) => SettingsProvider(prefs: testPrefs),
+              ),
             ],
             child: const CalendarScreen(),
           ),
@@ -507,7 +562,9 @@ void main() {
               ),
               ChangeNotifierProvider(create: (_) => NotesProvider()),
               ChangeNotifierProvider(create: (_) => CalendarProvider()),
-              ChangeNotifierProvider(create: (_) => SettingsProvider()),
+              ChangeNotifierProvider(
+                create: (_) => SettingsProvider(prefs: testPrefs),
+              ),
             ],
             child: const CalendarScreen(),
           ),
@@ -529,7 +586,9 @@ void main() {
               ),
               ChangeNotifierProvider(create: (_) => NotesProvider()),
               ChangeNotifierProvider(create: (_) => CalendarProvider()),
-              ChangeNotifierProvider(create: (_) => SettingsProvider()),
+              ChangeNotifierProvider(
+                create: (_) => SettingsProvider(prefs: testPrefs),
+              ),
             ],
             child: const CalendarScreen(),
           ),

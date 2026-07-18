@@ -350,7 +350,11 @@ void main() {
       () async {
         final notifications = MockNotificationService();
         when(() => notifications.cancelAll()).thenAnswer((_) async {});
-        final settings = SettingsProvider(notificationService: notifications);
+        final prefs = await SharedPreferences.getInstance();
+        final settings = SettingsProvider(
+          notificationService: notifications,
+          prefs: prefs,
+        );
 
         await settings.setNotificationsEnabled(false);
 
@@ -423,7 +427,11 @@ void main() {
       await Future.delayed(Duration.zero);
     });
 
-    test('initial state loads with defaults', () {
+    test('initial state loads with defaults', () async {
+      // Wait for async initialization to complete
+      while (provider.loading) {
+        await Future.delayed(Duration.zero);
+      }
       expect(provider.loading, isFalse);
       expect(provider.dob, isNull);
       expect(provider.lifeExpectancy, equals(80));
