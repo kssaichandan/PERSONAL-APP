@@ -19,12 +19,7 @@ class LifeProvider extends ChangeNotifier {
   bool get biometricsAvailable => _biometricsAvailable;
 
   LifeProvider() {
-    Future.microtask(() {
-      loadDOB();
-      _loadLifeExpectancy();
-      _loadBiometricSetting();
-      _checkBiometricsAvailable();
-    });
+    Future.microtask(() => loadDOB());
   }
 
   Future<void> _checkBiometricsAvailable() async {
@@ -153,9 +148,16 @@ class LifeProvider extends ChangeNotifier {
         where: 'key = ?',
         whereArgs: ['dob'],
       );
-      if (maps.isNotEmpty) _dob = DateTime.parse(maps.first['value'] as String);
+      if (maps.isNotEmpty) {
+        _dob = DateTime.parse(maps.first['value'] as String);
+      } else {
+        _dob = null;
+      }
+      await _loadLifeExpectancy();
+      await _loadBiometricSetting();
+      await _checkBiometricsAvailable();
     } catch (e) {
-      debugLog('Failed to load DOB: $e');
+      debugLog('Failed to load DOB and settings: $e');
     }
     _loading = false;
     notifyListeners();
