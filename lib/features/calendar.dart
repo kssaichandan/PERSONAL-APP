@@ -467,6 +467,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'calendar_fab',
         tooltip: 'Add event',
         child: const Icon(Icons.add),
         onPressed: () => _showEventEditor(context),

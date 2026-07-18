@@ -779,6 +779,7 @@ class NotesScreen extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'notes_fab',
         tooltip: 'Create note',
         child: const Icon(Icons.add),
         onPressed: () async {
