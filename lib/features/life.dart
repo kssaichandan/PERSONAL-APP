@@ -19,10 +19,12 @@ class LifeProvider extends ChangeNotifier {
   bool get biometricsAvailable => _biometricsAvailable;
 
   LifeProvider() {
-    loadDOB();
-    _loadLifeExpectancy();
-    _loadBiometricSetting();
-    _checkBiometricsAvailable();
+    Future.microtask(() {
+      loadDOB();
+      _loadLifeExpectancy();
+      _loadBiometricSetting();
+      _checkBiometricsAvailable();
+    });
   }
 
   Future<void> _checkBiometricsAvailable() async {

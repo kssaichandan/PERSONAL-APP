@@ -9,6 +9,7 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
   bool _permissionRequested = false;
+  bool _exactAlarmPermissionRequested = false;
 
   FlutterLocalNotificationsPlugin get notifications => _notifications;
 
@@ -40,7 +41,28 @@ class NotificationService {
             .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin
             >();
-    await android?.requestNotificationsPermission();
+    if (android != null) {
+      await android.requestNotificationsPermission();
+    }
+  }
+
+  /// Request exact alarm permission on Android 12+ (API 31+).
+  /// On Android 14+ (API 34+), SCHEDULE_EXACT_ALARM is not granted by default.
+  Future<void> requestExactAlarmPermission() async {
+    if (_exactAlarmPermissionRequested) return;
+    _exactAlarmPermissionRequested = true;
+    final android =
+        _notifications
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >();
+    if (android != null) {
+      try {
+        await android.requestExactAlarmsPermission();
+      } catch (_) {
+        // Method may not be available on older plugin versions; ignore.
+      }
+    }
   }
 
   Future<void> cancel(int id) async {
@@ -71,6 +93,10 @@ class NotificationService {
       await cancelAll();
       return;
     }
+
+    // Request both notification and exact alarm permissions before scheduling.
+    await requestPermissions();
+    await requestExactAlarmPermission();
 
     final db = await AppDatabase.instance.database;
     if (prefs.getBool('habit_reminders_enabled') ?? true) {
@@ -216,16 +242,37 @@ class NotificationService {
         UILocalNotificationDateInterpretation.absoluteTime,
   }) async {
     await requestPermissions();
-    await _notifications.zonedSchedule(
-      id,
-      title,
-      body,
-      scheduledDate,
-      details,
-      androidScheduleMode: androidScheduleMode,
-      matchDateTimeComponents: matchDateTimeComponents,
-      uiLocalNotificationDateInterpretation:
-          uiLocalNotificationDateInterpretation,
-    );
+    await requestExactAlarmPermission();
+    try {
+      await _notifications.zonedSchedule(
+        id,
+        title,
+        body,
+        scheduledDate,
+        details,
+        androidScheduleMode: androidScheduleMode,
+        matchDateTimeComponents: matchDateTimeComponents,
+        uiLocalNotificationDateInterpretation:
+            uiLocalNotificationDateInterpretation,
+      );
+    } catch (e) {
+      // If exact alarm scheduling fails (e.g., permission denied on Android 14+),
+      // try again with inexact scheduling as a fallback.
+      try {
+        await _notifications.zonedSchedule(
+          id,
+          title,
+          body,
+          scheduledDate,
+          details,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          matchDateTimeComponents: matchDateTimeComponents,
+          uiLocalNotificationDateInterpretation:
+              uiLocalNotificationDateInterpretation,
+        );
+      } catch (_) {
+        // Scheduling failed entirely; silently ignore to avoid crashing the app.
+      }
+    }
   }
 }

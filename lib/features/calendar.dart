@@ -118,7 +118,7 @@ class CalendarProvider extends ChangeNotifier {
 
   CalendarProvider({NotificationService? notificationService})
     : _notificationService = notificationService {
-    load().then((_) => _scheduleAllFutureEvents());
+    Future.microtask(() => load().then((_) => _scheduleAllFutureEvents()));
   }
 
   void setSearchQuery(String query) {

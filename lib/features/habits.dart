@@ -362,7 +362,7 @@ class HabitsProvider extends ChangeNotifier {
       _habits.isEmpty ? 0.0 : todayCompletedCount / todayTotalCount;
 
   HabitsProvider(this._notificationService) {
-    load();
+    Future.microtask(() => load());
   }
 
   void setSearchQuery(String query) {

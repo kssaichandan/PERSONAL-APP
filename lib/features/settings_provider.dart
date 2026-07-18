@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/notification_service.dart';
 import '../utils/snackbar_utils.dart';
@@ -27,12 +28,32 @@ class SettingsProvider extends ChangeNotifier {
 
   SettingsProvider({NotificationService? notificationService})
     : _notificationService = notificationService {
-    _loadSettings();
+    Future.microtask(() => _loadSettings());
+  }
+
+  @override
+  void notifyListeners() {
+    // Guard against notifying during the build phase.
+    // SchedulerBinding is always available after WidgetsFlutterBinding.ensureInitialized().
+    try {
+      if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+        // We are inside a build/layout pass; defer the notification.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          super.notifyListeners();
+        });
+        return;
+      }
+    } catch (_) {
+      // If binding is not yet initialized, fall through.
+    }
+    super.notifyListeners();
   }
 
   Future<void> _loadSettings() async {
-    _loading = true;
-    notifyListeners();
+    if (!_loading) {
+      _loading = true;
+      notifyListeners();
+    }
 
     try {
       final prefs = await SharedPreferences.getInstance();

@@ -93,7 +93,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _tab = 0;
 
-  final _screens = const [
+  static const _screens = <Widget>[
     NotesScreen(),
     HabitsScreen(),
     CalendarScreen(),

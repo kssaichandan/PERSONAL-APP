@@ -170,7 +170,7 @@ class NotesProvider extends ChangeNotifier {
 
   NotesProvider({NotificationService? notificationService})
     : _notificationService = notificationService {
-    load();
+    Future.microtask(() => load());
   }
 
   @override

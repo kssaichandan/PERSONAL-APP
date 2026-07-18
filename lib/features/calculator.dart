@@ -19,7 +19,7 @@ class CalculatorProvider extends ChangeNotifier {
   double get memory => _memory;
 
   CalculatorProvider() {
-    loadHistory();
+    Future.microtask(() => loadHistory());
   }
 
   Future<void> loadHistory() async {
