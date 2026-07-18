@@ -94,10 +94,6 @@ class NotificationService {
       return;
     }
 
-    // Request both notification and exact alarm permissions before scheduling.
-    await requestPermissions();
-    await requestExactAlarmPermission();
-
     final db = await AppDatabase.instance.database;
     if (prefs.getBool('habit_reminders_enabled') ?? true) {
       final habits = await db.query(
@@ -206,7 +202,12 @@ class NotificationService {
         (note['content'] as String?) ?? '',
         scheduled,
         const NotificationDetails(
-          android: AndroidNotificationDetails('notes', 'Note Reminders'),
+          android: AndroidNotificationDetails(
+            'notes',
+            'Note Reminders',
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
         ),
       );
     }

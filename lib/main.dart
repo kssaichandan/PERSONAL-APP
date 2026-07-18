@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'database.dart';
 import 'features/notes.dart';
 import 'features/habits.dart';
@@ -15,6 +16,7 @@ import 'utils/snackbar_utils.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
   await AppDatabase.instance.database;
   final notificationService = NotificationService();
   await notificationService.initialize();
@@ -23,12 +25,20 @@ void main() async {
   } catch (_) {
     // Notification setup must never prevent the app from opening.
   }
-  runApp(PersonalApp(notificationService: notificationService));
+  runApp(PersonalApp(
+    notificationService: notificationService,
+    prefs: prefs,
+  ));
 }
 
 class PersonalApp extends StatelessWidget {
   final NotificationService notificationService;
-  const PersonalApp({super.key, required this.notificationService});
+  final SharedPreferences prefs;
+  const PersonalApp({
+    super.key,
+    required this.notificationService,
+    required this.prefs,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +59,10 @@ class PersonalApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => LifeProvider()),
         ChangeNotifierProvider(
           create:
-              (_) => SettingsProvider(notificationService: notificationService),
+              (_) => SettingsProvider(
+                notificationService: notificationService,
+                prefs: prefs,
+              ),
         ),
       ],
       child: Consumer<SettingsProvider>(
@@ -93,17 +106,30 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _tab = 0;
 
-  static const _screens = <Widget>[
-    NotesScreen(),
-    HabitsScreen(),
-    CalendarScreen(),
-    CalculatorScreen(),
-    LifeScreen(),
-    SettingsScreen(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final settings = context.read<SettingsProvider>();
+        if (settings.notificationsEnabled) {
+          settings.requestNotificationPermissions();
+        }
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final screens = <Widget>[
+      const NotesScreen(),
+      const HabitsScreen(),
+      const CalendarScreen(),
+      const CalculatorScreen(),
+      const LifeScreen(),
+      const SettingsScreen(),
+    ];
+
     const destinations = [
       NavigationDestination(icon: Icon(Icons.note_rounded), label: 'Notes'),
       NavigationDestination(
@@ -146,7 +172,7 @@ class _MainScreenState extends State<MainScreen> {
                           )
                           .toList(),
                 ),
-              Expanded(child: IndexedStack(index: _tab, children: _screens)),
+              Expanded(child: IndexedStack(index: _tab, children: screens)),
             ],
           ),
           bottomNavigationBar:
@@ -156,7 +182,7 @@ class _MainScreenState extends State<MainScreen> {
                     selectedIndex: _tab,
                     onDestinationSelected: (i) => setState(() => _tab = i),
                     labelBehavior:
-                        NavigationDestinationLabelBehavior.onlyShowSelected,
+                    NavigationDestinationLabelBehavior.onlyShowSelected,
                     destinations: destinations,
                   ),
         );

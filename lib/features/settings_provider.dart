@@ -26,9 +26,36 @@ class SettingsProvider extends ChangeNotifier {
   bool get weekStartsMonday => _weekStartsMonday;
   bool get loading => _loading;
 
-  SettingsProvider({NotificationService? notificationService})
-    : _notificationService = notificationService {
-    Future.microtask(() => _loadSettings());
+  SettingsProvider({
+    NotificationService? notificationService,
+    required SharedPreferences prefs,
+  }) : _notificationService = notificationService {
+    _loadSettingsFromPrefs(prefs);
+  }
+
+  void _loadSettingsFromPrefs(SharedPreferences prefs) {
+    try {
+      _themeMode = ThemeMode.values.byName(
+        prefs.getString('theme_mode') ?? 'system',
+      );
+      final colorSeedValue =
+          prefs.getInt('color_seed') ?? Colors.deepPurple.toARGB32();
+      _colorSeed = Color(colorSeedValue);
+      _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
+      _habitRemindersEnabled = prefs.getBool('habit_reminders_enabled') ?? true;
+      _eventRemindersEnabled = prefs.getBool('event_reminders_enabled') ?? true;
+      _scientificMode = prefs.getBool('calculator_scientific_mode') ?? false;
+      _copyOnTap = prefs.getBool('calculator_copy_on_tap') ?? true;
+      _weekStartsMonday = prefs.getBool('week_starts_monday') ?? true;
+    } catch (e) {
+      debugLog('Failed to load settings: $e');
+    }
+    _loading = false;
+  }
+
+  Future<void> requestNotificationPermissions() async {
+    await _notificationService?.requestPermissions();
+    await _notificationService?.requestExactAlarmPermission();
   }
 
   @override
@@ -57,24 +84,11 @@ class SettingsProvider extends ChangeNotifier {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-
-      _themeMode = ThemeMode.values.byName(
-        prefs.getString('theme_mode') ?? 'system',
-      );
-      final colorSeedValue =
-          prefs.getInt('color_seed') ?? Colors.deepPurple.toARGB32();
-      _colorSeed = Color(colorSeedValue);
-      _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
-      _habitRemindersEnabled = prefs.getBool('habit_reminders_enabled') ?? true;
-      _eventRemindersEnabled = prefs.getBool('event_reminders_enabled') ?? true;
-      _scientificMode = prefs.getBool('calculator_scientific_mode') ?? false;
-      _copyOnTap = prefs.getBool('calculator_copy_on_tap') ?? true;
-      _weekStartsMonday = prefs.getBool('week_starts_monday') ?? true;
+      _loadSettingsFromPrefs(prefs);
     } catch (e) {
       debugLog('Failed to load settings: $e');
     }
 
-    _loading = false;
     notifyListeners();
   }
 

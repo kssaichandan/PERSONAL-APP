@@ -361,7 +361,12 @@ class NotesProvider extends ChangeNotifier {
         deltaToPlainText(note.content),
         scheduled,
         const NotificationDetails(
-          android: AndroidNotificationDetails('notes', 'Note Reminders'),
+          android: AndroidNotificationDetails(
+            'notes',
+            'Note Reminders',
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
         ),
       );
     } catch (e) {

@@ -364,7 +364,11 @@ class _BiometricGuardState extends State<_BiometricGuard> {
   @override
   void initState() {
     super.initState();
-    _authenticate();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _authenticate();
+      }
+    });
   }
 
   Future<void> _authenticate() async {
