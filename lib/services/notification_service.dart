@@ -26,7 +26,7 @@ class NotificationService {
       ]),
     );
     const androidSettings = AndroidInitializationSettings(
-      '@mipmap/ic_launcher',
+      'ic_launcher',
     );
     await _notifications.initialize(
       const InitializationSettings(android: androidSettings),
