@@ -769,26 +769,6 @@ class _LifeTrackerSection extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right_rounded),
           onTap: () => _showLifeExpectancyDialog(context, provider),
         ),
-        if (provider.biometricsAvailable != false)
-          SwitchListTile(
-            secondary: const Icon(Icons.fingerprint_rounded),
-            title: const Text('Biometric Lock'),
-            subtitle: const Text(
-              'Require fingerprint/face ID to view Life Tracker',
-            ),
-            value: provider.biometricEnabled,
-            onChanged: (value) => provider.setBiometricEnabled(value, context),
-          ),
-        if (provider.biometricsAvailable == false)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text(
-              'Biometric authentication not available on this device',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
         ListTile(
           leading: Icon(Icons.delete_rounded, color: theme.colorScheme.error),
           title: Text(

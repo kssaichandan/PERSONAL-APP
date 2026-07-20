@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:local_auth/local_auth.dart';
 import '../database.dart';
 import '../utils/snackbar_utils.dart';
 
@@ -9,27 +8,13 @@ class LifeProvider extends ChangeNotifier {
   DateTime? _dob;
   bool _loading = true;
   int _lifeExpectancy = 80;
-  bool _biometricEnabled = false;
-  bool _biometricsAvailable = true;
 
   DateTime? get dob => _dob;
   bool get loading => _loading;
   int get lifeExpectancy => _lifeExpectancy;
-  bool get biometricEnabled => _biometricEnabled;
-  bool get biometricsAvailable => _biometricsAvailable;
 
   LifeProvider() {
     Future.microtask(() => loadDOB());
-  }
-
-  Future<void> _checkBiometricsAvailable() async {
-    try {
-      final auth = LocalAuthentication();
-      _biometricsAvailable =
-          await auth.canCheckBiometrics && await auth.isDeviceSupported();
-    } catch (_) {
-      _biometricsAvailable = false;
-    }
   }
 
   Future<void> _loadLifeExpectancy() async {
@@ -42,20 +27,6 @@ class LifeProvider extends ChangeNotifier {
       );
       if (maps.isNotEmpty) {
         _lifeExpectancy = int.parse(maps.first['value'] as String);
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _loadBiometricSetting() async {
-    try {
-      final db = await AppDatabase.instance.database;
-      final maps = await db.query(
-        'settings',
-        where: 'key = ?',
-        whereArgs: ['biometric_enabled'],
-      );
-      if (maps.isNotEmpty) {
-        _biometricEnabled = maps.first['value'] == 'true';
       }
     } catch (_) {}
   }
@@ -95,46 +66,6 @@ class LifeProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> setBiometricEnabled(
-    bool enabled, [
-    BuildContext? context,
-  ]) async {
-    _biometricEnabled = enabled;
-    try {
-      final db = await AppDatabase.instance.database;
-      final maps = await db.query(
-        'settings',
-        where: 'key = ?',
-        whereArgs: ['biometric_enabled'],
-      );
-      if (maps.isEmpty) {
-        await db.insert('settings', {
-          'key': 'biometric_enabled',
-          'value': enabled.toString(),
-        });
-      } else {
-        await db.update(
-          'settings',
-          {'value': enabled.toString()},
-          where: 'key = ?',
-          whereArgs: ['biometric_enabled'],
-        );
-      }
-      notifyListeners();
-      if (context != null && context.mounted) {
-        showSuccessSnackBar(
-          context,
-          enabled ? 'Biometric lock enabled' : 'Biometric lock disabled',
-        );
-      }
-    } catch (e) {
-      debugLog('Failed to save biometric setting: $e');
-      if (context != null && context.mounted) {
-        showErrorSnackBar(context, 'Failed to save biometric setting');
-      }
-    }
-  }
-
   Future<void> loadDOB() async {
     _loading = true;
     notifyListeners();
@@ -151,8 +82,6 @@ class LifeProvider extends ChangeNotifier {
         _dob = null;
       }
       await _loadLifeExpectancy();
-      await _loadBiometricSetting();
-      await _checkBiometricsAvailable();
     } catch (e) {
       debugLog('Failed to load DOB and settings: $e');
     }
@@ -206,23 +135,6 @@ class LifeProvider extends ChangeNotifier {
       if (context != null && context.mounted) {
         showErrorSnackBar(context, 'Failed to reset date of birth');
       }
-    }
-  }
-
-  Future<bool> authenticate() async {
-    if (!_biometricEnabled || !_biometricsAvailable) return true;
-    final auth = LocalAuthentication();
-    try {
-      return await auth.authenticate(
-        localizedReason: 'Authenticate to view Life Tracker',
-        options: const AuthenticationOptions(
-          biometricOnly: true,
-          useErrorDialogs: true,
-          stickyAuth: true,
-        ),
-      );
-    } catch (_) {
-      return false;
     }
   }
 }
@@ -329,130 +241,10 @@ class LifeScreen extends StatelessWidget {
     final dob = provider.dob!;
     final expectedYears = provider.lifeExpectancy;
 
-    // Check biometric lock
-    if (provider.biometricEnabled) {
-      return _BiometricGuard(
-        child: _LifeScreenContent(
-          dob: dob,
-          expectedYears: expectedYears,
-          provider: provider,
-        ),
-      );
-    }
-
     return _LifeScreenContent(
       dob: dob,
       expectedYears: expectedYears,
       provider: provider,
-    );
-  }
-}
-
-class _BiometricGuard extends StatefulWidget {
-  final Widget child;
-  const _BiometricGuard({required this.child});
-
-  @override
-  State<_BiometricGuard> createState() => _BiometricGuardState();
-}
-
-class _BiometricGuardState extends State<_BiometricGuard> {
-  bool _authenticated = false;
-  bool _error = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _authenticate();
-      }
-    });
-  }
-
-  Future<void> _authenticate() async {
-    setState(() => _error = false);
-    final provider = context.read<LifeProvider>();
-    final authenticated = await provider.authenticate();
-    if (mounted) {
-      setState(() {
-        _authenticated = authenticated;
-        _error = !authenticated;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    if (_authenticated) return widget.child;
-
-    if (_error) {
-      return Scaffold(
-        body: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.lock_rounded,
-                    size: 64,
-                    color: theme.colorScheme.error,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Authentication Failed',
-                    style: theme.textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Could not verify your identity. Please try again.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 32),
-                  FilledButton.icon(
-                    onPressed: _authenticate,
-                    icon: const Icon(Icons.fingerprint_rounded),
-                    label: const Text('Try Again'),
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed:
-                        () => context.read<LifeProvider>().setBiometricEnabled(
-                          false,
-                        ),
-                    child: const Text('Disable biometric lock'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              Text(
-                'Authenticating...',
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

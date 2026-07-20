@@ -293,6 +293,8 @@ class Habit {
   final DateTime createdAt;
   final int displayOrder;
   final int color;
+  final String habitType;
+  final int targetCount;
 
   Habit({
     this.id,
@@ -302,7 +304,13 @@ class Habit {
     required this.createdAt,
     this.displayOrder = 0,
     this.color = _defaultHabitColor,
+    this.habitType = 'yes_no',
+    this.targetCount = 0,
   });
+
+  bool get isYesNo => habitType == 'yes_no';
+  bool get isCountWithTarget => habitType == 'count_target';
+  bool get isFreeCount => habitType == 'free_count';
 
   Map<String, dynamic> toMap() => {
     'id': id,
@@ -312,6 +320,8 @@ class Habit {
     'created_at': createdAt.toIso8601String(),
     'display_order': displayOrder,
     'color': color,
+    'habit_type': habitType,
+    'target_count': targetCount,
   };
 
   factory Habit.fromMap(Map<String, dynamic> m) => Habit(
@@ -322,6 +332,8 @@ class Habit {
     createdAt: DateTime.parse(m['created_at']),
     displayOrder: m['display_order'] ?? 0,
     color: m['color'] as int? ?? _defaultHabitColor,
+    habitType: m['habit_type'] ?? 'yes_no',
+    targetCount: m['target_count'] ?? 0,
   );
 }
 
@@ -332,6 +344,7 @@ class Habit {
 class HabitsProvider extends ChangeNotifier {
   List<Habit> _habits = [];
   final Map<int, Set<String>> _habitLogsByHabitId = {};
+  final Map<String, int> _habitCounts = {};
   bool _loading = true;
   String? _error;
   final NotificationService _notificationService;
@@ -370,6 +383,13 @@ class HabitsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  String _dateKey(DateTime date) =>
+      DateFormat('yyyy-MM-dd').format(date);
+
+  int getCount(int habitId, DateTime date) {
+    return _habitCounts['${habitId}_${_dateKey(date)}'] ?? 0;
+  }
+
   Future<void> load() async {
     _loading = true;
     _error = null;
@@ -383,10 +403,14 @@ class HabitsProvider extends ChangeNotifier {
       _habits = habitMaps.map((m) => Habit.fromMap(m)).toList();
       final logMaps = await db.query('habit_logs');
       _habitLogsByHabitId.clear();
+      _habitCounts.clear();
       for (final log in logMaps) {
         final hId = log['habit_id'] as int;
         final dateStr = log['date'] as String;
+        final count = (log['count'] as int?) ?? 1;
         _habitLogsByHabitId.putIfAbsent(hId, () => {}).add(dateStr);
+        final key = '${hId}_$dateStr';
+        _habitCounts[key] = (_habitCounts[key] ?? 0) + count;
       }
     } catch (e) {
       _error = 'Failed to load habits';
@@ -396,8 +420,68 @@ class HabitsProvider extends ChangeNotifier {
   }
 
   bool isCompleted(int habitId, DateTime date) {
-    final dateStr = DateFormat('yyyy-MM-dd').format(date);
-    return _habitLogsByHabitId[habitId]?.contains(dateStr) ?? false;
+    final habit = _habits.where((h) => h.id == habitId).firstOrNull;
+    if (habit == null) return false;
+    final count = getCount(habitId, date);
+    if (habit.isYesNo) return count > 0;
+    if (habit.isCountWithTarget) return count >= habit.targetCount;
+    return count > 0;
+  }
+
+  Future<void> incrementLog(int habitId, DateTime date) async {
+    final dateStr = _dateKey(date);
+    try {
+      final db = await AppDatabase.instance.database;
+      final existing = _habitLogsByHabitId[habitId]?.contains(dateStr) ?? false;
+      if (existing) {
+        final key = '${habitId}_$dateStr';
+        final current = _habitCounts[key] ?? 0;
+        _habitCounts[key] = current + 1;
+        await db.rawUpdate(
+          'UPDATE habit_logs SET count = ? WHERE habit_id = ? AND date = ?',
+          [current + 1, habitId, dateStr],
+        );
+      } else {
+        await db.insert('habit_logs', {
+          'habit_id': habitId,
+          'date': dateStr,
+          'count': 1,
+          'created_at': DateTime.now().toIso8601String(),
+        });
+        _habitLogsByHabitId.putIfAbsent(habitId, () => {}).add(dateStr);
+        _habitCounts['${habitId}_$dateStr'] = 1;
+      }
+      notifyListeners();
+    } catch (e) {
+      debugLog('Failed to increment habit log: $e');
+    }
+  }
+
+  Future<void> decrementLog(int habitId, DateTime date) async {
+    final dateStr = _dateKey(date);
+    try {
+      final db = await AppDatabase.instance.database;
+      final key = '${habitId}_$dateStr';
+      final current = _habitCounts[key] ?? 0;
+      if (current <= 1) {
+        _habitCounts[key] = 0;
+        _habitLogsByHabitId[habitId]?.remove(dateStr);
+        await db.delete(
+          'habit_logs',
+          where: 'habit_id = ? AND date = ?',
+          whereArgs: [habitId, dateStr],
+        );
+      } else {
+        _habitCounts[key] = current - 1;
+        await db.rawUpdate(
+          'UPDATE habit_logs SET count = ? WHERE habit_id = ? AND date = ?',
+          [current - 1, habitId, dateStr],
+        );
+      }
+      notifyListeners();
+    } catch (e) {
+      debugLog('Failed to decrement habit log: $e');
+    }
   }
 
   Future<void> toggleLog(
@@ -405,31 +489,18 @@ class HabitsProvider extends ChangeNotifier {
     DateTime date, [
     BuildContext? context,
   ]) async {
-    final dateStr = DateFormat('yyyy-MM-dd').format(date);
-    try {
-      final db = await AppDatabase.instance.database;
+    final habit = _habits.where((h) => h.id == habitId).firstOrNull;
+    if (habit == null) return;
+    if (habit.isYesNo) {
+      final dateStr = _dateKey(date);
       final logs = _habitLogsByHabitId[habitId] ?? {};
       if (logs.contains(dateStr)) {
-        await db.delete(
-          'habit_logs',
-          where: 'habit_id = ? AND date = ?',
-          whereArgs: [habitId, dateStr],
-        );
-        _habitLogsByHabitId[habitId]?.remove(dateStr);
+        await decrementLog(habitId, date);
       } else {
-        await db.insert('habit_logs', {
-          'habit_id': habitId,
-          'date': dateStr,
-          'created_at': DateTime.now().toIso8601String(),
-        });
-        _habitLogsByHabitId.putIfAbsent(habitId, () => {}).add(dateStr);
+        await incrementLog(habitId, date);
       }
-      notifyListeners();
-    } catch (e) {
-      debugLog('Failed to toggle habit log: $e');
-      if (context != null && context.mounted) {
-        showErrorSnackBar(context, 'Failed to update habit');
-      }
+    } else {
+      await incrementLog(habitId, date);
     }
   }
 
@@ -439,6 +510,8 @@ class HabitsProvider extends ChangeNotifier {
     int color,
     String? reminderTime, [
     BuildContext? context,
+    String habitType = 'yes_no',
+    int targetCount = 0,
   ]) async {
     try {
       final db = await AppDatabase.instance.database;
@@ -457,6 +530,8 @@ class HabitsProvider extends ChangeNotifier {
         reminderTime: reminderTime,
         createdAt: DateTime.now(),
         displayOrder: maxOrder + 1,
+        habitType: habitType,
+        targetCount: targetCount,
       );
       final id = await db.insert('habits', habit.toMap()..remove('id'));
       final savedHabit = Habit(
@@ -467,6 +542,8 @@ class HabitsProvider extends ChangeNotifier {
         reminderTime: reminderTime,
         createdAt: habit.createdAt,
         displayOrder: maxOrder + 1,
+        habitType: habitType,
+        targetCount: targetCount,
       );
       if (reminderTime != null) await _scheduleHabitNotification(savedHabit);
       if (context != null && context.mounted) {
@@ -543,6 +620,8 @@ class HabitsProvider extends ChangeNotifier {
     int color,
     String? reminderTime, [
     BuildContext? context,
+    String habitType = 'yes_no',
+    int targetCount = 0,
   ]) async {
     try {
       final db = await AppDatabase.instance.database;
@@ -555,6 +634,8 @@ class HabitsProvider extends ChangeNotifier {
         reminderTime: reminderTime,
         createdAt: current.createdAt,
         displayOrder: current.displayOrder,
+        habitType: habitType,
+        targetCount: targetCount,
       );
       await db.update(
         'habits',
@@ -688,6 +769,8 @@ class HabitsProvider extends ChangeNotifier {
   }
 
   Map<String, int> getStreaks(int habitId) {
+    final habit = _habits.where((h) => h.id == habitId).firstOrNull;
+    if (habit == null) return {'current': 0, 'max': 0};
     final dates = _habitLogsByHabitId[habitId] ?? {};
     if (dates.isEmpty) return {'current': 0, 'max': 0};
     final sorted = dates.map((d) => DateTime.parse(d)).toList()..sort();
@@ -697,10 +780,19 @@ class HabitsProvider extends ChangeNotifier {
       DateTime.now().day,
     );
     final yesterday = today.subtract(const Duration(days: 1));
+
+    bool dayCounted(DateTime date) {
+      final count = getCount(habitId, date);
+      if (habit.isYesNo) return count > 0;
+      if (habit.isCountWithTarget) return count >= habit.targetCount;
+      return count > 0;
+    }
+
     int maxStreak = 0;
     int temp = 1;
     for (int i = 1; i < sorted.length; i++) {
-      if (sorted[i].difference(sorted[i - 1]).inDays == 1) {
+      if (sorted[i].difference(sorted[i - 1]).inDays == 1 &&
+          dayCounted(sorted[i])) {
         temp++;
       } else {
         if (temp > maxStreak) maxStreak = temp;
@@ -710,10 +802,11 @@ class HabitsProvider extends ChangeNotifier {
     if (temp > maxStreak) maxStreak = temp;
     final last = sorted.last;
     int currentStreak = 0;
-    if (last == today || last == yesterday) {
+    if (dayCounted(last) && (last == today || last == yesterday)) {
       currentStreak = 1;
       for (int i = sorted.length - 2; i >= 0; i--) {
-        if (sorted[i + 1].difference(sorted[i]).inDays == 1) {
+        if (sorted[i + 1].difference(sorted[i]).inDays == 1 &&
+            dayCounted(sorted[i])) {
           currentStreak++;
         } else {
           break;
@@ -724,25 +817,23 @@ class HabitsProvider extends ChangeNotifier {
   }
 
   int completionsInMonth(int habitId, DateTime month) {
-    final logs = _habitLogsByHabitId[habitId] ?? {};
+    final habit = _habits.where((h) => h.id == habitId).firstOrNull;
+    if (habit == null) return 0;
+    final totalDays = DateTime(month.year, month.month + 1, 0).day;
     int count = 0;
-    for (final logDate in logs) {
-      final parsed = DateTime.parse(logDate);
-      if (parsed.year == month.year && parsed.month == month.month) count++;
+    for (int d = 1; d <= totalDays; d++) {
+      final date = DateTime(month.year, month.month, d);
+      if (isCompleted(habitId, date)) count++;
     }
     return count;
   }
 
   int completionsInWeek(int habitId, DateTime weekStart) {
-    final logs = _habitLogsByHabitId[habitId] ?? {};
     int count = 0;
     final weekEnd = weekStart.add(const Duration(days: 7));
-    for (final logDate in logs) {
-      final parsed = DateTime.parse(logDate);
-      if (parsed.isAfter(weekStart.subtract(const Duration(days: 1))) &&
-          parsed.isBefore(weekEnd)) {
-        count++;
-      }
+    for (int i = 0; i < 7; i++) {
+      final date = weekStart.add(Duration(days: i));
+      if (date.isBefore(weekEnd) && isCompleted(habitId, date)) count++;
     }
     return count;
   }
@@ -1493,6 +1584,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
     final titleCtrl = TextEditingController();
     String selectedIcon = 'star';
     int selectedColor = _colorPresets[0];
+    String selectedType = 'yes_no';
+    int targetCount = 8;
 
     showModalBottomSheet(
       context: context,
@@ -1600,6 +1693,66 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                 (color) =>
                                     setDialogState(() => selectedColor = color),
                           ),
+                          const SizedBox(height: 20),
+                          const Text(
+                            'Tracking Type',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _TypeChip(
+                                  label: 'Yes / No',
+                                  icon: Icons.check_circle_outline,
+                                  selected: selectedType == 'yes_no',
+                                  onTap: () => setDialogState(() {
+                                    selectedType = 'yes_no';
+                                  }),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _TypeChip(
+                                  label: 'Count + Target',
+                                  icon: Icons.track_changes,
+                                  selected: selectedType == 'count_target',
+                                  onTap: () => setDialogState(() {
+                                    selectedType = 'count_target';
+                                  }),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _TypeChip(
+                                  label: 'Free Count',
+                                  icon: Icons.add_circle_outline,
+                                  selected: selectedType == 'free_count',
+                                  onTap: () => setDialogState(() {
+                                    selectedType = 'free_count';
+                                  }),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (selectedType == 'count_target') ...[
+                            const SizedBox(height: 12),
+                            TextField(
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Daily Target',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.flag_outlined),
+                                hintText: 'e.g. 8',
+                              ),
+                              onChanged: (v) {
+                                targetCount = int.tryParse(v) ?? 8;
+                              },
+                            ),
+                          ],
                           const SizedBox(height: 24),
                           SizedBox(
                             width: double.infinity,
@@ -1617,6 +1770,11 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                     selectedIcon,
                                     selectedColor,
                                     null,
+                                    context,
+                                    selectedType,
+                                    selectedType == 'count_target'
+                                        ? targetCount
+                                        : 0,
                                   );
                                 }
                               },
@@ -1699,6 +1857,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
     String selectedIcon = habit.icon;
     int selectedColor = habit.color;
     String? selectedReminder = habit.reminderTime;
+    String selectedType = habit.habitType;
+    int targetCount = habit.targetCount;
 
     showModalBottomSheet(
       context: context,
@@ -1710,7 +1870,9 @@ class _HabitsScreenState extends State<HabitsScreen> {
                   titleCtrl.text.trim() != habit.name ||
                   selectedIcon != habit.icon ||
                   selectedColor != habit.color ||
-                  selectedReminder != habit.reminderTime;
+                  selectedReminder != habit.reminderTime ||
+                  selectedType != habit.habitType ||
+                  targetCount != habit.targetCount;
               return PopScope(
                 canPop: !hasChanges,
                 onPopInvokedWithResult: (didPop, _) async {
@@ -1813,6 +1975,69 @@ class _HabitsScreenState extends State<HabitsScreen> {
                         ),
                         const SizedBox(height: 20),
                         const Text(
+                          'Tracking Type',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _TypeChip(
+                                label: 'Yes / No',
+                                icon: Icons.check_circle_outline,
+                                selected: selectedType == 'yes_no',
+                                onTap: () => setDialogState(() {
+                                  selectedType = 'yes_no';
+                                }),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _TypeChip(
+                                label: 'Count + Target',
+                                icon: Icons.track_changes,
+                                selected: selectedType == 'count_target',
+                                onTap: () => setDialogState(() {
+                                  selectedType = 'count_target';
+                                }),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _TypeChip(
+                                label: 'Free Count',
+                                icon: Icons.add_circle_outline,
+                                selected: selectedType == 'free_count',
+                                onTap: () => setDialogState(() {
+                                  selectedType = 'free_count';
+                                }),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (selectedType == 'count_target') ...[
+                          const SizedBox(height: 12),
+                          TextField(
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Daily Target',
+                              border: const OutlineInputBorder(),
+                              prefixIcon: const Icon(Icons.flag_outlined),
+                              hintText: 'e.g. 8',
+                            ),
+                            controller: TextEditingController(
+                              text: targetCount > 0 ? '$targetCount' : '',
+                            ),
+                            onChanged: (v) {
+                              targetCount = int.tryParse(v) ?? 8;
+                            },
+                          ),
+                        ],
+                        const SizedBox(height: 20),
+                        const Text(
                           'Reminder (optional)',
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
@@ -1898,7 +2123,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: FilledButton(
+                              child:                               FilledButton(
                                 onPressed: () {
                                   if (titleCtrl.text.trim().isNotEmpty) {
                                     final name = titleCtrl.text.trim();
@@ -1909,6 +2134,11 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                       selectedIcon,
                                       selectedColor,
                                       selectedReminder,
+                                      context,
+                                      selectedType,
+                                      selectedType == 'count_target'
+                                          ? targetCount
+                                          : 0,
                                     );
                                   }
                                 },
@@ -2097,51 +2327,58 @@ class _WeeklyChecklist extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    AspectRatio(
-                      aspectRatio: 1,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        decoration: BoxDecoration(
-                          color:
-                              completed
-                                  ? Color(habit.color)
-                                  : (isToday
-                                      ? Color(
-                                        habit.color,
-                                      ).withValues(alpha: 0.08)
-                                      : theme
-                                          .colorScheme
-                                          .surfaceContainerHighest),
-                          shape: BoxShape.circle,
-                          border: Border.all(
+                    if (!isFuture && (habit.isCountWithTarget || habit.isFreeCount))
+                      _CountDayCell(
+                        habit: habit,
+                        date: date,
+                        provider: provider,
+                      )
+                    else
+                      AspectRatio(
+                        aspectRatio: 1,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          decoration: BoxDecoration(
                             color:
                                 completed
                                     ? Color(habit.color)
                                     : (isToday
                                         ? Color(
                                           habit.color,
-                                        ).withValues(alpha: 0.4)
-                                        : Colors.transparent),
-                            width: 1.5,
+                                        ).withValues(alpha: 0.08)
+                                        : theme
+                                            .colorScheme
+                                            .surfaceContainerHighest),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color:
+                                  completed
+                                      ? Color(habit.color)
+                                      : (isToday
+                                          ? Color(
+                                            habit.color,
+                                          ).withValues(alpha: 0.4)
+                                          : Colors.transparent),
+                              width: 1.5,
+                            ),
                           ),
+                          child:
+                              completed
+                                  ? const Icon(
+                                    Icons.check_rounded,
+                                    color: Colors.white,
+                                    size: 22,
+                                  )
+                                  : (isFuture
+                                      ? Icon(
+                                        Icons.lock_outline_rounded,
+                                        color: theme.colorScheme.onSurfaceVariant
+                                            .withValues(alpha: 0.4),
+                                        size: 16,
+                                      )
+                                      : null),
                         ),
-                        child:
-                            completed
-                                ? const Icon(
-                                  Icons.check_rounded,
-                                  color: Colors.white,
-                                  size: 22,
-                                )
-                                : (isFuture
-                                    ? Icon(
-                                      Icons.lock_outline_rounded,
-                                      color: theme.colorScheme.onSurfaceVariant
-                                          .withValues(alpha: 0.4),
-                                      size: 16,
-                                    )
-                                    : null),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -2190,6 +2427,7 @@ class _MonthlyLogCalendar extends StatelessWidget {
     for (int day = 1; day <= totalDays; day++) {
       final date = DateTime(currentMonth.year, currentMonth.month, day);
       final isLogged = provider.isCompleted(habit.id!, date);
+      final count = provider.getCount(habit.id!, date);
       cells.add(
         Center(
           child: Container(
@@ -2207,14 +2445,38 @@ class _MonthlyLogCalendar extends StatelessWidget {
               ),
               shape: BoxShape.circle,
             ),
-            child: Text(
-              '$day',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isLogged ? FontWeight.bold : FontWeight.normal,
-                color: isLogged ? habitColor : theme.colorScheme.onSurface,
-              ),
-            ),
+            child: habit.isYesNo
+                ? Text(
+                    '$day',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: isLogged ? FontWeight.bold : FontWeight.normal,
+                      color: isLogged ? habitColor : theme.colorScheme.onSurface,
+                    ),
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$day',
+                        style: TextStyle(
+                          fontSize: 8,
+                          color: isLogged
+                              ? habitColor
+                              : theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      if (count > 0)
+                        Text(
+                          '$count',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: habitColor,
+                          ),
+                        ),
+                    ],
+                  ),
           ),
         ),
       );
@@ -2558,7 +2820,186 @@ class _ColorPicker extends StatelessWidget {
                         : null,
               ),
             );
-          }).toList(),
+          }          ).toList(),
+    );
+  }
+}
+
+// =============================================================================
+// Type Selector Chip
+// =============================================================================
+
+class _TypeChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _TypeChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? theme.colorScheme.primaryContainer
+              : theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outline.withValues(alpha: 0.3),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: selected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                color: selected
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Count Day Cell (for weekly view of count-type habits)
+// =============================================================================
+
+class _CountDayCell extends StatelessWidget {
+  final Habit habit;
+  final DateTime date;
+  final HabitsProvider provider;
+
+  const _CountDayCell({
+    required this.habit,
+    required this.date,
+    required this.provider,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final count = provider.getCount(habit.id!, date);
+    final target = habit.targetCount;
+    final isCompleted = habit.isCountWithTarget
+        ? count >= target
+        : count > 0;
+    final progress = habit.isCountWithTarget && target > 0
+        ? (count / target).clamp(0.0, 1.0)
+        : (count > 0 ? 1.0 : 0.0);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 40,
+          height: 40,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CircularProgressIndicator(
+                value: progress,
+                strokeWidth: 3,
+                backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  isCompleted
+                      ? Color(habit.color)
+                      : Color(habit.color).withValues(alpha: 0.4),
+                ),
+              ),
+              Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isCompleted
+                      ? Color(habit.color)
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 2),
+        if (habit.isCountWithTarget)
+          Text(
+            '/$target',
+            style: TextStyle(
+              fontSize: 9,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+            ),
+          ),
+        const SizedBox(height: 2),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              onTap: () => provider.decrementLog(habit.id!, date),
+              child: Container(
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.errorContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.remove,
+                  size: 12,
+                  color: theme.colorScheme.onErrorContainer,
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            GestureDetector(
+              onTap: () => provider.incrementLog(habit.id!, date),
+              child: Container(
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: Color(habit.color).withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.add,
+                  size: 12,
+                  color: Color(habit.color),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

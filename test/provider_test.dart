@@ -451,14 +451,6 @@ void main() {
       expect(provider.lifeExpectancy, equals(90));
     });
 
-    test('setBiometricEnabled toggles state', () async {
-      await provider.setBiometricEnabled(true);
-      expect(provider.biometricEnabled, isTrue);
-
-      await provider.setBiometricEnabled(false);
-      expect(provider.biometricEnabled, isFalse);
-    });
-
     test('saveDOB sets dob', () async {
       final dob = DateTime(1990, 5, 15);
       await provider.saveDOB(dob);

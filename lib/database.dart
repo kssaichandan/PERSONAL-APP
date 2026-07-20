@@ -29,7 +29,7 @@ class AppDatabase {
     final path = join(dbPath, 'personal_app.db');
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE notes (
@@ -76,7 +76,9 @@ class AppDatabase {
             reminder_time TEXT,
             reminder_days TEXT,
             created_at TEXT NOT NULL,
-            display_order INTEGER DEFAULT 0
+            display_order INTEGER DEFAULT 0,
+            habit_type TEXT NOT NULL DEFAULT 'yes_no',
+            target_count INTEGER NOT NULL DEFAULT 0
           )
         ''');
         await db.execute('''
@@ -84,6 +86,7 @@ class AppDatabase {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             habit_id INTEGER NOT NULL,
             date TEXT NOT NULL,
+            count INTEGER NOT NULL DEFAULT 1,
             created_at TEXT NOT NULL,
             FOREIGN KEY (habit_id) REFERENCES habits(id) ON DELETE CASCADE
           )
@@ -141,6 +144,23 @@ class AppDatabase {
               );
             } catch (_) {}
           }
+        }
+        if (oldVersion < 4) {
+          try {
+            await db.execute(
+              "ALTER TABLE habits ADD COLUMN habit_type TEXT NOT NULL DEFAULT 'yes_no'",
+            );
+          } catch (_) {}
+          try {
+            await db.execute(
+              'ALTER TABLE habits ADD COLUMN target_count INTEGER NOT NULL DEFAULT 0',
+            );
+          } catch (_) {}
+          try {
+            await db.execute(
+              'ALTER TABLE habit_logs ADD COLUMN count INTEGER NOT NULL DEFAULT 1',
+            );
+          } catch (_) {}
         }
       },
     );
