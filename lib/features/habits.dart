@@ -658,14 +658,7 @@ class HabitsProvider extends ChangeNotifier {
         'Habit Reminder: ${habit.name}',
         'Time to complete your habit! Tap to log it.',
         _nextInstanceOfTime(hour, minute),
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'habits',
-            'Habit Reminders',
-            importance: Importance.high,
-            priority: Priority.high,
-          ),
-        ),
+        NotificationService.habitDetails,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.time,
         uiLocalNotificationDateInterpretation:

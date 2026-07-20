@@ -1,20 +1,134 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../database.dart';
 
+/// Owns Android notification setup and all persisted reminder scheduling.
+///
+/// The service intentionally falls back to an inexact alarm when Android has
+/// not granted exact-alarm access. This keeps a reminder scheduled instead of
+/// failing silently on Android 12 and later.
 class NotificationService {
+  static const _timeZoneChannel = MethodChannel('personal_app/timezone');
+
+  static const _habitChannel = 'personal_app_habits_v2';
+  static const _eventChannel = 'personal_app_events_v2';
+  static const _noteChannel = 'personal_app_notes_v2';
+
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
-  bool _permissionRequested = false;
+  bool _initialized = false;
+  bool _notificationPermissionRequested = false;
   bool _exactAlarmPermissionRequested = false;
 
   FlutterLocalNotificationsPlugin get notifications => _notifications;
 
+  static const habitDetails = NotificationDetails(
+    android: AndroidNotificationDetails(
+      _habitChannel,
+      'Habit reminders',
+      channelDescription: 'Reminders for your habits',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
+    ),
+  );
+
+  static const eventDetails = NotificationDetails(
+    android: AndroidNotificationDetails(
+      _eventChannel,
+      'Event reminders',
+      channelDescription: 'Reminders for your calendar events',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
+    ),
+  );
+
+  static const noteDetails = NotificationDetails(
+    android: AndroidNotificationDetails(
+      _noteChannel,
+      'Note reminders',
+      channelDescription: 'Reminders for your notes',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
+    ),
+  );
+
   Future<void> initialize() async {
+    if (_initialized) return;
+
     tz_data.initializeTimeZones();
+    await _configureLocalTimeZone();
+
+    const androidSettings = AndroidInitializationSettings('ic_launcher');
+    await _notifications.initialize(
+      const InitializationSettings(android: androidSettings),
+    );
+
+    final android = _android;
+    if (android != null) {
+      await Future.wait([
+        android.createNotificationChannel(
+          const AndroidNotificationChannel(
+            _habitChannel,
+            'Habit reminders',
+            description: 'Reminders for your habits',
+            importance: Importance.max,
+            playSound: true,
+            enableVibration: true,
+          ),
+        ),
+        android.createNotificationChannel(
+          const AndroidNotificationChannel(
+            _eventChannel,
+            'Event reminders',
+            description: 'Reminders for your calendar events',
+            importance: Importance.max,
+            playSound: true,
+            enableVibration: true,
+          ),
+        ),
+        android.createNotificationChannel(
+          const AndroidNotificationChannel(
+            _noteChannel,
+            'Note reminders',
+            description: 'Reminders for your notes',
+            importance: Importance.max,
+            playSound: true,
+            enableVibration: true,
+          ),
+        ),
+      ]);
+    }
+    _initialized = true;
+  }
+
+  AndroidFlutterLocalNotificationsPlugin? get _android =>
+      _notifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+
+  Future<void> _configureLocalTimeZone() async {
+    try {
+      final name = await _timeZoneChannel.invokeMethod<String>('getTimeZone');
+      if (name != null && name.isNotEmpty) {
+        tz.setLocalLocation(tz.getLocation(name));
+        return;
+      }
+    } catch (_) {
+      // The channel is Android-only. The offset fallback below keeps the app
+      // usable on other supported platforms and in widget tests.
+    }
+
     final now = DateTime.now();
     tz.setLocalLocation(
       tz.Location('device', [-8640000000000000], [0], [
@@ -25,49 +139,43 @@ class NotificationService {
         ),
       ]),
     );
-    const androidSettings = AndroidInitializationSettings(
-      'ic_launcher',
-    );
-    await _notifications.initialize(
-      const InitializationSettings(android: androidSettings),
-    );
   }
 
-  Future<void> requestPermissions() async {
-    if (_permissionRequested) return;
-    _permissionRequested = true;
-    final android =
-        _notifications
-            .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin
-            >();
-    if (android != null) {
-      await android.requestNotificationsPermission();
-    }
+  /// Requests Android's notification permission when it is needed.
+  /// Returns false when the user has declined it.
+  Future<bool> requestPermissions() async {
+    final android = _android;
+    if (android == null) return true;
+
+    final alreadyEnabled = await android.areNotificationsEnabled();
+    if (alreadyEnabled ?? false) return true;
+    if (_notificationPermissionRequested) return false;
+
+    _notificationPermissionRequested = true;
+    return await android.requestNotificationsPermission() ?? false;
   }
 
-  /// Request exact alarm permission on Android 12+ (API 31+).
-  /// On Android 14+ (API 34+), SCHEDULE_EXACT_ALARM is not granted by default.
-  Future<void> requestExactAlarmPermission() async {
-    if (_exactAlarmPermissionRequested) return;
+  /// Requests exact-alarm access when Android requires it.
+  ///
+  /// A false result is not fatal: [zonedSchedule] uses an inexact,
+  /// battery-friendly alarm instead so the reminder still arrives.
+  Future<bool> requestExactAlarmPermission() async {
+    final android = _android;
+    if (android == null) return true;
+
+    final alreadyAllowed = await android.canScheduleExactNotifications();
+    if (alreadyAllowed ?? false) return true;
+    if (_exactAlarmPermissionRequested) return false;
+
     _exactAlarmPermissionRequested = true;
-    final android =
-        _notifications
-            .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin
-            >();
-    if (android != null) {
-      try {
-        await android.requestExactAlarmsPermission();
-      } catch (_) {
-        // Method may not be available on older plugin versions; ignore.
-      }
+    try {
+      return await android.requestExactAlarmsPermission() ?? false;
+    } on PlatformException {
+      return false;
     }
   }
 
-  Future<void> cancel(int id) async {
-    await _notifications.cancel(id);
-  }
+  Future<void> cancel(int id) => _notifications.cancel(id);
 
   Future<void> cancelAll() => _notifications.cancelAll();
 
@@ -103,25 +211,14 @@ class NotificationService {
       for (final habit in habits) {
         final id = habit['id'] as int?;
         final reminder = habit['reminder_time'] as String?;
-        if (id == null || reminder == null) continue;
-        final parts = reminder.split(':');
-        if (parts.length != 2) continue;
-        final hour = int.tryParse(parts[0]);
-        final minute = int.tryParse(parts[1]);
-        if (hour == null || minute == null) continue;
+        final time = _parseTime(reminder);
+        if (id == null || time == null) continue;
         await zonedSchedule(
           1000 + id,
           'Habit Reminder: ${habit['name']}',
           'Time to complete your habit! Tap to log it.',
-          _nextDailyTime(hour, minute),
-          const NotificationDetails(
-            android: AndroidNotificationDetails(
-              'habits',
-              'Habit Reminders',
-              importance: Importance.high,
-              priority: Priority.high,
-            ),
-          ),
+          _nextDailyTime(time.$1, time.$2),
+          habitDetails,
           matchDateTimeComponents: DateTimeComponents.time,
         );
       }
@@ -131,34 +228,28 @@ class NotificationService {
 
     if (prefs.getBool('event_reminders_enabled') ?? true) {
       final today = DateTime.now();
+      final todayValue =
+          '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
       final events = await db.query(
         'calendar_events',
         where: 'date >= ?',
-        whereArgs: [
-          '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}',
-        ],
+        whereArgs: [todayValue],
       );
       for (final event in events) {
         final id = event['id'] as int?;
         final dateValue = event['date'] as String?;
-        if (id == null || dateValue == null) continue;
-        final date = DateTime.tryParse(dateValue);
-        if (date == null) continue;
-        final time = event['time'] as String?;
-        final parts = time?.split(':');
-        final hour = parts != null ? int.tryParse(parts[0]) : 9;
-        final minute =
-            parts != null && parts.length > 1 ? int.tryParse(parts[1]) : 0;
-        if (hour == null || minute == null) continue;
+        final date = DateTime.tryParse(dateValue ?? '');
+        if (id == null || date == null) continue;
+        final time = _parseTime(event['time'] as String?) ?? (9, 0);
         final scheduled = tz.TZDateTime(
           tz.local,
           date.year,
           date.month,
           date.day,
-          hour,
-          minute,
+          time.$1,
+          time.$2,
         );
-        if (scheduled.isBefore(tz.TZDateTime.now(tz.local))) continue;
+        if (!scheduled.isAfter(tz.TZDateTime.now(tz.local))) continue;
         final recurrenceComponents = switch (event['recurrence'] as String?) {
           'daily' => DateTimeComponents.time,
           'weekly' => DateTimeComponents.dayOfWeekAndTime,
@@ -170,16 +261,9 @@ class NotificationService {
           'Event Alert: ${event['title']}',
           (event['notes'] as String?)?.isNotEmpty == true
               ? event['notes'] as String
-              : 'Calendar Event Today',
+              : 'Calendar event reminder',
           scheduled,
-          const NotificationDetails(
-            android: AndroidNotificationDetails(
-              'calendar',
-              'Event Reminders',
-              importance: Importance.high,
-              priority: Priority.high,
-            ),
-          ),
+          eventDetails,
           matchDateTimeComponents: recurrenceComponents,
         );
       }
@@ -191,26 +275,35 @@ class NotificationService {
     for (final note in notes) {
       final id = note['id'] as int?;
       final reminderValue = note['reminder_time'] as String?;
-      if (id == null || reminderValue == null) continue;
-      final reminder = DateTime.tryParse(reminderValue);
-      if (reminder == null) continue;
+      final reminder = DateTime.tryParse(reminderValue ?? '');
+      if (id == null || reminder == null) continue;
       final scheduled = tz.TZDateTime.from(reminder, tz.local);
-      if (scheduled.isBefore(tz.TZDateTime.now(tz.local))) continue;
+      if (!scheduled.isAfter(tz.TZDateTime.now(tz.local))) continue;
       await zonedSchedule(
         5000 + id,
         'Note Reminder: ${note['title']}',
         (note['content'] as String?) ?? '',
         scheduled,
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'notes',
-            'Note Reminders',
-            importance: Importance.high,
-            priority: Priority.high,
-          ),
-        ),
+        noteDetails,
       );
     }
+  }
+
+  (int, int)? _parseTime(String? value) {
+    if (value == null) return null;
+    final parts = value.split(':');
+    if (parts.length != 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null ||
+        minute == null ||
+        hour < 0 ||
+        hour > 23 ||
+        minute < 0 ||
+        minute > 59) {
+      return null;
+    }
+    return (hour, minute);
   }
 
   tz.TZDateTime _nextDailyTime(int hour, int minute) {
@@ -223,12 +316,15 @@ class NotificationService {
       hour,
       minute,
     );
-    if (scheduled.isBefore(now)) {
+    if (!scheduled.isAfter(now)) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
     return scheduled;
   }
 
+  /// Schedules an exact alarm when allowed, otherwise a reliable inexact one.
+  /// Scheduling failures are caught so a platform error never reaches Flutter's
+  /// red error screen.
   Future<void> zonedSchedule(
     int id,
     String title,
@@ -242,8 +338,15 @@ class NotificationService {
         uiLocalNotificationDateInterpretation =
         UILocalNotificationDateInterpretation.absoluteTime,
   }) async {
-    await requestPermissions();
-    await requestExactAlarmPermission();
+    await initialize();
+    final notificationsAllowed = await requestPermissions();
+    if (!notificationsAllowed) return;
+
+    final exactAllowed = await requestExactAlarmPermission();
+    final scheduleMode =
+        exactAllowed
+            ? androidScheduleMode
+            : AndroidScheduleMode.inexactAllowWhileIdle;
     try {
       await _notifications.zonedSchedule(
         id,
@@ -251,14 +354,15 @@ class NotificationService {
         body,
         scheduledDate,
         details,
-        androidScheduleMode: androidScheduleMode,
+        androidScheduleMode: scheduleMode,
         matchDateTimeComponents: matchDateTimeComponents,
         uiLocalNotificationDateInterpretation:
             uiLocalNotificationDateInterpretation,
       );
-    } catch (e) {
-      // If exact alarm scheduling fails (e.g., permission denied on Android 14+),
-      // try again with inexact scheduling as a fallback.
+    } on PlatformException {
+      // A manufacturer may still reject an exact alarm after permission has
+      // changed. Preserve the reminder with the inexact scheduler.
+      if (scheduleMode == AndroidScheduleMode.inexactAllowWhileIdle) return;
       try {
         await _notifications.zonedSchedule(
           id,
@@ -271,8 +375,8 @@ class NotificationService {
           uiLocalNotificationDateInterpretation:
               uiLocalNotificationDateInterpretation,
         );
-      } catch (_) {
-        // Scheduling failed entirely; silently ignore to avoid crashing the app.
+      } on PlatformException {
+        // The app remains usable; the next save or app launch retries it.
       }
     }
   }

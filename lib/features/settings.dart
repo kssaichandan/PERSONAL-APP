@@ -7,7 +7,6 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import '../database.dart';
 import '../utils/snackbar_utils.dart';
@@ -388,18 +387,19 @@ class _NotificationsSection extends StatelessWidget {
               value: settings.notificationsEnabled,
               onChanged: (value) async {
                 if (value) {
-                  final status = await Permission.notification.request();
-                  if (status.isDenied || status.isPermanentlyDenied) {
+                  final granted =
+                      await settings.requestNotificationPermissions();
+                  if (!granted) {
                     if (context.mounted) {
                       showErrorSnackBar(
                         context,
-                        'Notification permission denied. Enable in system settings.',
+                        'Notifications are blocked. Enable them in your phone settings.',
                       );
                     }
                     return;
                   }
                 }
-                settings.setNotificationsEnabled(value);
+                await settings.setNotificationsEnabled(value);
               },
             ),
             SwitchListTile(

@@ -7,7 +7,6 @@ import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../database.dart';
 import '../services/notification_service.dart';
 import '../utils/text_utils.dart';
@@ -360,14 +359,7 @@ class NotesProvider extends ChangeNotifier {
         'Note Reminder: ${note.title}',
         deltaToPlainText(note.content),
         scheduled,
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'notes',
-            'Note Reminders',
-            importance: Importance.high,
-            priority: Priority.high,
-          ),
-        ),
+        NotificationService.noteDetails,
       );
     } catch (e) {
       debugLog('Failed to schedule note reminder: $e');

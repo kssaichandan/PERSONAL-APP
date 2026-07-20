@@ -251,14 +251,7 @@ class CalendarProvider extends ChangeNotifier {
         'Event Alert: ${event.title}',
         event.notes.isEmpty ? 'Calendar Event Today' : event.notes,
         scheduled,
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'calendar',
-            'Event Reminders',
-            importance: Importance.high,
-            priority: Priority.high,
-          ),
-        ),
+        NotificationService.eventDetails,
         matchDateTimeComponents: recurrenceComponents,
       );
     } catch (_) {}

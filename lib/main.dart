@@ -20,16 +20,13 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   await AppDatabase.instance.database;
   final notificationService = NotificationService();
-  await notificationService.initialize();
   try {
+    await notificationService.initialize();
     await notificationService.rescheduleStoredNotifications();
   } catch (_) {
     // Notification setup must never prevent the app from opening.
   }
-  runApp(PersonalApp(
-    notificationService: notificationService,
-    prefs: prefs,
-  ));
+  runApp(PersonalApp(notificationService: notificationService, prefs: prefs));
 }
 
 class PersonalApp extends StatelessWidget {
@@ -89,9 +86,10 @@ class PersonalApp extends StatelessWidget {
               brightness: Brightness.dark,
             ),
             themeMode: settings.themeMode,
-            home: prefs.getBool('onboarding_complete_v1') ?? false
-                ? const MainScreen()
-                : const OnboardingScreen(),
+            home:
+                prefs.getBool('onboarding_complete_v1') ?? false
+                    ? const MainScreen()
+                    : const OnboardingScreen(),
           );
         },
       ),
@@ -185,7 +183,7 @@ class _MainScreenState extends State<MainScreen> {
                     selectedIndex: _tab,
                     onDestinationSelected: (i) => setState(() => _tab = i),
                     labelBehavior:
-                    NavigationDestinationLabelBehavior.onlyShowSelected,
+                        NavigationDestinationLabelBehavior.onlyShowSelected,
                     destinations: destinations,
                   ),
         );
