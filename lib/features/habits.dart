@@ -1610,14 +1610,12 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                       context.read<HabitsProvider>();
                                   final name = titleCtrl.text.trim();
                                   Navigator.pop(ctx);
-                                  Future.microtask(() {
-                                    provider.saveHabit(
-                                      name,
-                                      selectedIcon,
-                                      selectedColor,
-                                      null,
-                                    );
-                                  });
+                                  provider.saveHabit(
+                                    name,
+                                    selectedIcon,
+                                    selectedColor,
+                                    null,
+                                  );
                                 }
                               },
                             ),
@@ -1903,15 +1901,13 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                   if (titleCtrl.text.trim().isNotEmpty) {
                                     final name = titleCtrl.text.trim();
                                     Navigator.pop(ctx);
-                                    Future.microtask(() {
-                                      provider.updateHabit(
-                                        habit.id!,
-                                        name,
-                                        selectedIcon,
-                                        selectedColor,
-                                        selectedReminder,
-                                      );
-                                    });
+                                    provider.updateHabit(
+                                      habit.id!,
+                                      name,
+                                      selectedIcon,
+                                      selectedColor,
+                                      selectedReminder,
+                                    );
                                   }
                                 },
                                 child: const Text('Save'),

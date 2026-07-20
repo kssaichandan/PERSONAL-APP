@@ -63,8 +63,9 @@ class PersonalApp extends StatelessWidget {
               ),
         ),
       ],
-      child: Consumer<SettingsProvider>(
-        builder: (context, settings, _) {
+      child: Selector<SettingsProvider, (ThemeMode, Color)>(
+        selector: (_, s) => (s.themeMode, s.colorSeed),
+        builder: (context, theme, _) {
           return MaterialApp(
             scaffoldMessengerKey: scaffoldMessengerKey,
             title: 'Personal App',
@@ -76,16 +77,16 @@ class PersonalApp extends StatelessWidget {
             ],
             supportedLocales: const [Locale('en')],
             theme: ThemeData(
-              colorSchemeSeed: settings.colorSeed,
+              colorSchemeSeed: theme.$2,
               useMaterial3: true,
               brightness: Brightness.light,
             ),
             darkTheme: ThemeData(
-              colorSchemeSeed: settings.colorSeed,
+              colorSchemeSeed: theme.$2,
               useMaterial3: true,
               brightness: Brightness.dark,
             ),
-            themeMode: settings.themeMode,
+            themeMode: theme.$1,
             home:
                 prefs.getBool('onboarding_complete_v1') ?? false
                     ? const MainScreen()

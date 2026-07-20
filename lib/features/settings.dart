@@ -597,14 +597,24 @@ class _DataSectionState extends State<_DataSection> {
 
       if (context.mounted) {
         context.read<NotesProvider>().load();
+      }
+      if (context.mounted) {
         context.read<CalendarProvider>().load();
+      }
+      if (context.mounted) {
         context.read<CalculatorProvider>().loadHistory();
+      }
+      if (context.mounted) {
         context.read<HabitsProvider>().load();
+      }
+      if (context.mounted) {
         context.read<LifeProvider>().loadDOB();
+      }
+      if (context.mounted) {
         await context.read<SettingsProvider>().reload();
-        if (context.mounted) {
-          showSuccessSnackBar(context, 'Data imported successfully');
-        }
+      }
+      if (context.mounted) {
+        showSuccessSnackBar(context, 'Data imported successfully');
       }
     } catch (e) {
       setState(() => _loading = false);
@@ -704,14 +714,24 @@ class _DataSectionState extends State<_DataSection> {
 
       if (context.mounted) {
         context.read<NotesProvider>().load();
+      }
+      if (context.mounted) {
         context.read<CalendarProvider>().load();
+      }
+      if (context.mounted) {
         context.read<CalculatorProvider>().loadHistory();
+      }
+      if (context.mounted) {
         context.read<HabitsProvider>().load();
+      }
+      if (context.mounted) {
         context.read<LifeProvider>().loadDOB();
+      }
+      if (context.mounted) {
         await context.read<SettingsProvider>().reload();
-        if (context.mounted) {
-          showSuccessSnackBar(context, 'All data cleared');
-        }
+      }
+      if (context.mounted) {
+        showSuccessSnackBar(context, 'All data cleared');
       }
     } catch (e) {
       setState(() => _loading = false);

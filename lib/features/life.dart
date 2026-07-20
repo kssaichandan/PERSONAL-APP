@@ -30,7 +30,6 @@ class LifeProvider extends ChangeNotifier {
     } catch (_) {
       _biometricsAvailable = false;
     }
-    notifyListeners();
   }
 
   Future<void> _loadLifeExpectancy() async {
@@ -45,7 +44,6 @@ class LifeProvider extends ChangeNotifier {
         _lifeExpectancy = int.parse(maps.first['value'] as String);
       }
     } catch (_) {}
-    notifyListeners();
   }
 
   Future<void> _loadBiometricSetting() async {
@@ -60,7 +58,6 @@ class LifeProvider extends ChangeNotifier {
         _biometricEnabled = maps.first['value'] == 'true';
       }
     } catch (_) {}
-    notifyListeners();
   }
 
   Future<void> setLifeExpectancy(int years, [BuildContext? context]) async {
