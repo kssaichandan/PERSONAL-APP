@@ -3,7 +3,7 @@
 
 | Platform | Link |
 |---|---|
-| Android APK | [Download latest APK](https://github.com/kssaichandan/PERSONAL-APP/actions/workflows/build-apk.yaml) → select latest run → download **app-debug-apk** |
+| Android APK | [Download latest APK](https://github.com/kssaichandan/PERSONAL-APP/releases/latest) |
 | Source code | [github.com/kssaichandan/PERSONAL-APP](https://github.com/kssaichandan/PERSONAL-APP) |
 
 ## Features
