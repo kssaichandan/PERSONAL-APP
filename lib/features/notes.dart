@@ -1106,7 +1106,8 @@ class NoteEditorScreen extends StatefulWidget {
   State<NoteEditorScreen> createState() => _NoteEditorScreenState();
 }
 
-class _NoteEditorScreenState extends State<NoteEditorScreen> {
+class _NoteEditorScreenState extends State<NoteEditorScreen>
+    with WidgetsBindingObserver {
   late QuillController _controller;
   late TextEditingController _titleController;
   bool _saving = false;
@@ -1116,6 +1117,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _editingNote = widget.note;
     _titleController = TextEditingController(text: _editingNote?.title ?? '');
     if (_editingNote != null && _editingNote!.content.isNotEmpty) {
@@ -1135,9 +1137,17 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _titleController.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused && !_saving) {
+      _save();
+    }
   }
 
   Future<void> _updateNote(Note Function(Note) updater) async {
@@ -1176,15 +1186,14 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       updatedAt: DateTime.now(),
     );
     final id = await widget.provider.save(note);
-    if (mounted) {
-      setState(() {
-        _editingNote = note.copyWith(id: id);
-        _saving = false;
-        _isExiting = true;
-      });
-      showSuccessSnackBar(context, 'Note saved');
-      Navigator.pop(context);
-    }
+    if (!mounted) return;
+    setState(() {
+      _editingNote = note.copyWith(id: id);
+      _saving = false;
+      _isExiting = true;
+    });
+    showSuccessSnackBar(context, 'Note saved');
+    Navigator.pop(context);
   }
 
   void _share() {

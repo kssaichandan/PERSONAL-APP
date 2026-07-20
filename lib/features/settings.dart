@@ -525,9 +525,8 @@ class _DataSectionState extends State<_DataSection> {
             'Personal App Backup - ${DateFormat('yyyy-MM-dd').format(DateTime.now())}',
       );
 
-      if (context.mounted) {
-        showSuccessSnackBar(context, 'Data exported successfully');
-      }
+      if (!mounted) return;
+      showSuccessSnackBar(context, 'Data exported successfully');
     } catch (e) {
       setState(() => _loading = false);
       debugLog('Export failed: $e');
@@ -595,27 +594,15 @@ class _DataSectionState extends State<_DataSection> {
 
       setState(() => _loading = false);
 
-      if (context.mounted) {
-        context.read<NotesProvider>().load();
-      }
-      if (context.mounted) {
-        context.read<CalendarProvider>().load();
-      }
-      if (context.mounted) {
-        context.read<CalculatorProvider>().loadHistory();
-      }
-      if (context.mounted) {
-        context.read<HabitsProvider>().load();
-      }
-      if (context.mounted) {
-        context.read<LifeProvider>().loadDOB();
-      }
-      if (context.mounted) {
-        await context.read<SettingsProvider>().reload();
-      }
-      if (context.mounted) {
-        showSuccessSnackBar(context, 'Data imported successfully');
-      }
+      if (!mounted) return;
+      context.read<NotesProvider>().load();
+      if (mounted) context.read<CalendarProvider>().load();
+      if (mounted) context.read<CalculatorProvider>().loadHistory();
+      if (mounted) context.read<HabitsProvider>().load();
+      if (mounted) context.read<LifeProvider>().loadDOB();
+      if (mounted) await context.read<SettingsProvider>().reload();
+      if (!mounted) return;
+      showSuccessSnackBar(context, 'Data imported successfully');
     } catch (e) {
       setState(() => _loading = false);
       debugLog('Import failed: $e');

@@ -484,6 +484,7 @@ class HabitsProvider extends ChangeNotifier {
   Future<void> deleteHabit(int id, [BuildContext? context]) async {
     try {
       final db = await AppDatabase.instance.database;
+      await db.delete('habit_logs', where: 'habit_id = ?', whereArgs: [id]);
       await db.delete('habits', where: 'id = ?', whereArgs: [id]);
       await _notificationService.cancel(1000 + id);
       if (context != null && context.mounted) {
@@ -623,6 +624,7 @@ class HabitsProvider extends ChangeNotifier {
     try {
       final db = await AppDatabase.instance.database;
       for (final id in ids) {
+        await db.delete('habit_logs', where: 'habit_id = ?', whereArgs: [id]);
         await db.delete('habits', where: 'id = ?', whereArgs: [id]);
         await _notificationService.cancel(1000 + id);
       }

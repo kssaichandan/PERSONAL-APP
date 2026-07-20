@@ -217,8 +217,10 @@ class CalendarProvider extends ChangeNotifier {
     DateTime? alertTime;
     if (event.time != null) {
       final parts = event.time!.split(':');
-      final hour = int.parse(parts[0]);
-      final minute = int.parse(parts[1]);
+      if (parts.length != 2) return;
+      final hour = int.tryParse(parts[0]);
+      final minute = int.tryParse(parts[1]);
+      if (hour == null || minute == null) return;
       alertTime = DateTime(
         event.date.year,
         event.date.month,
@@ -858,7 +860,8 @@ class _EventEditorState extends State<EventEditor> {
       recurrenceEnd: widget.event?.recurrenceEnd,
     );
     await provider.save(event);
-    if (mounted) Navigator.pop(context);
+    if (!mounted) return;
+    Navigator.pop(context);
   }
 
   @override
