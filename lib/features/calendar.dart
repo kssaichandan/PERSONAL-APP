@@ -796,7 +796,7 @@ class _EventEditorState extends State<EventEditor> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2035),
     );
-    if (picked != null) setState(() => _date = picked);
+    if (picked != null && mounted) setState(() => _date = picked);
   }
 
   Future<void> _pickTime() async {
@@ -804,7 +804,7 @@ class _EventEditorState extends State<EventEditor> {
       context: context,
       initialTime: _time ?? TimeOfDay.now(),
     );
-    if (picked != null) setState(() => _time = picked);
+    if (picked != null && mounted) setState(() => _time = picked);
   }
 
   bool _hasUnsavedChanges() {
