@@ -114,18 +114,19 @@ String _wordCount(String deltaJson) {
 
 const _noteColors = <int?>[
   null,
-  0xFFFDDDE6,
-  0xFFFFF3E0,
-  0xFFFFF9C4,
-  0xFFC8E6C9,
   0xFFBBDEFB,
-  0xFFE1BEE7,
-  0xFFD7CCC8,
-  0xFFCFD8DC,
-  0xFFFFCCBC,
-  0xFFDCEDC8,
+  0xFFB3E5FC,
   0xFFB2EBF2,
+  0xFFB2DFDB,
+  0xFFC8E6C9,
   0xFFF0F4C3,
+  0xFFFFF9C4,
+  0xFFFFF3E0,
+  0xFFFFCCBC,
+  0xFFF8BBD0,
+  0xFFE1BEE7,
+  0xFFD1C4E9,
+  0xFFCFD8DC,
 ];
 
 class NotesProvider extends ChangeNotifier {
@@ -1253,47 +1254,84 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children:
-                      _noteColors.map((c) {
-                        final selected = _editingNote?.color == c;
-                        return Semantics(
-                          label: c != null ? 'Color $c' : 'No color',
-                          button: true,
-                          child: GestureDetector(
-                            onTap: () async {
-                              await _updateNote((n) => n.copyWith(color: c));
-                              if (mounted) Navigator.pop(context);
-                            },
-                            child: Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color:
-                                    c != null
-                                        ? Color(c).withValues(alpha: 0.5)
-                                        : theme
-                                            .colorScheme
-                                            .surfaceContainerHighest,
-                                borderRadius: BorderRadius.circular(8),
-                                border:
-                                    selected
-                                        ? Border.all(
-                                          color:
-                                              Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
-                                          width: 3,
-                                        )
-                                        : null,
-                              ),
-                              child:
-                                  c == null
-                                      ? const Icon(Icons.block, size: 20)
+                  children: [
+                    ..._noteColors.map((c) {
+                      final selected = _editingNote?.color == c;
+                      return Semantics(
+                        label: c != null ? 'Color $c' : 'No color',
+                        button: true,
+                        child: GestureDetector(
+                          onTap: () async {
+                            await _updateNote((n) => n.copyWith(color: c));
+                            if (mounted) Navigator.pop(context);
+                          },
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color:
+                                  c != null
+                                      ? Color(c).withValues(alpha: 0.5)
+                                      : theme
+                                          .colorScheme
+                                          .surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(8),
+                              border:
+                                  selected
+                                      ? Border.all(
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                        width: 3,
+                                      )
                                       : null,
                             ),
+                            child:
+                                c == null
+                                    ? const Icon(Icons.block, size: 20)
+                                    : null,
+                          ),
+                        ),
+                      );
+                    }),
+                    GestureDetector(
+                      onTap: () async {
+                        final color = await showDialog<Color>(
+                          context: context,
+                          builder: (ctx) => _NoteCustomColorPicker(
+                            initialColor: _editingNote?.color != null
+                                ? Color(_editingNote!.color!)
+                                : theme.colorScheme.primary,
                           ),
                         );
-                      }).toList(),
+                        if (color != null && mounted) {
+                          await _updateNote(
+                            (n) => n.copyWith(color: color.toARGB32()),
+                          );
+                          if (mounted) Navigator.pop(context);
+                        }
+                      },
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: theme.colorScheme.outline,
+                            width: 2,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.palette_outlined,
+                          color: theme.colorScheme.onSurfaceVariant,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
               ],
@@ -1556,4 +1594,132 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
   }
 
   ThemeData get theme => Theme.of(context);
+}
+
+class _NoteCustomColorPicker extends StatefulWidget {
+  final Color initialColor;
+  const _NoteCustomColorPicker({required this.initialColor});
+
+  @override
+  State<_NoteCustomColorPicker> createState() => _NoteCustomColorPickerState();
+}
+
+class _NoteCustomColorPickerState extends State<_NoteCustomColorPicker> {
+  late HSVColor _hsv;
+  final _hexController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _hsv = HSVColor.fromColor(widget.initialColor);
+    _hexController.text = widget.initialColor.toARGB32().toRadixString(16).substring(2).toUpperCase();
+  }
+
+  @override
+  void dispose() {
+    _hexController.dispose();
+    super.dispose();
+  }
+
+  void _updateFromHSV(HSVColor hsv) {
+    setState(() {
+      _hsv = hsv;
+      final hex = hsv.toColor().toARGB32().toRadixString(16).substring(2).toUpperCase();
+      _hexController.text = hex;
+    });
+  }
+
+  void _updateFromHex(String hex) {
+    if (hex.length == 6) {
+      final value = int.tryParse(hex, radix: 16);
+      if (value != null) {
+        final color = Color(0xFF000000 | value);
+        setState(() {
+          _hsv = HSVColor.fromColor(color);
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _hsv.toColor();
+    final theme = Theme.of(context);
+    return Dialog(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Pick a Color',
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              height: 50,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: theme.colorScheme.outline, width: 2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Slider(
+              value: _hsv.hue,
+              min: 0,
+              max: 360,
+              onChanged: (v) => _updateFromHSV(_hsv.withHue(v)),
+              activeColor: color,
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: theme.colorScheme.outline),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _hexController,
+                    decoration: InputDecoration(
+                      hintText: 'HEX',
+                      prefixText: '#',
+                      border: const OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
+                    onChanged: _updateFromHex,
+                    onSubmitted: (_) => Navigator.pop(context, color),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, color),
+                  child: const Text('Select'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

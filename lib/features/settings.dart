@@ -213,24 +213,22 @@ class _AppearanceSection extends StatelessWidget {
   void _showColorPicker(BuildContext context, SettingsProvider settings) {
     final theme = Theme.of(context);
     final colors = [
-      Colors.deepPurple,
-      Colors.purple,
       Colors.blue,
-      Colors.lightBlue,
+      Colors.indigo,
       Colors.teal,
+      Colors.cyan,
       Colors.green,
       Colors.lightGreen,
-      Colors.lime,
-      Colors.yellow,
       Colors.amber,
       Colors.orange,
       Colors.deepOrange,
       Colors.red,
       Colors.pink,
-      Colors.indigo,
-      Colors.cyan,
+      Colors.purple,
+      Colors.deepPurple,
       Colors.brown,
       Colors.blueGrey,
+      Colors.lightBlue,
     ];
     showModalBottomSheet(
       context: context,
@@ -280,10 +278,10 @@ class _AppearanceSection extends StatelessWidget {
                       style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                     subtitle: const Text(
-                      'Reset to system default purple accent',
+                      'Reset to default blue accent',
                     ),
                     onTap: () {
-                      settings.setColorSeed(Colors.deepPurple);
+                      settings.setColorSeed(Colors.blue);
                       Navigator.pop(ctx);
                     },
                   ),
@@ -292,7 +290,7 @@ class _AppearanceSection extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Text(
-                    'Custom Palette',
+                    'Color Palette',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.outline,
                       fontWeight: FontWeight.bold,
@@ -303,7 +301,7 @@ class _AppearanceSection extends StatelessWidget {
                 Flexible(
                   child: GridView.builder(
                     shrinkWrap: true,
-                    itemCount: colors.length,
+                    itemCount: colors.length + 1,
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 6,
@@ -311,6 +309,39 @@ class _AppearanceSection extends StatelessWidget {
                           crossAxisSpacing: 12,
                         ),
                     itemBuilder: (ctx, index) {
+                      if (index == colors.length) {
+                        return GestureDetector(
+                          onTap: () async {
+                            final color = await showDialog<Color>(
+                              context: context,
+                              builder: (ctx) => _CustomColorPicker(
+                                initialColor: settings.colorSeed,
+                              ),
+                            );
+                            if (color != null && context.mounted) {
+                              settings.setColorSeed(color);
+                              Navigator.pop(ctx);
+                            }
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme
+                                  .surfaceContainerHighest
+                                  .withValues(alpha: 0.5),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: theme.colorScheme.outline,
+                                width: 2,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.palette_outlined,
+                              color: theme.colorScheme.onSurfaceVariant,
+                              size: 20,
+                            ),
+                          ),
+                        );
+                      }
                       final color = colors[index];
                       final isSelected = settings.colorSeed == color;
                       return GestureDetector(
@@ -362,6 +393,189 @@ class _AppearanceSection extends StatelessWidget {
           ),
     );
   }
+}
+
+class _CustomColorPicker extends StatefulWidget {
+  final Color initialColor;
+  const _CustomColorPicker({required this.initialColor});
+
+  @override
+  State<_CustomColorPicker> createState() => _CustomColorPickerState();
+}
+
+class _CustomColorPickerState extends State<_CustomColorPicker> {
+  late HSVColor _hsv;
+  final _hexController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _hsv = HSVColor.fromColor(widget.initialColor);
+    _hexController.text = widget.initialColor.toARGB32().toRadixString(16).substring(2).toUpperCase();
+  }
+
+  @override
+  void dispose() {
+    _hexController.dispose();
+    super.dispose();
+  }
+
+  void _updateFromHSV(HSVColor hsv) {
+    setState(() {
+      _hsv = hsv;
+      final hex = hsv.toColor().toARGB32().toRadixString(16).substring(2).toUpperCase();
+      _hexController.text = hex;
+    });
+  }
+
+  void _updateFromHex(String hex) {
+    if (hex.length == 6) {
+      final value = int.tryParse(hex, radix: 16);
+      if (value != null) {
+        final color = Color(0xFF000000 | value);
+        setState(() {
+          _hsv = HSVColor.fromColor(color);
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _hsv.toColor();
+    final theme = Theme.of(context);
+    return Dialog(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Pick a Color',
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              height: 160,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: theme.colorScheme.outline, width: 2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // SV picker
+            GestureDetector(
+              onPanUpdate: (details) {
+                final box = context.findRenderObject() as RenderBox?;
+                if (box == null) return;
+                final offset = details.localPosition;
+                final dx = (offset.dx / (box.size.width - 40)).clamp(0.0, 1.0);
+                final dy = (offset.dy / 200).clamp(0.0, 1.0);
+                _updateFromHSV(_hsv.withSaturation(dx).withValue(1.0 - dy));
+              },
+              child: Container(
+                width: double.infinity,
+                height: 160,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white,
+                      HSVColor.fromAHSV(1, _hsv.hue, 1, 1).toColor(),
+                    ],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                ),
+                child: CustomPaint(
+                  painter: _SVOverlayPainter(_hsv.hue),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Hue slider
+            Slider(
+              value: _hsv.hue,
+              min: 0,
+              max: 360,
+              onChanged: (v) => _updateFromHSV(_hsv.withHue(v)),
+              activeColor: color,
+            ),
+            const SizedBox(height: 8),
+            // Hex input
+            Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: theme.colorScheme.outline),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _hexController,
+                    decoration: InputDecoration(
+                      hintText: 'HEX',
+                      prefixText: '#',
+                      border: const OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
+                    onChanged: _updateFromHex,
+                    onSubmitted: (_) => Navigator.pop(context, color),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, color),
+                  child: const Text('Select'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SVOverlayPainter extends CustomPainter {
+  final double hue;
+  _SVOverlayPainter(this.hue);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Draw grid lines for visual reference
+    final paint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.08)
+      ..strokeWidth = 0.5;
+
+    for (double i = 0; i <= 10; i++) {
+      final x = size.width * i / 10;
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+      final y = size.height * i / 10;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SVOverlayPainter old) => old.hue != hue;
 }
 
 class _NotificationsSection extends StatelessWidget {

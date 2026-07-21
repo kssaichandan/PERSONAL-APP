@@ -12,7 +12,7 @@ import '../utils/snackbar_utils.dart';
 // Constants — Icon Map (55 icons), Categories, Color Presets
 // =============================================================================
 
-const int _defaultHabitColor = 0xFF6750A4;
+const int _defaultHabitColor = 0xFF1E88E5;
 
 IconData _getIconData(String name) {
   switch (name) {
@@ -267,18 +267,18 @@ const Map<String, List<String>> _iconCategories = {
 };
 
 const List<int> _colorPresets = [
-  0xFF6750A4,
-  0xFFE53935,
-  0xFFFF6D00,
-  0xFFF9A825,
-  0xFF43A047,
-  0xFF00ACC1,
   0xFF1E88E5,
-  0xFF8E24AA,
-  0xFFD81B60,
-  0xFF6D4C41,
-  0xFF546E7A,
+  0xFF1565C0,
+  0xFF0097A7,
   0xFF00897B,
+  0xFF43A047,
+  0xFF7CB342,
+  0xFFFDD835,
+  0xFFFFB300,
+  0xFFFF8F00,
+  0xFFE53935,
+  0xFFD81B60,
+  0xFF8E24AA,
 ];
 
 // =============================================================================
@@ -1484,9 +1484,9 @@ class _HabitsScreenState extends State<HabitsScreen> {
   ) {
     final suggestions = [
       {'name': 'Read', 'icon': 'book', 'color': 0xFF1E88E5},
-      {'name': 'Meditate', 'icon': 'self_improvement', 'color': 0xFF6750A4},
+      {'name': 'Meditate', 'icon': 'self_improvement', 'color': 0xFF7CB342},
       {'name': 'Walk', 'icon': 'directions_run', 'color': 0xFF43A047},
-      {'name': 'Drink Water', 'icon': 'water_drop', 'color': 0xFF00ACC1},
+      {'name': 'Drink Water', 'icon': 'water_drop', 'color': 0xFF0097A7},
     ];
 
     return Center(
@@ -2778,49 +2778,208 @@ class _ColorPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Wrap(
       spacing: 10,
       runSpacing: 10,
-      children:
-          _colorPresets.map((color) {
-            final isSelected = selectedColor == color;
-            return GestureDetector(
-              onTap: () => onColorSelected(color),
-              child: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Color(color),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color:
-                        isSelected
-                            ? Theme.of(context).colorScheme.onSurface
-                            : Colors.transparent,
-                    width: isSelected ? 3 : 0,
-                  ),
-                  boxShadow:
+      children: [
+        ..._colorPresets.map((color) {
+          final isSelected = selectedColor == color;
+          return GestureDetector(
+            onTap: () => onColorSelected(color),
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Color(color),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color:
                       isSelected
-                          ? [
-                            BoxShadow(
-                              color: Color(color).withValues(alpha: 0.4),
-                              blurRadius: 6,
-                              spreadRadius: 1,
-                            ),
-                          ]
-                          : null,
+                          ? theme.colorScheme.onSurface
+                          : Colors.transparent,
+                  width: isSelected ? 3 : 0,
                 ),
-                child:
+                boxShadow:
                     isSelected
-                        ? const Icon(
-                          Icons.check_rounded,
-                          color: Colors.white,
-                          size: 18,
-                        )
+                        ? [
+                          BoxShadow(
+                            color: Color(color).withValues(alpha: 0.4),
+                            blurRadius: 6,
+                            spreadRadius: 1,
+                          ),
+                        ]
                         : null,
               ),
+              child:
+                  isSelected
+                      ? const Icon(
+                        Icons.check_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      )
+                      : null,
+            ),
+          );
+        }),
+        GestureDetector(
+          onTap: () async {
+            final color = await showDialog<Color>(
+              context: context,
+              builder: (ctx) => _CustomColorDialog(
+                initialColor: Color(selectedColor),
+              ),
             );
-          }          ).toList(),
+            if (color != null) {
+              onColorSelected(color.toARGB32());
+            }
+          },
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              shape: BoxShape.circle,
+              border: Border.all(color: theme.colorScheme.outline, width: 2),
+            ),
+            child: Icon(
+              Icons.palette_outlined,
+              color: theme.colorScheme.onSurfaceVariant,
+              size: 20,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CustomColorDialog extends StatefulWidget {
+  final Color initialColor;
+  const _CustomColorDialog({required this.initialColor});
+
+  @override
+  State<_CustomColorDialog> createState() => _CustomColorDialogState();
+}
+
+class _CustomColorDialogState extends State<_CustomColorDialog> {
+  late HSVColor _hsv;
+  final _hexController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _hsv = HSVColor.fromColor(widget.initialColor);
+    _hexController.text = widget.initialColor.toARGB32().toRadixString(16).substring(2).toUpperCase();
+  }
+
+  @override
+  void dispose() {
+    _hexController.dispose();
+    super.dispose();
+  }
+
+  void _updateFromHSV(HSVColor hsv) {
+    setState(() {
+      _hsv = hsv;
+      final hex = hsv.toColor().toARGB32().toRadixString(16).substring(2).toUpperCase();
+      _hexController.text = hex;
+    });
+  }
+
+  void _updateFromHex(String hex) {
+    if (hex.length == 6) {
+      final value = int.tryParse(hex, radix: 16);
+      if (value != null) {
+        final color = Color(0xFF000000 | value);
+        setState(() {
+          _hsv = HSVColor.fromColor(color);
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _hsv.toColor();
+    final theme = Theme.of(context);
+    return Dialog(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Pick a Color',
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              height: 50,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: theme.colorScheme.outline, width: 2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Hue slider
+            Slider(
+              value: _hsv.hue,
+              min: 0,
+              max: 360,
+              onChanged: (v) => _updateFromHSV(_hsv.withHue(v)),
+              activeColor: color,
+            ),
+            const SizedBox(height: 8),
+            // Hex input
+            Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: theme.colorScheme.outline),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _hexController,
+                    decoration: InputDecoration(
+                      hintText: 'HEX',
+                      prefixText: '#',
+                      border: const OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
+                    onChanged: _updateFromHex,
+                    onSubmitted: (_) => Navigator.pop(context, color),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, color),
+                  child: const Text('Select'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

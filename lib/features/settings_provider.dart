@@ -6,7 +6,7 @@ import '../utils/snackbar_utils.dart';
 class SettingsProvider extends ChangeNotifier {
   final NotificationService? _notificationService;
   ThemeMode _themeMode = ThemeMode.system;
-  Color _colorSeed = Colors.deepPurple;
+  Color _colorSeed = Colors.blue;
   bool _notificationsEnabled = true;
   bool _habitRemindersEnabled = true;
   bool _eventRemindersEnabled = true;
@@ -38,7 +38,7 @@ class SettingsProvider extends ChangeNotifier {
         prefs.getString('theme_mode') ?? 'system',
       );
       final colorSeedValue =
-          prefs.getInt('color_seed') ?? Colors.deepPurple.toARGB32();
+          prefs.getInt('color_seed') ?? Colors.blue.toARGB32();
       _colorSeed = Color(colorSeedValue);
       _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
       _habitRemindersEnabled = prefs.getBool('habit_reminders_enabled') ?? true;
@@ -192,7 +192,7 @@ class SettingsProvider extends ChangeNotifier {
 
   Future<void> resetToDefaults() async {
     _themeMode = ThemeMode.system;
-    _colorSeed = Colors.deepPurple;
+    _colorSeed = Colors.blue;
     _notificationsEnabled = true;
     _habitRemindersEnabled = true;
     _eventRemindersEnabled = true;
