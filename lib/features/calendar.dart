@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -7,9 +8,22 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../database.dart';
 import 'settings_provider.dart';
 import '../services/notification_service.dart';
-import '../utils/snackbar_utils.dart';
+
 
 const _calendarCategories = ['General', 'Work', 'Personal', 'Urgent'];
+const _recurrenceOptions = ['none', 'daily', 'weekly', 'monthly'];
+const _recurrenceLabels = ['None', 'Daily', 'Weekly', 'Monthly'];
+const int _maxTitleLength = 80;
+const int _maxNotesLength = 300;
+
+Color _categoryColor(String category, ThemeData theme) {
+  return switch (category) {
+    'Work' => Colors.blue,
+    'Personal' => Colors.green,
+    'Urgent' => Colors.red,
+    _ => theme.colorScheme.primary,
+  };
+}
 
 class CalendarEvent {
   final int? id;
@@ -461,11 +475,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'calendar_fab',
-        tooltip: 'Add event',
-        child: const Icon(Icons.add),
-        onPressed: () => _showEventEditor(context),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: FloatingActionButton(
+          heroTag: 'calendar_fab',
+          tooltip: 'Add event',
+          child: const Icon(Icons.add),
+          onPressed: () {
+            HapticFeedback.selectionClick();
+            _showEventEditor(context);
+          },
+        ),
       ),
     );
   }
@@ -474,7 +494,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => EventEditor(event: event),
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: EventEditor(event: event),
+      ),
     );
   }
 }
@@ -561,7 +586,9 @@ class _MonthGrid extends StatelessWidget {
           0,
         ).day;
     final startWeekday =
-        weekStartsMonday ? first.weekday : (first.weekday % 7) + 1;
+        weekStartsMonday
+            ? first.weekday
+            : ((first.weekday == 7) ? 1 : first.weekday + 1);
     final today = DateTime.now();
 
     final cells = <Widget>[];
@@ -574,7 +601,8 @@ class _MonthGrid extends StatelessWidget {
         provider.currentMonth.month,
         day,
       );
-      final hasEvent = provider.eventsForDay(date).isNotEmpty;
+      final events = provider.eventsForDay(date);
+      final hasEvent = events.isNotEmpty;
       final isToday =
           date.year == today.year &&
           date.month == today.month &&
@@ -585,7 +613,10 @@ class _MonthGrid extends StatelessWidget {
           label:
               '${DateFormat('EEEE, MMMM d').format(date)}${hasEvent ? ', has events' : ''}',
           child: GestureDetector(
-            onTap: () => _showDayEvents(context, date, provider),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              _showDayEvents(context, date, provider);
+            },
             behavior: HitTestBehavior.opaque,
             child: Padding(
               padding: const EdgeInsets.all(2),
@@ -606,14 +637,64 @@ class _MonthGrid extends StatelessWidget {
                         ),
                       ),
                       if (hasEvent)
-                        Container(
-                          width: 5,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
+                        events.length == 1
+                            ? Padding(
+                              padding: const EdgeInsets.only(top: 1),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    width: 4,
+                                    height: 4,
+                                    decoration: BoxDecoration(
+                                      color: _categoryColor(
+                                        events.first.category,
+                                        theme,
+                                      ),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Expanded(
+                                    child: Text(
+                                      events.first.title,
+                                      style: TextStyle(
+                                        fontSize: 7,
+                                        color: _categoryColor(
+                                          events.first.category,
+                                          theme,
+                                        ),
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                            : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children:
+                                  events
+                                      .take(3)
+                                      .map(
+                                        (e) => Container(
+                                          width: 4,
+                                          height: 4,
+                                          margin: const EdgeInsets.symmetric(
+                                            horizontal: 0.5,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: _categoryColor(
+                                              e.category,
+                                              theme,
+                                            ),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                            ),
                     ],
                   ),
                 ),
@@ -646,9 +727,12 @@ class _MonthGrid extends StatelessWidget {
               maxHeight: MediaQuery.of(context).size.height * 0.7,
             ),
             padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 8,
+              top: 8,
             ),
-            child: Column(
+            child: SafeArea(
+              top: false,
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -684,12 +768,28 @@ class _MonthGrid extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.event_busy,
-                            size: 40,
+                            Icons.event_available_rounded,
+                            size: 48,
                             color: Theme.of(context).colorScheme.outline,
                           ),
-                          const SizedBox(height: 8),
-                          const Text('No events on this day'),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No events on this day',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color:
+                                  Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tap the button below to add one',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -701,9 +801,26 @@ class _MonthGrid extends StatelessWidget {
                       itemCount: events.length,
                       itemBuilder: (ctx, index) {
                         final e = events[index];
+                        final theme = Theme.of(context);
+                        final catColor = _categoryColor(e.category, theme);
                         return ListTile(
+                          leading: Container(
+                            width: 4,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: catColor,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
                           title: Text(e.title, overflow: TextOverflow.ellipsis),
-                          subtitle: e.time != null ? Text(e.time!) : null,
+                          subtitle: Text(
+                            [
+                              if (e.time != null) e.time!,
+                              e.category,
+                              if (e.recurrence != 'none')
+                                e.recurrence.capitalize(),
+                            ].join(' · '),
+                          ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -711,6 +828,7 @@ class _MonthGrid extends StatelessWidget {
                                 icon: const Icon(Icons.edit, size: 18),
                                 tooltip: 'Edit event',
                                 onPressed: () {
+                                  HapticFeedback.selectionClick();
                                   Navigator.pop(context);
                                   showModalBottomSheet(
                                     context: context,
@@ -722,7 +840,10 @@ class _MonthGrid extends StatelessWidget {
                               IconButton(
                                 icon: const Icon(Icons.delete, size: 18),
                                 tooltip: 'Delete event',
-                                onPressed: () => provider.delete(e.id!),
+                                onPressed: () {
+                                  HapticFeedback.selectionClick();
+                                  _confirmDelete(context, provider, e);
+                                },
                               ),
                             ],
                           ),
@@ -738,11 +859,17 @@ class _MonthGrid extends StatelessWidget {
                       icon: const Icon(Icons.add),
                       label: const Text('Add Event'),
                       onPressed: () {
+                        HapticFeedback.selectionClick();
                         Navigator.pop(context);
                         showModalBottomSheet(
                           context: context,
                           isScrollControlled: true,
-                          builder: (_) => EventEditor(selectedDate: date),
+                          builder: (_) => Padding(
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
+                            ),
+                            child: EventEditor(selectedDate: date),
+                          ),
                         );
                       },
                     ),
@@ -750,6 +877,38 @@ class _MonthGrid extends StatelessWidget {
                 ),
               ],
             ),
+            ),
+          ),
+    );
+  }
+
+  void _confirmDelete(
+    BuildContext context,
+    CalendarProvider provider,
+    CalendarEvent event,
+  ) {
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Delete Event'),
+            content: Text('Are you sure you want to delete "${event.title}"?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  provider.delete(event.id!);
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(ctx).colorScheme.error,
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
     );
   }
@@ -769,7 +928,9 @@ class _EventEditorState extends State<EventEditor> {
   late TextEditingController _notesCtrl;
   late DateTime _date;
   late String _category;
+  late String _recurrence;
   TimeOfDay? _time;
+  String? _titleError;
 
   @override
   void initState() {
@@ -778,25 +939,46 @@ class _EventEditorState extends State<EventEditor> {
     _notesCtrl = TextEditingController(text: widget.event?.notes ?? '');
     _date = widget.event?.date ?? widget.selectedDate ?? DateTime.now();
     _category = widget.event?.category ?? _calendarCategories.first;
+    _recurrence = widget.event?.recurrence ?? 'none';
     if (widget.event?.time != null) {
       final parts = widget.event!.time!.split(':');
       _time = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
     }
+    _titleCtrl.addListener(_onTitleChanged);
+    _notesCtrl.addListener(_onNotesChanged);
   }
 
   @override
   void dispose() {
+    _titleCtrl.removeListener(_onTitleChanged);
+    _notesCtrl.removeListener(_onNotesChanged);
     _titleCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
+  }
+
+  void _onTitleChanged() {
+    setState(() {
+      if (_titleCtrl.text.trim().isEmpty) {
+        _titleError = 'Title is required';
+      } else if (_titleCtrl.text.length > _maxTitleLength) {
+        _titleError = 'Title is too long';
+      } else {
+        _titleError = null;
+      }
+    });
+  }
+
+  void _onNotesChanged() {
+    setState(() {});
   }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: _date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2035),
+      firstDate: DateTime.now().subtract(const Duration(days: 365 * 5)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
     );
     if (picked != null && mounted) setState(() => _date = picked);
   }
@@ -816,6 +998,7 @@ class _EventEditorState extends State<EventEditor> {
         widget.event?.date ?? widget.selectedDate ?? DateTime.now();
     final originalCategory =
         widget.event?.category ?? _calendarCategories.first;
+    final originalRecurrence = widget.event?.recurrence ?? 'none';
 
     String? originalTimeStr;
     if (widget.event?.time != null) {
@@ -831,18 +1014,24 @@ class _EventEditorState extends State<EventEditor> {
     final dateChanged =
         DateUtils.dateOnly(_date) != DateUtils.dateOnly(originalDate);
     final timeChanged = currentTimeStr != originalTimeStr;
+    final recurrenceChanged = _recurrence != originalRecurrence;
 
     return titleChanged ||
         notesChanged ||
         dateChanged ||
         timeChanged ||
-        _category != originalCategory;
+        _category != originalCategory ||
+        recurrenceChanged;
   }
 
   void _save() async {
     final title = _titleCtrl.text.trim();
     if (title.isEmpty) {
-      showErrorSnackBar(context, 'Enter an event title');
+      setState(() => _titleError = 'Title is required');
+      return;
+    }
+    if (title.length > _maxTitleLength) {
+      setState(() => _titleError = 'Title is too long');
       return;
     }
     final provider = context.read<CalendarProvider>();
@@ -856,7 +1045,7 @@ class _EventEditorState extends State<EventEditor> {
               : null,
       notes: _notesCtrl.text,
       category: _category,
-      recurrence: widget.event?.recurrence ?? 'none',
+      recurrence: _recurrence,
       recurrenceEnd: widget.event?.recurrenceEnd,
     );
     await provider.save(event);
@@ -897,24 +1086,30 @@ class _EventEditorState extends State<EventEditor> {
           Navigator.pop(context);
         }
       },
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 16,
-          right: 16,
-          top: 16,
-        ),
-        child: SingleChildScrollView(
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: 16,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: _titleCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Title',
-                  border: OutlineInputBorder(),
+              Semantics(
+                label: 'Event title, required',
+                child: TextField(
+                  controller: _titleCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Title *',
+                    border: const OutlineInputBorder(),
+                    errorText: _titleError,
+                    counterText: '${_titleCtrl.text.length}/$_maxTitleLength',
+                  ),
+                  autofocus: true,
+                  maxLength: 80,
                 ),
-                autofocus: true,
               ),
               const SizedBox(height: 12),
               Column(
@@ -929,7 +1124,7 @@ class _EventEditorState extends State<EventEditor> {
                   TextButton.icon(
                     icon: const Icon(Icons.access_time),
                     label: Text(
-                      _time != null ? _time!.format(context) : 'Add time',
+                      _time != null ? _time!.format(context) : 'Add time (optional)',
                     ),
                     onPressed: _pickTime,
                   ),
@@ -947,7 +1142,23 @@ class _EventEditorState extends State<EventEditor> {
                         .map(
                           (category) => DropdownMenuItem(
                             value: category,
-                            child: Text(category),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: _categoryColor(
+                                      category,
+                                      Theme.of(context),
+                                    ),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(category),
+                              ],
+                            ),
                           ),
                         )
                         .toList(),
@@ -955,18 +1166,64 @@ class _EventEditorState extends State<EventEditor> {
                   if (value != null) setState(() => _category = value);
                 },
               ),
-              TextField(
-                controller: _notesCtrl,
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: _recurrence,
                 decoration: const InputDecoration(
-                  labelText: 'Notes',
+                  labelText: 'Recurrence',
                   border: OutlineInputBorder(),
                 ),
-                maxLines: 2,
+                items:
+                    _recurrenceOptions
+                        .asMap()
+                        .entries
+                        .map(
+                          (entry) => DropdownMenuItem(
+                            value: entry.value,
+                            child: Text(_recurrenceLabels[entry.key]),
+                          ),
+                        )
+                        .toList(),
+                onChanged: (value) {
+                  if (value != null) setState(() => _recurrence = value);
+                },
+              ),
+              const SizedBox(height: 12),
+              Semantics(
+                label: 'Event notes, optional',
+                child: TextField(
+                  controller: _notesCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Notes (optional)',
+                    border: const OutlineInputBorder(),
+                    counterText: '${_notesCtrl.text.length}/$_maxNotesLength',
+                  ),
+                  maxLines: 2,
+                  maxLength: _maxNotesLength,
+                  buildCounter:
+                      (
+                        context, {
+                        required currentLength,
+                        required isFocused,
+                        maxLength,
+                      }) {
+                        return Text(
+                          '$currentLength/$maxLength',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color:
+                                maxLength != null && currentLength > (maxLength * 0.9).toInt()
+                                    ? Theme.of(context).colorScheme.error
+                                    : Theme.of(context).colorScheme.outline,
+                          ),
+                        );
+                      },
+                ),
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
                 icon: const Icon(Icons.save),
-                label: const Text('Save'),
+                label: const Text('Save Event'),
                 onPressed: _save,
               ),
               const SizedBox(height: 16),
@@ -975,5 +1232,14 @@ class _EventEditorState extends State<EventEditor> {
         ),
       ),
     );
+  }
+
+
+}
+
+extension on String {
+  String capitalize() {
+    if (isEmpty) return this;
+    return '${this[0].toUpperCase()}${substring(1)}';
   }
 }

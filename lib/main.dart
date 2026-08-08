@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:provider/provider.dart';
@@ -23,9 +24,7 @@ void main() async {
   try {
     await notificationService.initialize();
     await notificationService.rescheduleStoredNotifications();
-  } catch (_) {
-    // Notification setup must never prevent the app from opening.
-  }
+  } catch (_) {}
   runApp(PersonalApp(notificationService: notificationService, prefs: prefs));
 }
 
@@ -121,35 +120,71 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
+  void _selectTab(int index) {
+    if (index != _tab) {
+      HapticFeedback.selectionClick();
+      setState(() => _tab = index);
+    }
+  }
+
+  Widget _buildCurrentScreen() {
+    switch (_tab) {
+      case 0:
+        return const NotesScreen();
+      case 1:
+        return const HabitsScreen();
+      case 2:
+        return const CalendarScreen();
+      case 3:
+        return const CalculatorScreen();
+      case 4:
+        return const LifeScreen();
+      case 5:
+        return const SettingsScreen();
+      default:
+        return const NotesScreen();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final screens = <Widget>[
-      const NotesScreen(),
-      const HabitsScreen(),
-      const CalendarScreen(),
-      const CalculatorScreen(),
-      const LifeScreen(),
-      const SettingsScreen(),
-    ];
-
+    final theme = Theme.of(context);
     const destinations = [
-      NavigationDestination(icon: Icon(Icons.note_rounded), label: 'Notes'),
+      NavigationDestination(
+        icon: Icon(Icons.note_rounded),
+        selectedIcon: Icon(Icons.note_rounded),
+        label: 'Notes',
+        tooltip: 'Notes',
+      ),
       NavigationDestination(
         icon: Icon(Icons.checklist_rtl_rounded),
+        selectedIcon: Icon(Icons.checklist_rtl_rounded),
         label: 'Habits',
+        tooltip: 'Habits',
       ),
       NavigationDestination(
-        icon: Icon(Icons.calendar_month),
+        icon: Icon(Icons.calendar_month_rounded),
+        selectedIcon: Icon(Icons.calendar_month_rounded),
         label: 'Calendar',
+        tooltip: 'Calendar',
       ),
-      NavigationDestination(icon: Icon(Icons.calculate), label: 'Calculator'),
+      NavigationDestination(
+        icon: Icon(Icons.calculate_rounded),
+        selectedIcon: Icon(Icons.calculate_rounded),
+        label: 'Calculator',
+        tooltip: 'Calculator',
+      ),
       NavigationDestination(
         icon: Icon(Icons.hourglass_empty_rounded),
+        selectedIcon: Icon(Icons.hourglass_full_rounded),
         label: 'Life',
+        tooltip: 'Life Journey',
       ),
       NavigationDestination(
-        icon: Icon(Icons.settings_rounded),
+        icon: Icon(Icons.settings_outlined),
+        selectedIcon: Icon(Icons.settings_rounded),
         label: 'Settings',
+        tooltip: 'Settings',
       ),
     ];
 
@@ -157,34 +192,48 @@ class _MainScreenState extends State<MainScreen> {
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= 600;
         return Scaffold(
-          body: Row(
-            children: [
-              if (isWide)
-                NavigationRail(
-                  selectedIndex: _tab,
-                  onDestinationSelected: (i) => setState(() => _tab = i),
-                  labelType: NavigationRailLabelType.all,
-                  destinations:
-                      destinations
-                          .map(
-                            (destination) => NavigationRailDestination(
-                              icon: destination.icon,
-                              label: Text(destination.label),
-                            ),
-                          )
-                          .toList(),
-                ),
-              Expanded(child: IndexedStack(index: _tab, children: screens)),
-            ],
+          body: SafeArea(
+            bottom: false,
+            child: Row(
+              children: [
+                if (isWide)
+                  NavigationRail(
+                    selectedIndex: _tab,
+                    onDestinationSelected: _selectTab,
+                    labelType: NavigationRailLabelType.all,
+                    backgroundColor: theme.colorScheme.surface,
+                    leading: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Icon(
+                        Icons.dashboard_rounded,
+                        color: theme.colorScheme.primary,
+                        size: 28,
+                      ),
+                    ),
+                    destinations:
+                        destinations
+                            .map(
+                              (destination) => NavigationRailDestination(
+                                icon: destination.icon,
+                                selectedIcon: destination.selectedIcon,
+                                label: Text(destination.label),
+                              ),
+                            )
+                            .toList(),
+                  ),
+                Expanded(child: _buildCurrentScreen()),
+              ],
+            ),
           ),
           bottomNavigationBar:
               isWide
                   ? null
                   : NavigationBar(
                     selectedIndex: _tab,
-                    onDestinationSelected: (i) => setState(() => _tab = i),
+                    onDestinationSelected: _selectTab,
                     labelBehavior:
-                        NavigationDestinationLabelBehavior.onlyShowSelected,
+                        NavigationDestinationLabelBehavior.alwaysShow,
+                    height: 80,
                     destinations: destinations,
                   ),
         );

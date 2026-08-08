@@ -6,11 +6,6 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../database.dart';
 
-/// Owns Android notification setup and all persisted reminder scheduling.
-///
-/// The service intentionally falls back to an inexact alarm when Android has
-/// not granted exact-alarm access. This keeps a reminder scheduled instead of
-/// failing silently on Android 12 and later.
 class NotificationService {
   static const _timeZoneChannel = MethodChannel('personal_app/timezone');
 
@@ -30,7 +25,7 @@ class NotificationService {
     android: AndroidNotificationDetails(
       _habitChannel,
       'Habit reminders',
-      channelDescription: 'Reminders for your habits',
+      channelDescription: 'Reminders for your daily habits',
       importance: Importance.max,
       priority: Priority.high,
       playSound: true,
@@ -54,7 +49,7 @@ class NotificationService {
     android: AndroidNotificationDetails(
       _noteChannel,
       'Note reminders',
-      channelDescription: 'Reminders for your notes',
+      channelDescription: 'Reminders for your saved notes',
       importance: Importance.max,
       priority: Priority.high,
       playSound: true,
@@ -80,7 +75,7 @@ class NotificationService {
           const AndroidNotificationChannel(
             _habitChannel,
             'Habit reminders',
-            description: 'Reminders for your habits',
+            description: 'Reminders for your daily habits',
             importance: Importance.max,
             playSound: true,
             enableVibration: true,
@@ -100,7 +95,7 @@ class NotificationService {
           const AndroidNotificationChannel(
             _noteChannel,
             'Note reminders',
-            description: 'Reminders for your notes',
+            description: 'Reminders for your saved notes',
             importance: Importance.max,
             playSound: true,
             enableVibration: true,
@@ -124,10 +119,7 @@ class NotificationService {
         tz.setLocalLocation(tz.getLocation(name));
         return;
       }
-    } catch (_) {
-      // The channel is Android-only. The offset fallback below keeps the app
-      // usable on other supported platforms and in widget tests.
-    }
+    } catch (_) {}
 
     final now = DateTime.now();
     tz.setLocalLocation(
@@ -141,8 +133,6 @@ class NotificationService {
     );
   }
 
-  /// Requests Android's notification permission when it is needed.
-  /// Returns false when the user has declined it.
   Future<bool> requestPermissions() async {
     final android = _android;
     if (android == null) return true;
@@ -155,10 +145,6 @@ class NotificationService {
     return await android.requestNotificationsPermission() ?? false;
   }
 
-  /// Requests exact-alarm access when Android requires it.
-  ///
-  /// A false result is not fatal: [zonedSchedule] uses an inexact,
-  /// battery-friendly alarm instead so the reminder still arrives.
   Future<bool> requestExactAlarmPermission() async {
     final android = _android;
     if (android == null) return true;
@@ -213,10 +199,11 @@ class NotificationService {
         final reminder = habit['reminder_time'] as String?;
         final time = _parseTime(reminder);
         if (id == null || time == null) continue;
+        final habitName = habit['name'] as String? ?? 'Your habit';
         await zonedSchedule(
           1000 + id,
-          'Habit Reminder: ${habit['name']}',
-          'Time to complete your habit! Tap to log it.',
+          'Time for: $habitName',
+          'Keep your streak going! Tap to check it off.',
           _nextDailyTime(time.$1, time.$2),
           habitDetails,
           matchDateTimeComponents: DateTimeComponents.time,
@@ -256,12 +243,14 @@ class NotificationService {
           'monthly' => DateTimeComponents.dayOfMonthAndTime,
           _ => null,
         };
+        final eventTitle = event['title'] as String? ?? 'Upcoming event';
+        final eventNotes = event['notes'] as String?;
         await zonedSchedule(
           10000 + id,
-          'Event Alert: ${event['title']}',
-          (event['notes'] as String?)?.isNotEmpty == true
-              ? event['notes'] as String
-              : 'Calendar event reminder',
+          'Upcoming: $eventTitle',
+          eventNotes?.isNotEmpty == true
+              ? eventNotes!
+              : 'You have an event scheduled today.',
           scheduled,
           eventDetails,
           matchDateTimeComponents: recurrenceComponents,
@@ -279,10 +268,12 @@ class NotificationService {
       if (id == null || reminder == null) continue;
       final scheduled = tz.TZDateTime.from(reminder, tz.local);
       if (!scheduled.isAfter(tz.TZDateTime.now(tz.local))) continue;
+      final noteTitle = note['title'] as String? ?? 'Note reminder';
+      final noteContent = note['content'] as String? ?? '';
       await zonedSchedule(
         5000 + id,
-        'Note Reminder: ${note['title']}',
-        (note['content'] as String?) ?? '',
+        'Reminder: $noteTitle',
+        noteContent,
         scheduled,
         noteDetails,
       );
@@ -322,9 +313,6 @@ class NotificationService {
     return scheduled;
   }
 
-  /// Schedules an exact alarm when allowed, otherwise a reliable inexact one.
-  /// Scheduling failures are caught so a platform error never reaches Flutter's
-  /// red error screen.
   Future<void> zonedSchedule(
     int id,
     String title,
@@ -360,8 +348,6 @@ class NotificationService {
             uiLocalNotificationDateInterpretation,
       );
     } on PlatformException {
-      // A manufacturer may still reject an exact alarm after permission has
-      // changed. Preserve the reminder with the inexact scheduler.
       if (scheduleMode == AndroidScheduleMode.inexactAllowWhileIdle) return;
       try {
         await _notifications.zonedSchedule(
@@ -376,7 +362,7 @@ class NotificationService {
               uiLocalNotificationDateInterpretation,
         );
       } on PlatformException {
-        // The app remains usable; the next save or app launch retries it.
+        // Notification scheduling failed silently; app remains usable.
       }
     }
   }

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../database.dart';
 import '../utils/snackbar_utils.dart';
@@ -11,18 +12,22 @@ class CalculatorProvider extends ChangeNotifier {
   List<Map<String, String>> _history = [];
   String? _error;
   double _memory = 0.0;
+  bool _loading = false;
 
   String get expression => _expression;
   String get result => _result;
   List<Map<String, String>> get history => _history;
   String? get error => _error;
   double get memory => _memory;
+  bool get loading => _loading;
 
   CalculatorProvider() {
     Future.microtask(() => loadHistory());
   }
 
   Future<void> loadHistory() async {
+    _loading = true;
+    notifyListeners();
     try {
       final db = await AppDatabase.instance.database;
       final maps = await db.query(
@@ -42,6 +47,7 @@ class CalculatorProvider extends ChangeNotifier {
     } catch (e) {
       _error = 'Failed to load history';
     }
+    _loading = false;
     notifyListeners();
   }
 
@@ -52,24 +58,46 @@ class CalculatorProvider extends ChangeNotifier {
   }
 
   void memoryAdd() {
+    HapticFeedback.lightImpact();
     final parsed = double.tryParse(_result);
     if (parsed != null) _memory += parsed;
     notifyListeners();
   }
 
   void memorySubtract() {
+    HapticFeedback.lightImpact();
     final parsed = double.tryParse(_result);
     if (parsed != null) _memory -= parsed;
     notifyListeners();
   }
 
   void memoryRecall() {
-    _expression = _memory.toString();
+    HapticFeedback.lightImpact();
+    final memStr =
+        _memory == _memory.toInt()
+            ? _memory.toInt().toString()
+            : _memory.toString();
+    if (_expression.isEmpty ||
+        _expression == '0' ||
+        RegExp(r'[+\-×÷^(\s]$').hasMatch(_expression)) {
+      if (_memory < 0) {
+        _expression += '($memStr)';
+      } else {
+        _expression += memStr;
+      }
+    } else {
+      if (_memory < 0) {
+        _expression += '×($memStr)';
+      } else {
+        _expression += '×$memStr';
+      }
+    }
     _result = '';
     notifyListeners();
   }
 
   void memoryClear() {
+    HapticFeedback.lightImpact();
     _memory = 0.0;
     notifyListeners();
   }
@@ -85,11 +113,15 @@ class CalculatorProvider extends ChangeNotifier {
   }
 
   void input(String value) {
+    HapticFeedback.lightImpact();
     if (_result == 'Error') {
       _expression = '';
       _result = '';
     }
     if (value == 'C') {
+      _expression = '';
+      _result = '';
+    } else if (value == 'CE') {
       _expression = '';
       _result = '';
     } else if (value == '⌫') {
@@ -108,7 +140,9 @@ class CalculatorProvider extends ChangeNotifier {
         _expression = '-$_expression';
       }
     } else {
-      if (_expression.length >= 50) return;
+      if (_expression.length >= 50) {
+        return;
+      }
       _expression += value;
     }
     notifyListeners();
@@ -117,6 +151,11 @@ class CalculatorProvider extends ChangeNotifier {
   void _evaluate() {
     try {
       final parsed = _parse(_expression);
+      if (parsed is double && parsed.isInfinite) {
+        _result = 'Cannot divide by zero';
+        notifyListeners();
+        return;
+      }
       _result = _formatResult(parsed);
       _saveToHistory(_expression, _result);
       _expression = _result;
@@ -151,19 +190,32 @@ class CalculatorProvider extends ChangeNotifier {
   }
 
   void square() {
+    HapticFeedback.lightImpact();
     if (_expression.isNotEmpty) {
       _expression = '($_expression)^2';
       notifyListeners();
     }
   }
 
-  // ponytail: recursive descent parser, no external dep
   int _pos = 0;
   String _input = '';
 
+  String _preprocess(String input) {
+    var s = input.replaceAll(' ', '');
+    final percentRegex = RegExp(r'(-?\d+\.?\d*)%');
+    while (percentRegex.hasMatch(s)) {
+      s = s.replaceAllMapped(percentRegex, (m) {
+        final numStr = m.group(1)!;
+        final numVal = double.parse(numStr);
+        return (numVal / 100).toString();
+      });
+    }
+    return s;
+  }
+
   num _parse(String input) {
     _pos = 0;
-    _input = input.replaceAll(' ', '');
+    _input = _preprocess(input);
     final result = _expr();
     if (_pos < _input.length) {
       throw FormatException('Unexpected: ${_input[_pos]}');
@@ -188,6 +240,9 @@ class CalculatorProvider extends ChangeNotifier {
         (_input[_pos] == '×' || _input[_pos] == '÷')) {
       final op = _input[_pos++];
       final right = _factor();
+      if (op == '÷' && right == 0) {
+        return double.infinity;
+      }
       result = op == '×' ? result * right : result / right;
     }
     return result;
@@ -198,10 +253,6 @@ class CalculatorProvider extends ChangeNotifier {
     if (_pos < _input.length && _input[_pos] == '^') {
       _pos++;
       result = pow(result, _factor()).toDouble();
-    }
-    if (_pos < _input.length && _input[_pos] == '%') {
-      _pos++;
-      result /= 100;
     }
     return result;
   }
@@ -288,42 +339,83 @@ class CalculatorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
     return Scaffold(
       appBar: AppBar(title: const Text('Calculator'), centerTitle: true),
-      body: Consumer2<CalculatorProvider, SettingsProvider>(
-        builder: (context, calc, settings, _) {
-          return Column(
-            children: [
-              Expanded(
-                child: _DisplayArea(
-                  calc: calc,
-                  settings: settings,
-                  theme: theme,
+      body: SafeArea(
+        bottom: false,
+        child: Consumer2<CalculatorProvider, SettingsProvider>(
+          builder: (context, calc, settings, _) {
+            if (isLandscape) {
+              return Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: _DisplayArea(
+                      calc: calc,
+                      settings: settings,
+                      theme: theme,
+                    ),
+                  ),
+                  Expanded(
+                    flex: 3,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (settings.scientificMode)
+                            _MemoryRow(
+                              calc: calc,
+                              scientific: settings.scientificMode,
+                              theme: theme,
+                            ),
+                          _ScientificToggle(calc: calc, settings: settings),
+                          _ButtonGrid(
+                            calc: calc,
+                            scientific: settings.scientificMode,
+                            theme: theme,
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+            return Column(
+              children: [
+                Expanded(
+                  child: _DisplayArea(
+                    calc: calc,
+                    settings: settings,
+                    theme: theme,
+                  ),
                 ),
-              ),
-              SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (settings.scientificMode)
-                      _MemoryRow(
+                SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (settings.scientificMode)
+                        _MemoryRow(
+                          calc: calc,
+                          scientific: settings.scientificMode,
+                          theme: theme,
+                        ),
+                      _ScientificToggle(calc: calc, settings: settings),
+                      _ButtonGrid(
                         calc: calc,
                         scientific: settings.scientificMode,
                         theme: theme,
                       ),
-                    _ScientificToggle(calc: calc, settings: settings),
-                    _ButtonGrid(
-                      calc: calc,
-                      scientific: settings.scientificMode,
-                      theme: theme,
-                    ),
-                    SizedBox(height: settings.scientificMode ? 4 : 8),
-                  ],
+                      SizedBox(height: settings.scientificMode ? 4 : 8),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -342,13 +434,21 @@ class _DisplayArea extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSci = settings.scientificMode;
+    final hasError = calc.result == 'Error' || calc.result == 'Cannot divide by zero';
+    final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
     return Container(
-      padding: EdgeInsets.fromLTRB(20, isSci ? 4 : 8, 20, isSci ? 4 : 12),
+      padding: EdgeInsets.fromLTRB(
+        isLandscape ? 12 : 20,
+        isSci ? 4 : 8,
+        isLandscape ? 12 : 20,
+        isSci ? 4 : 12,
+      ),
       alignment: Alignment.bottomRight,
       child: SingleChildScrollView(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: isLandscape ? MainAxisSize.min : MainAxisSize.max,
           children: [
             Row(
               children: [
@@ -373,7 +473,7 @@ class _DisplayArea extends StatelessWidget {
                   ),
                 const Spacer(),
                 if (isSci)
-                  const Chip(
+                  Chip(
                     avatar: Icon(Icons.science_outlined, size: 14),
                     label: Text('SCI', style: TextStyle(fontSize: 10)),
                     visualDensity: VisualDensity.compact,
@@ -397,23 +497,52 @@ class _DisplayArea extends StatelessWidget {
               ),
             ),
             SizedBox(height: isSci ? 2 : 4),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              reverse: true,
-              child: Text(
-                calc.result.isEmpty ? '' : calc.result,
-                style: (isSci
-                        ? theme.textTheme.headlineMedium
-                        : theme.textTheme.headlineLarge)
-                    ?.copyWith(fontWeight: FontWeight.bold),
-                maxLines: 1,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (hasError)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: Icon(
+                      Icons.error_outline,
+                      size: 16,
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    reverse: true,
+                    child: GestureDetector(
+                      onTap: settings.copyOnTap && calc.result.isNotEmpty && !hasError
+                          ? () {
+                              Clipboard.setData(ClipboardData(text: calc.result));
+                              showSuccessSnackBar(context, 'Result copied');
+                            }
+                          : null,
+                      child: Text(
+                        calc.result.isEmpty ? '' : calc.result,
+                        style: (isSci
+                                ? theme.textTheme.headlineMedium
+                                : theme.textTheme.headlineLarge)
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color:
+                                  hasError ? theme.colorScheme.error : null,
+                            ),
+                        maxLines: 1,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: isSci ? 4 : 8),
-          ],
-        ),
-      ),
-    );
+             SizedBox(height: isSci ? 4 : 8),
+           ],
+         ),
+       ),
+     );
   }
 }
 
@@ -443,7 +572,7 @@ class _MemoryRow extends StatelessWidget {
                   child: TextButton(
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.symmetric(
-                        vertical: scientific ? 3 : 6,
+                        vertical: scientific ? 6 : 8,
                       ),
                       foregroundColor:
                           disabled
@@ -456,6 +585,7 @@ class _MemoryRow extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
+                      minimumSize: const Size(44, 44),
                     ),
                     onPressed:
                         disabled
@@ -518,6 +648,7 @@ class _ScientificToggle extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
+              minimumSize: const Size(44, 36),
             ),
           ),
           const Spacer(),
@@ -530,6 +661,7 @@ class _ScientificToggle extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
+              minimumSize: const Size(44, 36),
             ),
           ),
         ],
@@ -578,10 +710,7 @@ void _showHistoryBottomSheet(BuildContext context, CalculatorProvider calc) {
                             'Clear All',
                             style: TextStyle(fontSize: 12),
                           ),
-                          onPressed: () {
-                            provider.clearHistory();
-                            Navigator.pop(context);
-                          },
+                          onPressed: () => _confirmClearHistory(context, provider),
                           style: TextButton.styleFrom(
                             foregroundColor: theme.colorScheme.error,
                           ),
@@ -590,12 +719,35 @@ void _showHistoryBottomSheet(BuildContext context, CalculatorProvider calc) {
                   ),
                   const SizedBox(height: 12),
                   if (provider.history.isEmpty)
-                    const SizedBox(
-                      height: 150,
+                    SizedBox(
+                      height: 180,
                       child: Center(
-                        child: Text(
-                          'No history yet',
-                          style: TextStyle(color: Colors.grey),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.calculate_outlined,
+                              size: 48,
+                              color: theme.colorScheme.outline,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No calculations yet',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Your calculation history will appear here',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: theme.colorScheme.outline,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     )
@@ -607,14 +759,30 @@ void _showHistoryBottomSheet(BuildContext context, CalculatorProvider calc) {
                         itemBuilder: (context, index) {
                           final h = provider.history[index];
                           return ListTile(
-                            leading: const Icon(Icons.history_rounded),
-                            title: Text(h['expression'] ?? ''),
+                            leading: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.functions,
+                                size: 18,
+                                color: theme.colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                            title: Text(
+                              h['expression'] ?? '',
+                              overflow: TextOverflow.ellipsis,
+                            ),
                             subtitle: Text(
-                              h['result'] ?? '',
+                              '= ${h['result'] ?? ''}',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: theme.colorScheme.primary,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                             trailing: const Icon(Icons.keyboard_arrow_right),
                             onTap: () {
@@ -636,6 +804,36 @@ void _showHistoryBottomSheet(BuildContext context, CalculatorProvider calc) {
   );
 }
 
+void _confirmClearHistory(BuildContext context, CalculatorProvider provider) {
+  showDialog(
+    context: context,
+    builder:
+        (ctx) => AlertDialog(
+          title: const Text('Clear History'),
+          content: const Text(
+            'Are you sure you want to clear all calculation history? This cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                provider.clearHistory();
+                Navigator.pop(context);
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(ctx).colorScheme.error,
+              ),
+              child: const Text('Clear'),
+            ),
+          ],
+        ),
+  );
+}
+
 class _ButtonGrid extends StatelessWidget {
   final CalculatorProvider calc;
   final bool scientific;
@@ -648,13 +846,14 @@ class _ButtonGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
     final sciRows = [
       ['sin', 'cos', 'tan', '√'],
       ['log', 'ln', '(', ')'],
       ['π', 'e', 'x²', '^'],
     ];
     const basicRows = [
-      ['C', '⌫', '%', '÷'],
+      ['C', 'CE', '⌫', '%', '÷'],
       ['7', '8', '9', '×'],
       ['4', '5', '6', '-'],
       ['1', '2', '3', '+'],
@@ -666,12 +865,13 @@ class _ButtonGrid extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children:
             allRows
                 .map(
                   (row) => Padding(
                     padding: EdgeInsets.symmetric(
-                      vertical: scientific ? 1.5 : 3,
+                      vertical: isLandscape ? 1 : (scientific ? 1.5 : 3),
                     ),
                     child: Row(
                       children:
@@ -685,7 +885,10 @@ class _ButtonGrid extends StatelessWidget {
                               '=',
                               '^',
                             ].contains(label);
-                            final isClear = label == 'C' || label == '⌫';
+                            final isClear =
+                                label == 'C' ||
+                                label == 'CE' ||
+                                label == '⌫';
                             final isEquals = label == '=';
                             final isFn = [
                               'sin',
@@ -725,9 +928,9 @@ class _ButtonGrid extends StatelessWidget {
                             return Expanded(
                               flex: isZero ? 2 : 1,
                               child: Padding(
-                                padding: EdgeInsets.all(scientific ? 1 : 2),
+                                padding: EdgeInsets.all(isLandscape ? 1 : (scientific ? 1 : 2)),
                                 child: SizedBox(
-                                  height: scientific ? 38 : 48,
+                                  height: isLandscape ? 32 : (scientific ? 48 : 56),
                                   child: ElevatedButton(
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: bg,
@@ -751,29 +954,37 @@ class _ButtonGrid extends StatelessWidget {
                                                     BorderRadius.circular(12),
                                               ),
                                       elevation: 0,
+                                      minimumSize: const Size(44, 44),
                                     ),
-                                    onPressed: () => _handlePress(calc, label),
-                                    child: FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 4,
-                                        ),
-                                        child: Text(
-                                          label,
-                                          style: TextStyle(
-                                            fontSize:
-                                                scientific
-                                                    ? (isNumber || isZero
-                                                        ? 16
-                                                        : (isFn ? 12 : 13))
-                                                    : (isNumber || isZero
-                                                        ? 22
-                                                        : (isFn ? 14 : 15)),
-                                            fontWeight:
-                                                isOp || isEquals
-                                                    ? FontWeight.w600
-                                                    : FontWeight.normal,
+                                    onPressed:
+                                        () => _handlePress(calc, label),
+                                    child: Semantics(
+                                      label: _semanticLabel(label),
+                                      button: true,
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 4,
+                                          ),
+                                          child: Text(
+                                            label,
+                                            style: TextStyle(
+                                              fontSize:
+                                                  isLandscape
+                                                      ? 14
+                                                      : scientific
+                                                      ? (isNumber || isZero
+                                                          ? 16
+                                                          : (isFn ? 12 : 13))
+                                                      : (isNumber || isZero
+                                                          ? 22
+                                                          : (isFn ? 14 : 15)),
+                                              fontWeight:
+                                                  isOp || isEquals
+                                                      ? FontWeight.w600
+                                                      : FontWeight.normal,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -791,7 +1002,33 @@ class _ButtonGrid extends StatelessWidget {
     );
   }
 
+  String _semanticLabel(String label) {
+    return switch (label) {
+      '×' => 'Multiply',
+      '÷' => 'Divide',
+      '√' => 'Square root',
+      'x²' => 'Square',
+      '±' => 'Plus minus',
+      '⌫' => 'Backspace',
+      'C' => 'Clear all',
+      'CE' => 'Clear entry',
+      'sin' => 'Sine',
+      'cos' => 'Cosine',
+      'tan' => 'Tangent',
+      'log' => 'Logarithm',
+      'ln' => 'Natural logarithm',
+      'π' => 'Pi',
+      '^' => 'Power',
+      '%' => 'Percent',
+      '(' => 'Open parenthesis',
+      ')' => 'Close parenthesis',
+      '=' => 'Equals',
+      _ => label,
+    };
+  }
+
   void _handlePress(CalculatorProvider calc, String label) {
+    HapticFeedback.lightImpact();
     if (label == 'x²') {
       calc.square();
     } else {

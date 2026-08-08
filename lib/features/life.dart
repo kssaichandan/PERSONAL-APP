@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../database.dart';
 import '../utils/snackbar_utils.dart';
+
 
 class LifeProvider extends ChangeNotifier {
   DateTime? _dob;
@@ -56,7 +58,7 @@ class LifeProvider extends ChangeNotifier {
       }
       notifyListeners();
       if (context != null && context.mounted) {
-        showSuccessSnackBar(context, 'Life expectancy updated');
+        showSuccessSnackBar(context, 'Life expectancy updated to $years years');
       }
     } catch (e) {
       debugLog('Failed to save life expectancy: $e');
@@ -148,14 +150,19 @@ class LifeScreen extends StatelessWidget {
     final provider = context.watch<LifeProvider>();
 
     if (provider.loading) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Loading life tracker...'),
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                'Loading your life tracker...',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
             ],
           ),
         ),
@@ -165,73 +172,81 @@ class LifeScreen extends StatelessWidget {
     if (provider.dob == null) {
       return Scaffold(
         appBar: AppBar(
-          title: Text('Life Tracker', style: theme.textTheme.titleLarge),
+          title: Text('Life Journey', style: theme.textTheme.titleLarge),
           centerTitle: true,
         ),
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                theme.colorScheme.surface,
-                theme.colorScheme.primary.withValues(alpha: 0.05),
-              ],
+        body: SafeArea(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  theme.colorScheme.surface,
+                  theme.colorScheme.primary.withValues(alpha: 0.05),
+                ],
+              ),
             ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Icon(
-                  Icons.hourglass_empty_rounded,
-                  size: 100,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'How many days have you been alive?',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Icon(
+                    Icons.hourglass_empty_rounded,
+                    size: 96,
+                    color: theme.colorScheme.primary,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Set your date of birth to track your time elapsed and view a live-updating life progress meter.',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                  const SizedBox(height: 24),
+                  Text(
+                    'How many days have you been alive?',
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 40),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: provider.dob ?? DateTime(2000, 1, 1),
-                      firstDate: DateTime(1900),
-                      lastDate: DateTime.now(),
-                    );
-                    if (picked != null && context.mounted) {
-                      await provider.saveDOB(picked, context);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Enter your date of birth to see your live life progress, time elapsed, and remaining years.',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 40),
+                  Semantics(
+                    button: true,
+                    label: 'Enter date of birth',
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        HapticFeedback.selectionClick();
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: provider.dob ?? DateTime(2000, 1, 1),
+                          firstDate: DateTime(1900),
+                          lastDate: DateTime.now(),
+                        );
+                        if (picked != null && context.mounted) {
+                          await provider.saveDOB(picked, context);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        minimumSize: const Size.fromHeight(56),
+                      ),
+                      icon: const Icon(Icons.calendar_today),
+                      label: const Text(
+                        'Enter Date of Birth',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
-                  icon: const Icon(Icons.calendar_today),
-                  label: const Text(
-                    'Enter Date of Birth',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -249,7 +264,7 @@ class LifeScreen extends StatelessWidget {
   }
 }
 
-class _LifeScreenContent extends StatelessWidget {
+class _LifeScreenContent extends StatefulWidget {
   final DateTime dob;
   final int expectedYears;
   final LifeProvider provider;
@@ -261,11 +276,31 @@ class _LifeScreenContent extends StatelessWidget {
   });
 
   @override
+  State<_LifeScreenContent> createState() => _LifeScreenContentState();
+}
+
+class _LifeScreenContentState extends State<_LifeScreenContent>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dob = this.dob;
-    final expectedYears = this.expectedYears;
-    final provider = this.provider;
 
     return Scaffold(
       appBar: AppBar(
@@ -275,32 +310,44 @@ class _LifeScreenContent extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.speed_rounded),
             tooltip: 'Life expectancy',
-            onPressed: () => _showLifeExpectancyDialog(context, provider),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings_backup_restore_rounded),
-            tooltip: 'Reset date of birth',
-            onPressed: () => _confirmReset(context, provider),
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              _showLifeExpectancyDialog(context, widget.provider);
+            },
           ),
           IconButton(
             icon: const Icon(Icons.edit_calendar_rounded),
             tooltip: 'Change date of birth',
-            onPressed: () => _pickDate(context, provider),
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              _pickDate(context, widget.provider);
+            },
           ),
+          IconButton(
+            icon: const Icon(Icons.settings_backup_restore_rounded),
+            tooltip: 'Reset date of birth',
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              _confirmReset(context, widget.provider);
+            },
+          ),
+
         ],
       ),
-      body: StreamBuilder<DateTime>(
+      body: SafeArea(
+        top: false,
+        child: StreamBuilder<DateTime>(
         stream: Stream.periodic(
-          const Duration(seconds: 1),
+          const Duration(seconds: 60),
           (_) => DateTime.now(),
         ),
         initialData: DateTime.now(),
         builder: (context, snapshot) {
           final now = snapshot.data!;
-          final difference = now.difference(dob);
-          int years = now.year - dob.year;
-          int months = now.month - dob.month;
-          int days = now.day - dob.day;
+          final difference = now.difference(widget.dob);
+          int years = now.year - widget.dob.year;
+          int months = now.month - widget.dob.month;
+          int days = now.day - widget.dob.day;
           if (days < 0) {
             months--;
             final prevMonth = DateTime(now.year, now.month, 0);
@@ -315,14 +362,14 @@ class _LifeScreenContent extends StatelessWidget {
           final totalHours = difference.inHours;
           final totalMinutes = difference.inMinutes;
           final totalSeconds = difference.inSeconds;
-          final totalExpectedDays = expectedYears * 365.25;
+          final totalExpectedDays = widget.expectedYears * 365.25;
           final lifePercentage = (totalDays / totalExpectedDays) * 100;
           final formattedPercentage = lifePercentage.toStringAsFixed(2);
 
           final expectedDeathDate = DateTime(
-            dob.year + expectedYears,
-            dob.month,
-            dob.day,
+            widget.dob.year + widget.expectedYears,
+            widget.dob.month,
+            widget.dob.day,
           );
           final remainingDuration = expectedDeathDate.difference(now);
           int remainingYears = expectedDeathDate.year - now.year;
@@ -347,6 +394,13 @@ class _LifeScreenContent extends StatelessWidget {
             remainingDays = 0;
           }
 
+          final progressColor =
+              lifePercentage < 50
+                  ? theme.colorScheme.primary
+                  : lifePercentage < 80
+                  ? theme.colorScheme.tertiary
+                  : theme.colorScheme.error;
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -361,14 +415,22 @@ class _LifeScreenContent extends StatelessWidget {
                     padding: const EdgeInsets.all(24),
                     child: Column(
                       children: [
-                        Text(
-                          'TIME ELAPSED SINCE BIRTH',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.labelLarge?.copyWith(
-                            letterSpacing: 1.5,
-                            color: theme.colorScheme.primary,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'TIME ELAPSED SINCE BIRTH',
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                letterSpacing: 1.5,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            _LiveBadge(
+                              controller: _pulseController,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 16),
                         Semantics(
@@ -391,7 +453,8 @@ class _LifeScreenContent extends StatelessWidget {
                                 Text(
                                   ' yrs  ',
                                   style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
+                                    color:
+                                        theme.colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                                 Text(
@@ -404,7 +467,8 @@ class _LifeScreenContent extends StatelessWidget {
                                 Text(
                                   ' mos  ',
                                   style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
+                                    color:
+                                        theme.colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                                 Text(
@@ -417,7 +481,8 @@ class _LifeScreenContent extends StatelessWidget {
                                 Text(
                                   ' days',
                                   style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
+                                    color:
+                                        theme.colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -426,7 +491,7 @@ class _LifeScreenContent extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Born on ${DateFormat('MMMM d, yyyy').format(dob)}',
+                          'Born on ${DateFormat('MMMM d, yyyy').format(widget.dob)}',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -460,7 +525,7 @@ class _LifeScreenContent extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.primary,
+                                color: progressColor,
                               ),
                             ),
                           ],
@@ -474,13 +539,13 @@ class _LifeScreenContent extends StatelessWidget {
                             backgroundColor:
                                 theme.colorScheme.surfaceContainerHighest,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              theme.colorScheme.primary,
+                              progressColor,
                             ),
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Based on an average life expectancy of $expectedYears years.',
+                          'Based on a life expectancy of ${widget.expectedYears} years.',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -491,12 +556,7 @@ class _LifeScreenContent extends StatelessWidget {
                           'You have lived $formattedPercentage% of your expected life.',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color:
-                                lifePercentage < 50
-                                    ? theme.colorScheme.primary
-                                    : lifePercentage < 80
-                                    ? Colors.amber.shade700
-                                    : Colors.deepOrange,
+                            color: progressColor,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -529,7 +589,8 @@ class _LifeScreenContent extends StatelessWidget {
                                 child: Text(
                                   'EXPECTED REMAINING TIME',
                                   maxLines: 1,
-                                  style: theme.textTheme.labelLarge?.copyWith(
+                                  style:
+                                      theme.textTheme.labelLarge?.copyWith(
                                     letterSpacing: 1,
                                     color: theme.colorScheme.tertiary,
                                   ),
@@ -558,7 +619,8 @@ class _LifeScreenContent extends StatelessWidget {
                                 Text(
                                   ' yrs  ',
                                   style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
+                                    color:
+                                        theme.colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                                 Text(
@@ -571,7 +633,8 @@ class _LifeScreenContent extends StatelessWidget {
                                 Text(
                                   ' mos  ',
                                   style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
+                                    color:
+                                        theme.colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                                 Text(
@@ -584,7 +647,8 @@ class _LifeScreenContent extends StatelessWidget {
                                 Text(
                                   ' days',
                                   style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
+                                    color:
+                                        theme.colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -606,13 +670,17 @@ class _LifeScreenContent extends StatelessWidget {
                 const SizedBox(height: 8),
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final crossAxisCount = constraints.maxWidth < 400 ? 1 : 3;
-                    final childAspectRatio = crossAxisCount == 1 ? 3.2 : 1.35;
+                    final crossAxisCount =
+                        constraints.maxWidth < 400
+                            ? 2
+                            : constraints.maxWidth < 700
+                            ? 3
+                            : 5;
                     return GridView.count(
                       crossAxisCount: crossAxisCount,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      childAspectRatio: childAspectRatio,
+                      childAspectRatio: 1.5,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
                       children: [
@@ -646,20 +714,22 @@ class _LifeScreenContent extends StatelessWidget {
                           icon: Icons.hourglass_full_rounded,
                           color: theme.colorScheme.error,
                         ),
-                      ],
-                    );
-                  },
+                         ],
+                       );
+                     },
+                   ),
+                    const SizedBox(height: 16),
+                  ],
                 ),
-                const SizedBox(height: 16),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
+              );
+            },
+          ),
+        ),
+      );
+      }
 
   Future<void> _pickDate(BuildContext context, LifeProvider provider) async {
+    HapticFeedback.selectionClick();
     final picked = await showDatePicker(
       context: context,
       initialDate: provider.dob ?? DateTime(2000, 1, 1),
@@ -680,35 +750,15 @@ class _LifeScreenContent extends StatelessWidget {
     );
     await showDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Life Expectancy'),
-            content: TextField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Expected years',
-                border: OutlineInputBorder(),
-                helperText: 'Used for progress meter calculation',
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  final years = int.tryParse(controller.text);
-                  if (years != null && years > 0 && years <= 120) {
-                    provider.setLifeExpectancy(years, context);
-                    Navigator.pop(ctx);
-                  }
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          ),
+      builder: (ctx) {
+        return LifeExpectancyDialog(
+          controller: controller,
+          initialValue: provider.lifeExpectancy,
+          onSave: (years) {
+            provider.setLifeExpectancy(years, context);
+          },
+        );
+      },
     );
     controller.dispose();
   }
@@ -717,25 +767,28 @@ class _LifeScreenContent extends StatelessWidget {
     BuildContext context,
     LifeProvider provider,
   ) async {
+    HapticFeedback.selectionClick();
+    final theme = Theme.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
           (ctx) => AlertDialog(
-            title: const Text('Reset DOB'),
+            title: const Text('Reset Date of Birth'),
             content: const Text(
-              'Are you sure you want to delete your Date of Birth? This will reset the Life Tracker.',
+              'This will permanently delete your date of birth and reset the Life Tracker. Your other data will not be affected.',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
                 child: const Text('Cancel'),
               ),
-              TextButton(
+              FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: Text(
-                  'Reset',
-                  style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                style: FilledButton.styleFrom(
+                  backgroundColor: theme.colorScheme.error,
+                  foregroundColor: theme.colorScheme.onError,
                 ),
+                child: const Text('Reset'),
               ),
             ],
           ),
@@ -743,6 +796,156 @@ class _LifeScreenContent extends StatelessWidget {
     if (confirmed == true && context.mounted) {
       await provider.resetDOB(context);
     }
+  }
+}
+
+class LifeExpectancyDialog extends StatefulWidget {
+  final TextEditingController controller;
+  final int initialValue;
+  final ValueChanged<int> onSave;
+
+  const LifeExpectancyDialog({
+    super.key,
+    required this.controller,
+    required this.initialValue,
+    required this.onSave,
+  });
+
+  @override
+  State<LifeExpectancyDialog> createState() => _LifeExpectancyDialogState();
+}
+
+class _LifeExpectancyDialogState extends State<LifeExpectancyDialog> {
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_validateInput);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_validateInput);
+    super.dispose();
+  }
+
+  void _validateInput() {
+    final text = widget.controller.text.trim();
+    setState(() {
+      if (text.isEmpty) {
+        _errorText = 'Please enter a value';
+      } else {
+        final value = int.tryParse(text);
+        if (value == null) {
+          _errorText = 'Please enter a valid number';
+        } else if (value < 1) {
+          _errorText = 'Must be at least 1';
+        } else if (value > 120) {
+          _errorText = 'Must be 120 or less';
+        } else {
+          _errorText = null;
+        }
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Set Life Expectancy'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: widget.controller,
+            keyboardType: TextInputType.number,
+            autofocus: true,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(3),
+            ],
+            decoration: InputDecoration(
+              labelText: 'Expected years',
+              border: const OutlineInputBorder(),
+              helperText: 'Average life expectancy used for progress meter',
+              errorText: _errorText,
+            ),
+          ),
+          if (_errorText != null) ...[
+            const SizedBox(height: 8),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed:
+              _errorText == null && widget.controller.text.trim().isNotEmpty
+                  ? () {
+                      final years = int.parse(widget.controller.text.trim());
+                      HapticFeedback.selectionClick();
+                      widget.onSave(years);
+                      Navigator.pop(context);
+                    }
+                  : null,
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
+class _LiveBadge extends StatelessWidget {
+  final AnimationController controller;
+  final Color color;
+
+  const _LiveBadge({required this.controller, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, child) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: color.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'LIVE',
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -792,6 +995,7 @@ class _MetricCard extends StatelessWidget {
               const SizedBox(height: 4),
               FittedBox(
                 fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
                 child: Text(
                   value,
                   style: theme.textTheme.titleMedium?.copyWith(

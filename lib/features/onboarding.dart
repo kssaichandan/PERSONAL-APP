@@ -13,31 +13,36 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<OnboardingPage> _pages = [
-    const OnboardingPage(
+  final List<OnboardingPage> _pages = const [
+    OnboardingPage(
+      icon: Icons.rocket_launch_rounded,
+      title: 'Welcome to Your Personal Hub',
+      description: 'One place to organize your thoughts, build better habits, and stay on top of your life. Let us show you how it works.',
+    ),
+    OnboardingPage(
       icon: Icons.note_alt_rounded,
-      title: 'Notes',
-      description: 'Capture your thoughts, ideas, and important information with rich text notes. Add colors, tags, and pin your favorites.',
+      title: 'Never Lose a Great Idea',
+      description: 'Capture thoughts instantly with rich text notes. Organize with colors and tags, and keep your favorites pinned at the top.',
     ),
-    const OnboardingPage(
+    OnboardingPage(
       icon: Icons.checklist_rtl_rounded,
-      title: 'Habits',
-      description: 'Build better habits with daily tracking, streaks, and reminders. Visualize your progress with weekly and monthly views.',
+      title: 'Build Habits That Stick',
+      description: 'Track daily habits with streaks and reminders. Watch your progress grow with visual weekly and monthly insights.',
     ),
-    const OnboardingPage(
+    OnboardingPage(
       icon: Icons.calendar_month_rounded,
-      title: 'Calendar',
-      description: 'Schedule events, set reminders, and see your habits and notes in a unified calendar view. Never miss an appointment.',
+      title: 'Stay On Top of Your Schedule',
+      description: 'See events, habits, and notes in one unified calendar. Set reminders so nothing slips through the cracks.',
     ),
-    const OnboardingPage(
+    OnboardingPage(
       icon: Icons.calculate_rounded,
-      title: 'Calculator',
-      description: 'A powerful calculator with history, memory functions, and scientific mode for advanced calculations.',
+      title: 'Calculate On the Go',
+      description: 'Quick calculations with history and memory functions. Switch to scientific mode when you need more power.',
     ),
-    const OnboardingPage(
+    OnboardingPage(
       icon: Icons.hourglass_empty_rounded,
-      title: 'Life Tracker',
-      description: 'See your life in perspective. Track days lived, set life expectancy, and visualize your journey.',
+      title: 'See Your Life in Perspective',
+      description: 'Track days lived and set life milestones. A gentle reminder to make each day count.',
     ),
   ];
 
@@ -58,13 +63,50 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
+  void _goToPreviousPage() {
+    _pageController.previousPage(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  void _goToNextPage() {
+    _pageController.nextPage(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isLastPage = _currentPage == _pages.length - 1;
+    final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
+    const Color activeDotColor = Color(0xFF7CD9C8);
+    const Color inactiveDotColor = Color(0xFFB0D8D0);
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
+            Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8, right: 8),
+                child: Semantics(
+                  button: true,
+                  label: 'Skip onboarding',
+                  child: TextButton(
+                    onPressed: _completeOnboarding,
+                    child: Text(
+                      'Skip',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
@@ -73,51 +115,80 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 itemBuilder: (context, index) => _pages[index],
               ),
             ),
+            if (isLandscape) const SizedBox(height: 8),
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 8),
               child: Column(
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(
                       _pages.length,
-                      (index) => AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: _currentPage == index ? 24 : 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: _currentPage == index ? theme.colorScheme.primary : theme.colorScheme.outline,
-                          borderRadius: BorderRadius.circular(4),
+                      (index) => Semantics(
+                        label: 'Page ${index + 1} of ${_pages.length}',
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          width: _currentPage == index ? 24 : 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: _currentPage == index
+                                ? activeDotColor
+                                : inactiveDotColor,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: _currentPage == _pages.length - 1 ? _completeOnboarding : () {
-                        _pageController.nextPage(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
-                      },
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      if (_currentPage > 0)
+                        Semantics(
+                          button: true,
+                          label: 'Go to previous page',
+                          child: IconButton(
+                            onPressed: _goToPreviousPage,
+                            icon: const Icon(Icons.arrow_back_rounded),
+                            iconSize: 28,
+                            style: IconButton.styleFrom(
+                              minimumSize: const Size(48, 48),
+                            ),
+                          ),
+                        ),
+                      Expanded(
+                        child: Semantics(
+                          button: true,
+                          label: isLastPage
+                              ? 'Get started with the app'
+                              : 'Go to next page',
+                          child: FilledButton(
+                            onPressed: isLastPage
+                                ? _completeOnboarding
+                                : _goToNextPage,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: activeDotColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              minimumSize: const Size(double.infinity, 52),
+                            ),
+                            child: Text(
+                              isLastPage ? 'Get Started' : 'Next',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                      child: Text(
-                        _currentPage == _pages.length - 1 ? 'Get Started' : 'Next',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ),
+                      if (_currentPage > 0) const SizedBox(width: 48),
+                    ],
                   ),
-                  if (_currentPage != _pages.length - 1)
-                    TextButton(
-                      onPressed: _completeOnboarding,
-                      child: Text('Skip', style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                    ),
                 ],
               ),
             ),
@@ -143,6 +214,49 @@ class OnboardingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
+    if (isLandscape) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: const BoxDecoration(
+                color: Color(0xFF7CD9C8),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 40, color: Colors.white),
+            ),
+            const SizedBox(width: 24),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    semanticsLabel: title,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    description,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -151,16 +265,29 @@ class OnboardingPage extends StatelessWidget {
           Container(
             width: 120,
             height: 120,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer,
+            decoration: const BoxDecoration(
+              color: Color(0xFF7CD9C8),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 60, color: theme.colorScheme.primary),
+            child: Icon(icon, size: 60, color: Colors.white),
           ),
           const SizedBox(height: 32),
-          Text(title, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+          Text(
+            title,
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+            semanticsLabel: title,
+          ),
           const SizedBox(height: 16),
-          Text(description, style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant), textAlign: TextAlign.center),
+          Text(
+            description,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );

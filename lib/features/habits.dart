@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -583,7 +584,8 @@ class HabitsProvider extends ChangeNotifier {
   ]) async {
     try {
       final db = await AppDatabase.instance.database;
-      final current = _habits.firstWhere((h) => h.id == habitId);
+      final current = _habits.where((h) => h.id == habitId).firstOrNull;
+      if (current == null) return;
       final updated = Habit(
         id: current.id,
         name: current.name,
@@ -625,7 +627,8 @@ class HabitsProvider extends ChangeNotifier {
   ]) async {
     try {
       final db = await AppDatabase.instance.database;
-      final current = _habits.firstWhere((h) => h.id == habitId);
+      final current = _habits.where((h) => h.id == habitId).firstOrNull;
+      if (current == null) return;
       final updated = Habit(
         id: current.id,
         name: name,
@@ -699,6 +702,15 @@ class HabitsProvider extends ChangeNotifier {
   void selectAll() {
     _selectedHabits.addAll(_habits.map((h) => h.id!).toSet());
     notifyListeners();
+  }
+
+  Future<void> markAllDone() async {
+    final today = DateTime.now();
+    for (final habit in _habits) {
+      if (!isCompleted(habit.id!, today)) {
+        await incrementLog(habit.id!, today);
+      }
+    }
   }
 
   Future<void> deleteMultiple(Set<int> ids, [BuildContext? context]) async {
@@ -891,6 +903,43 @@ class _HabitsScreenState extends State<HabitsScreen> {
                 )
                 : Text('Habit Tracker', style: theme.textTheme.titleLarge),
         actions: [
+          if (!_showSearch)
+            IconButton(
+              icon: const Icon(Icons.done_all_rounded),
+              tooltip: 'Mark all done',
+              onPressed: () async {
+                final provider = context.read<HabitsProvider>();
+                final remaining = provider.todayTotalCount - provider.todayCompletedCount;
+                if (remaining == 0) {
+                  showSuccessSnackBar(context, 'All habits already completed today!');
+                  return;
+                }
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder:
+                      (ctx) => AlertDialog(
+                        title: const Text('Mark All Done'),
+                        content: Text(
+                          'Mark all $remaining remaining habit${remaining > 1 ? 's' : ''} as completed for today?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text('Mark Done'),
+                          ),
+                        ],
+                      ),
+                );
+                if (confirmed == true) {
+                  HapticFeedback.mediumImpact();
+                  provider.markAllDone();
+                }
+              },
+            ),
           IconButton(
             icon: Icon(
               _showSearch ? Icons.close_rounded : Icons.search_rounded,
@@ -970,11 +1019,23 @@ class _HabitsScreenState extends State<HabitsScreen> {
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    'No habits match "${provider.searchQuery}"',
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'No habits match "${provider.searchQuery}"',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Try a different search term',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -1033,10 +1094,42 @@ class _HabitsScreenState extends State<HabitsScreen> {
                             visualDensity: VisualDensity.compact,
                             foregroundColor: theme.colorScheme.error,
                           ),
-                          onPressed:
-                              () => provider.deleteMultiple(
-                                provider.selectedHabits,
-                              ),
+                          onPressed: () async {
+                            final count = provider.selectedHabits.length;
+                            final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder:
+                                  (ctx) => AlertDialog(
+                                    title: const Text('Delete Habits'),
+                                    content: Text(
+                                      'Permanently delete $count selected habit${count > 1 ? 's' : ''}? This action cannot be undone.',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed:
+                                            () => Navigator.pop(ctx, false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      TextButton(
+                                        onPressed:
+                                            () => Navigator.pop(ctx, true),
+                                        child: Text(
+                                          'Delete',
+                                          style: TextStyle(
+                                            color:
+                                                Theme.of(
+                                                  ctx,
+                                                ).colorScheme.error,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                            );
+                            if (confirmed == true) {
+                              provider.deleteMultiple(provider.selectedHabits);
+                            }
+                          },
                           child: const Text(
                             'Delete',
                             style: TextStyle(fontSize: 12),
@@ -1049,9 +1142,9 @@ class _HabitsScreenState extends State<HabitsScreen> {
                 // Today's progress card
                 _TodayProgressCard(provider: provider, theme: theme),
                 // Habit cards horizontal scroll
-                SizedBox(
-                  height: 112,
-                  child: ReorderableListView.builder(
+                 SizedBox(
+                   height: 96,
+                   child: ReorderableListView.builder(
                     scrollDirection: Axis.horizontal,
                     buildDefaultDragHandles: false,
                     padding: const EdgeInsets.symmetric(
@@ -1075,16 +1168,25 @@ class _HabitsScreenState extends State<HabitsScreen> {
                         DateTime.now(),
                       );
 
-                      return ReorderableDragStartListener(
-                        key: ValueKey(h.id),
-                        index: index,
-                        child: GestureDetector(
-                          onTap:
-                              provider.isSelectionMode
-                                  ? () => provider.toggleHabitSelection(h.id!)
-                                  : () => setState(() => _selectedHabit = h),
-                          onLongPress:
-                              () => provider.toggleHabitSelection(h.id!),
+                       return ReorderableDragStartListener(
+                         key: ValueKey(h.id),
+                         index: index,
+                         child: GestureDetector(
+                           onTap:
+                               provider.isSelectionMode
+                                   ? () {
+                                     HapticFeedback.selectionClick();
+                                     provider.toggleHabitSelection(h.id!);
+                                   }
+                                   : () {
+                                     HapticFeedback.selectionClick();
+                                     setState(() => _selectedHabit = h);
+                                   },
+                           onLongPress:
+                               () {
+                                 HapticFeedback.mediumImpact();
+                                 provider.toggleHabitSelection(h.id!);
+                               },
                           child: Padding(
                             padding: EdgeInsets.only(
                               top: provider.isSelectionMode ? 14 : 0,
@@ -1147,31 +1249,31 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                                           .colorScheme
                                                           .onSurfaceVariant,
                                             ),
-                                            if (completedToday)
-                                              Positioned(
-                                                right: -2,
-                                                bottom: -2,
-                                                child: Container(
-                                                  width: 10,
-                                                  height: 10,
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.green,
-                                                    shape: BoxShape.circle,
-                                                    border: Border.all(
-                                                      color:
-                                                          theme
-                                                              .colorScheme
-                                                              .surface,
-                                                      width: 1.2,
-                                                    ),
-                                                  ),
-                                                  child: const Icon(
-                                                    Icons.check_rounded,
-                                                    size: 6.5,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                              ),
+                                             if (completedToday)
+                                               Positioned(
+                                                 right: -2,
+                                                 bottom: -2,
+                                                 child: Container(
+                                                   width: 10,
+                                                   height: 10,
+                                                   decoration: BoxDecoration(
+                                                     color: theme.colorScheme.primary,
+                                                     shape: BoxShape.circle,
+                                                     border: Border.all(
+                                                       color:
+                                                           theme
+                                                               .colorScheme
+                                                               .surface,
+                                                       width: 1.2,
+                                                     ),
+                                                   ),
+                                                   child: const Icon(
+                                                     Icons.check_rounded,
+                                                     size: 6.5,
+                                                     color: Colors.white,
+                                                   ),
+                                                 ),
+                                               ),
                                           ],
                                         ),
                                         const SizedBox(height: 4),
@@ -1211,28 +1313,31 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                             maxLines: 2,
                                           ),
                                         ),
-                                        if (currentStreak > 0) ...[
-                                          const SizedBox(height: 2),
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              const Icon(
-                                                Icons.local_fire_department,
-                                                color: Colors.orange,
-                                                size: 10,
+                                          if (currentStreak > 0) ...[
+                                            const SizedBox(height: 2),
+                                            Semantics(
+                                              label: 'Current streak: $currentStreak days',
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  const Icon(
+                                                    Icons.local_fire_department,
+                                                    color: Colors.orange,
+                                                    size: 14,
+                                                  ),
+                                                  Text(
+                                                    '$currentStreak',
+                                                    style: const TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Colors.orange,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                              Text(
-                                                '$currentStreak',
-                                                style: const TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.orange,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
+                                            ),
+                                          ],
                                         const SizedBox(height: 4),
                                       ],
                                     ),
@@ -1303,9 +1408,23 @@ class _HabitsScreenState extends State<HabitsScreen> {
                   ),
                 ),
 
-                const Divider(height: 1),
+                 if (!provider.isSelectionMode && displayHabits.isNotEmpty)
+                   Padding(
+                     padding: const EdgeInsets.symmetric(vertical: 4),
+                     child: Center(
+                       child: Text(
+                         'Long press to select habits',
+                         style: theme.textTheme.bodySmall?.copyWith(
+                           color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                           fontSize: 11,
+                         ),
+                       ),
+                     ),
+                   ),
 
-                if (_selectedHabit != null) ...[
+                 const Divider(height: 1),
+
+                 if (_selectedHabit != null) ...[
                   // Selected habit header
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -1423,22 +1542,25 @@ class _HabitsScreenState extends State<HabitsScreen> {
                           },
                         ),
                         const Spacer(),
-                        if (_currentWeekStart != _getWeekStart(DateTime.now()))
-                          TextButton.icon(
-                            icon: const Icon(Icons.today_rounded, size: 16),
-                            label: const Text(
-                              'Today',
-                              style: TextStyle(fontSize: 12),
+                         if (_currentWeekStart != _getWeekStart(DateTime.now()))
+                            Tooltip(
+                              message: 'Go to current week',
+                              child: FilledButton.tonalIcon(
+                                icon: const Icon(Icons.today_rounded, size: 16),
+                                label: const Text(
+                                  'Today',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                                onPressed: () {
+                                  setState(
+                                    () =>
+                                        _currentWeekStart = _getWeekStart(
+                                          DateTime.now(),
+                                        ),
+                                  );
+                                },
+                              ),
                             ),
-                            onPressed: () {
-                              setState(
-                                () =>
-                                    _currentWeekStart = _getWeekStart(
-                                      DateTime.now(),
-                                    ),
-                              );
-                            },
-                          ),
                       ],
                     ),
                   ),
@@ -1586,6 +1708,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
     int selectedColor = _colorPresets[0];
     String selectedType = 'yes_no';
     int targetCount = 8;
+    bool nameTouched = false;
 
     showModalBottomSheet(
       context: context,
@@ -1627,7 +1750,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                   },
                   child: Padding(
                     padding: EdgeInsets.only(
-                      bottom: MediaQuery.of(context).viewInsets.bottom,
+                      bottom: MediaQuery.of(context).viewInsets.bottom + 16,
                       left: 24,
                       right: 24,
                       top: 24,
@@ -1656,12 +1779,21 @@ class _HabitsScreenState extends State<HabitsScreen> {
                           const SizedBox(height: 16),
                           TextField(
                             controller: titleCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Habit Name',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.edit_rounded),
+                            decoration: InputDecoration(
+                              labelText: 'Habit Name *',
+                              border: const OutlineInputBorder(),
+                              prefixIcon: const Icon(Icons.edit_rounded),
+                              helperText: nameTouched && titleCtrl.text.trim().isEmpty
+                                  ? 'Please enter a habit name'
+                                  : 'Give your habit a clear name',
+                              errorText: nameTouched && titleCtrl.text.trim().isEmpty
+                                  ? 'Name is required'
+                                  : null,
                             ),
                             autofocus: true,
+                            onChanged: (_) => setDialogState(() {
+                              nameTouched = true;
+                            }),
                           ),
                           const SizedBox(height: 20),
                           const Text(
@@ -1701,12 +1833,20 @@ class _HabitsScreenState extends State<HabitsScreen> {
                               fontSize: 14,
                             ),
                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Choose how you want to track this habit',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
                           const SizedBox(height: 8),
                           Row(
                             children: [
                               Expanded(
                                 child: _TypeChip(
                                   label: 'Yes / No',
+                                  description: 'Simple done/not done',
                                   icon: Icons.check_circle_outline,
                                   selected: selectedType == 'yes_no',
                                   onTap: () => setDialogState(() {
@@ -1718,6 +1858,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                               Expanded(
                                 child: _TypeChip(
                                   label: 'Count + Target',
+                                  description: 'Track with a daily goal',
                                   icon: Icons.track_changes,
                                   selected: selectedType == 'count_target',
                                   onTap: () => setDialogState(() {
@@ -1729,6 +1870,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                               Expanded(
                                 child: _TypeChip(
                                   label: 'Free Count',
+                                  description: 'Track without a target',
                                   icon: Icons.add_circle_outline,
                                   selected: selectedType == 'free_count',
                                   onTap: () => setDialogState(() {
@@ -1759,28 +1901,28 @@ class _HabitsScreenState extends State<HabitsScreen> {
                             child: FilledButton.icon(
                               icon: const Icon(Icons.add),
                               label: const Text('Create Habit'),
-                              onPressed: () {
-                                if (titleCtrl.text.trim().isNotEmpty) {
-                                  final provider =
-                                      context.read<HabitsProvider>();
-                                  final name = titleCtrl.text.trim();
-                                  Navigator.pop(ctx);
-                                  provider.saveHabit(
-                                    name,
-                                    selectedIcon,
-                                    selectedColor,
-                                    null,
-                                    context,
-                                    selectedType,
-                                    selectedType == 'count_target'
-                                        ? targetCount
-                                        : 0,
-                                  );
-                                }
-                              },
+                              onPressed: titleCtrl.text.trim().isNotEmpty
+                                  ? () {
+                                      final provider =
+                                          context.read<HabitsProvider>();
+                                      final name = titleCtrl.text.trim();
+                                      Navigator.pop(ctx);
+                                      provider.saveHabit(
+                                        name,
+                                        selectedIcon,
+                                        selectedColor,
+                                        null,
+                                        context,
+                                        selectedType,
+                                        selectedType == 'count_target'
+                                            ? targetCount
+                                            : 0,
+                                      );
+                                    }
+                                  : null,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 16),
                         ],
                       ),
                     ),
@@ -1859,6 +2001,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
     String? selectedReminder = habit.reminderTime;
     String selectedType = habit.habitType;
     int targetCount = habit.targetCount;
+    bool nameTouched = false;
 
     showModalBottomSheet(
       context: context,
@@ -1907,7 +2050,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                 },
                 child: Padding(
                   padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                    bottom: MediaQuery.of(context).viewInsets.bottom + 16,
                     left: 24,
                     right: 24,
                     top: 24,
@@ -1936,12 +2079,21 @@ class _HabitsScreenState extends State<HabitsScreen> {
                         const SizedBox(height: 16),
                         TextField(
                           controller: titleCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Habit Name',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.edit_rounded),
+                          decoration: InputDecoration(
+                            labelText: 'Habit Name *',
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.edit_rounded),
+                            helperText: nameTouched && titleCtrl.text.trim().isEmpty
+                                ? 'Please enter a habit name'
+                                : 'Give your habit a clear name',
+                            errorText: nameTouched && titleCtrl.text.trim().isEmpty
+                                ? 'Name is required'
+                                : null,
                           ),
                           autofocus: true,
+                          onChanged: (_) => setDialogState(() {
+                            nameTouched = true;
+                          }),
                         ),
                         const SizedBox(height: 20),
                         const Text(
@@ -1981,12 +2133,20 @@ class _HabitsScreenState extends State<HabitsScreen> {
                             fontSize: 14,
                           ),
                         ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Choose how you want to track this habit',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
                             Expanded(
                               child: _TypeChip(
                                 label: 'Yes / No',
+                                description: 'Simple done/not done',
                                 icon: Icons.check_circle_outline,
                                 selected: selectedType == 'yes_no',
                                 onTap: () => setDialogState(() {
@@ -1998,6 +2158,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                             Expanded(
                               child: _TypeChip(
                                 label: 'Count + Target',
+                                description: 'Track with a daily goal',
                                 icon: Icons.track_changes,
                                 selected: selectedType == 'count_target',
                                 onTap: () => setDialogState(() {
@@ -2009,6 +2170,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                             Expanded(
                               child: _TypeChip(
                                 label: 'Free Count',
+                                description: 'Track without a target',
                                 icon: Icons.add_circle_outline,
                                 selected: selectedType == 'free_count',
                                 onTap: () => setDialogState(() {
@@ -2022,10 +2184,10 @@ class _HabitsScreenState extends State<HabitsScreen> {
                           const SizedBox(height: 12),
                           TextField(
                             keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                               labelText: 'Daily Target',
-                              border: const OutlineInputBorder(),
-                              prefixIcon: const Icon(Icons.flag_outlined),
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.flag_outlined),
                               hintText: 'e.g. 8',
                             ),
                             controller: TextEditingController(
@@ -2122,32 +2284,32 @@ class _HabitsScreenState extends State<HabitsScreen> {
                               ),
                             ),
                             const SizedBox(width: 12),
-                            Expanded(
-                              child:                               FilledButton(
-                                onPressed: () {
-                                  if (titleCtrl.text.trim().isNotEmpty) {
-                                    final name = titleCtrl.text.trim();
-                                    Navigator.pop(ctx);
-                                    provider.updateHabit(
-                                      habit.id!,
-                                      name,
-                                      selectedIcon,
-                                      selectedColor,
-                                      selectedReminder,
-                                      context,
-                                      selectedType,
-                                      selectedType == 'count_target'
-                                          ? targetCount
-                                          : 0,
-                                    );
-                                  }
-                                },
-                                child: const Text('Save'),
+                             Expanded(
+                              child: FilledButton(
+                                onPressed: titleCtrl.text.trim().isNotEmpty
+                                    ? () {
+                                        final name = titleCtrl.text.trim();
+                                        Navigator.pop(ctx);
+                                        provider.updateHabit(
+                                          habit.id!,
+                                          name,
+                                          selectedIcon,
+                                          selectedColor,
+                                          selectedReminder,
+                                          context,
+                                          selectedType,
+                                          selectedType == 'count_target'
+                                              ? targetCount
+                                              : 0,
+                                        );
+                                      }
+                                    : null,
+                                child: const Text('Save Changes'),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 16),
                       ],
                     ),
                   ),
@@ -2231,23 +2393,23 @@ class _TodayProgressCard extends StatelessWidget {
                     value: progress,
                     minHeight: 6,
                     backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      progress == 1.0
-                          ? Colors.green
-                          : theme.colorScheme.primary,
-                    ),
+                     valueColor: AlwaysStoppedAnimation<Color>(
+                       progress == 1.0
+                           ? theme.colorScheme.tertiary
+                           : theme.colorScheme.primary,
+                     ),
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            '${(progress * 100).toInt()}%',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: progress == 1.0 ? Colors.green : theme.colorScheme.primary,
-            ),
-          ),
+           Text(
+             '${(progress * 100).toInt()}%',
+             style: theme.textTheme.titleMedium?.copyWith(
+               color: progress == 1.0 ? theme.colorScheme.tertiary : theme.colorScheme.primary,
+             ),
+           ),
         ],
       ),
     );
@@ -2949,11 +3111,11 @@ class _CustomColorDialogState extends State<_CustomColorDialog> {
                 Expanded(
                   child: TextField(
                     controller: _hexController,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: 'HEX',
                       prefixText: '#',
-                      border: const OutlineInputBorder(),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
                     style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
                     onChanged: _updateFromHex,
@@ -2993,12 +3155,14 @@ class _TypeChip extends StatelessWidget {
   final IconData icon;
   final bool selected;
   final VoidCallback onTap;
+  final String? description;
 
   const _TypeChip({
     required this.label,
     required this.icon,
     required this.selected,
     required this.onTap,
+    this.description,
   });
 
   @override
@@ -3043,6 +3207,21 @@ class _TypeChip extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
+            if (description != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                description!,
+                style: TextStyle(
+                  fontSize: 8,
+                  color: selected
+                      ? theme.colorScheme.primary.withValues(alpha: 0.7)
+                      : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ],
         ),
       ),
@@ -3080,35 +3259,38 @@ class _CountDayCell extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          width: 40,
-          height: 40,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              CircularProgressIndicator(
-                value: progress,
-                strokeWidth: 3,
-                backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  isCompleted
-                      ? Color(habit.color)
-                      : Color(habit.color).withValues(alpha: 0.4),
-                ),
-              ),
-              Text(
-                '$count',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: isCompleted
-                      ? Color(habit.color)
-                      : theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
+                        SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              CircularProgressIndicator(
+                                value: progress,
+                                strokeWidth: 3,
+                                backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  isCompleted
+                                      ? Color(habit.color)
+                                      : Color(habit.color).withValues(alpha: 0.4),
+                                ),
+                              ),
+                              Semantics(
+                                label: 'Count: $count${habit.isCountWithTarget ? ' of $target' : ''}',
+                                child: Text(
+                                  '$count',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: isCompleted
+                                        ? Color(habit.color)
+                                        : theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
         const SizedBox(height: 2),
         if (habit.isCountWithTarget)
           Text(

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -129,6 +130,23 @@ const _noteColors = <int?>[
   0xFFCFD8DC,
 ];
 
+const _noteColorNames = <String?>[
+  null,
+  'Light Blue',
+  'Sky Blue',
+  'Cyan',
+  'Teal',
+  'Light Green',
+  'Lime',
+  'Light Yellow',
+  'Cream',
+  'Peach',
+  'Pink',
+  'Lavender',
+  'Light Purple',
+  'Grey',
+];
+
 class NotesProvider extends ChangeNotifier {
   final NotificationService? _notificationService;
   List<Note> _notes = [];
@@ -141,6 +159,7 @@ class NotesProvider extends ChangeNotifier {
   bool _showArchived = false;
   bool _gridView = false;
   String _sortBy = 'updated';
+  bool _disposed = false;
 
   static const _noteIdOffset = 5000;
 
@@ -175,6 +194,7 @@ class NotesProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     _searchTimer?.cancel();
     super.dispose();
   }
@@ -208,7 +228,8 @@ class NotesProvider extends ChangeNotifier {
     _query = q;
     notifyListeners();
     _searchTimer?.cancel();
-    _searchTimer = Timer(const Duration(milliseconds: 200), () {
+    _searchTimer = Timer(const Duration(milliseconds: 100), () {
+      if (_disposed) return;
       if (q.isEmpty) {
         _filtered = [];
       } else {
@@ -443,9 +464,44 @@ class NotesScreen extends StatelessWidget {
                       tooltip: 'Delete selected',
                       onPressed: () async {
                         final count = p.selectedNotes.length;
-                        await p.deleteMultiple();
-                        if (context.mounted) {
-                          showSuccessSnackBar(context, 'Deleted $count notes');
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder:
+                              (ctx) => AlertDialog(
+                                title: const Text('Delete Notes'),
+                                content: Text(
+                                  'Permanently delete $count selected note${count > 1 ? 's' : ''}? This action cannot be undone.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.pop(ctx, false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.pop(ctx, true),
+                                    child: Text(
+                                      'Delete',
+                                      style: TextStyle(
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.error,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                        );
+                        if (confirmed == true) {
+                          await p.deleteMultiple();
+                          if (context.mounted) {
+                            showSuccessSnackBar(
+                              context,
+                              'Deleted $count notes',
+                            );
+                          }
                         }
                       },
                     ),
@@ -466,33 +522,24 @@ class NotesScreen extends StatelessWidget {
                       tooltip: 'Trash (${p.trashCount})',
                       onPressed: () => _showTrash(context),
                     ),
+                  IconButton(
+                    icon: Icon(
+                      p.gridView ? Icons.list : Icons.grid_view,
+                    ),
+                    tooltip: p.gridView ? 'List view' : 'Grid view',
+                    onPressed: p.toggleGridView,
+                  ),
                   PopupMenuButton<String>(
                     tooltip: 'More options',
                     onSelected: (v) {
                       if (v == 'archived') {
                         p.toggleShowArchived();
-                      } else if (v == 'grid') {
-                        p.toggleGridView();
                       } else {
                         p.setSortBy(v);
                       }
                     },
                     itemBuilder:
                         (_) => [
-                          PopupMenuItem(
-                            value: 'grid',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  p.gridView ? Icons.grid_view : Icons.list,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(p.gridView ? 'List view' : 'Grid view'),
-                              ],
-                            ),
-                          ),
-                          const PopupMenuDivider(),
                           PopupMenuItem(
                             value: 'updated',
                             child: Row(
@@ -569,7 +616,8 @@ class NotesScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: TextField(
                 decoration: InputDecoration(
-                  hintText: 'Search notes...',
+                  labelText: 'Search notes',
+                  hintText: 'Search by title or content',
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: Consumer<NotesProvider>(
                     builder:
@@ -684,12 +732,12 @@ class NotesScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'No matching notes',
+                              'No matching notes found',
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Try a different search term',
+                              'Try a different search term or clear the search',
                               style: Theme.of(
                                 context,
                               ).textTheme.bodyMedium?.copyWith(
@@ -771,20 +819,23 @@ class NotesScreen extends StatelessWidget {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'notes_fab',
-        tooltip: 'Create note',
-        child: const Icon(Icons.add),
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (_) =>
-                      NoteEditorScreen(provider: context.read<NotesProvider>()),
-            ),
-          );
-        },
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: FloatingActionButton(
+          heroTag: 'notes_fab',
+          tooltip: 'Create note',
+          child: const Icon(Icons.add),
+          onPressed: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (_) =>
+                        NoteEditorScreen(provider: context.read<NotesProvider>()),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -816,24 +867,58 @@ class NotesScreen extends StatelessWidget {
                           ),
                           const Spacer(),
                           Text(
-                            '${provider.trashCount} notes',
+                            '${provider.trashCount} note${provider.trashCount != 1 ? 's' : ''}',
                             style: Theme.of(context).textTheme.labelMedium,
                           ),
                           const SizedBox(width: 8),
-                          TextButton(
-                            onPressed: () async {
-                              for (final n in provider.trashedNotes) {
-                                await provider.delete(n.id!);
-                              }
-                              if (context.mounted) Navigator.pop(context);
-                            },
-                            child: Text(
-                              'Empty Trash',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.error,
+                          if (provider.trashCount > 0)
+                            TextButton(
+                              onPressed: () async {
+                                final confirmed = await showDialog<bool>(
+                                  context: context,
+                                  builder:
+                                      (ctx) => AlertDialog(
+                                        title: const Text('Empty Trash'),
+                                        content: Text(
+                                          'Permanently delete all ${provider.trashCount} trashed note${provider.trashCount != 1 ? 's' : ''}? This action cannot be undone.',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed:
+                                                () =>
+                                                    Navigator.pop(ctx, false),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          TextButton(
+                                            onPressed:
+                                                () => Navigator.pop(ctx, true),
+                                            child: Text(
+                                              'Delete All',
+                                              style: TextStyle(
+                                                color:
+                                                    Theme.of(
+                                                      context,
+                                                    ).colorScheme.error,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                );
+                                if (confirmed == true) {
+                                  for (final n in provider.trashedNotes) {
+                                    await provider.delete(n.id!);
+                                  }
+                                  if (context.mounted) Navigator.pop(context);
+                                }
+                              },
+                              child: Text(
+                                'Empty Trash',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
                               ),
                             ),
-                          ),
                         ],
                       ),
                     ),
@@ -845,14 +930,32 @@ class NotesScreen extends StatelessWidget {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(
+                                     Icon(
                                       Icons.delete_outline,
                                       size: 48,
                                       color:
                                           Theme.of(context).colorScheme.outline,
                                     ),
                                     const SizedBox(height: 12),
-                                    const Text('Trash is empty'),
+                                    const Text(
+                                      'Trash is empty',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Deleted notes will appear here',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall?.copyWith(
+                                        color:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               )
@@ -923,7 +1026,7 @@ class _NoteCard extends StatelessWidget {
 
     Color? bg;
     if (note.color != null) {
-      bg = Color(note.color!).withValues(alpha: 0.3);
+      bg = Color(note.color!).withValues(alpha: 0.5);
     }
 
     final card = Card(
@@ -932,15 +1035,24 @@ class _NoteCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap:
             provider.isSelectionMode
-                ? () => provider.toggleSelection(note.id!)
-                : () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder:
-                        (_) => NoteEditorScreen(note: note, provider: provider),
-                  ),
-                ),
-        onLongPress: () => provider.toggleSelection(note.id!),
+                ? () {
+                  HapticFeedback.selectionClick();
+                  provider.toggleSelection(note.id!);
+                }
+                : () {
+                  HapticFeedback.selectionClick();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (_) => NoteEditorScreen(note: note, provider: provider),
+                    ),
+                  );
+                },
+        onLongPress: () {
+          HapticFeedback.mediumImpact();
+          provider.toggleSelection(note.id!);
+        },
         child: Padding(
           padding: EdgeInsets.all(grid ? 10 : 12),
           child: Column(
@@ -978,7 +1090,7 @@ class _NoteCard extends StatelessWidget {
                           ),
                         if (note.reminderTime != null)
                           Semantics(
-                            label: 'Has reminder',
+                            label: 'Has reminder set',
                             child: Padding(
                               padding: EdgeInsets.only(right: grid ? 2 : 4),
                               child: const Icon(Icons.notifications, size: 14),
@@ -1016,7 +1128,10 @@ class _NoteCard extends StatelessWidget {
                         width: 32,
                         height: 32,
                         child: GestureDetector(
-                          onTap: () => provider.toggleSelection(note.id!),
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            provider.toggleSelection(note.id!);
+                          },
                           child: Icon(
                             provider.selectedNotes.contains(note.id)
                                 ? Icons.check_circle
@@ -1066,32 +1181,22 @@ class _NoteCard extends StatelessWidget {
         padding: const EdgeInsets.only(right: 16),
         child: const Icon(Icons.delete_outline, color: Colors.white),
       ),
-      confirmDismiss: (_) async {
-        return await showDialog<bool>(
-              context: context,
-              builder:
-                  (ctx) => AlertDialog(
-                    title: const Text('Move to trash?'),
-                    content: const Text(
-                      'You can restore it later from the trash.',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('Trash'),
-                      ),
-                    ],
-                  ),
-            ) ??
-            false;
-      },
       onDismissed: (_) {
+        HapticFeedback.lightImpact();
         provider.trash(note);
-        if (context.mounted) showSuccessSnackBar(context, 'Moved to trash');
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Note moved to trash'),
+              action: SnackBarAction(
+                label: 'Undo',
+                onPressed: () {
+                  provider.restore(note);
+                },
+              ),
+            ),
+          );
+        }
       },
       child: card,
     );
@@ -1112,6 +1217,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
   late QuillController _controller;
   late TextEditingController _titleController;
   bool _saving = false;
+  String _saveStatus = '';
   Note? _editingNote;
   bool _isExiting = false;
 
@@ -1171,7 +1277,10 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
 
   void _save() async {
     if (_saving) return;
-    setState(() => _saving = true);
+    setState(() {
+      _saving = true;
+      _saveStatus = 'Saving...';
+    });
     final content = jsonEncode(_controller.document.toDelta().toJson());
     final note = Note(
       id: _editingNote?.id,
@@ -1191,7 +1300,15 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
     setState(() {
       _editingNote = note.copyWith(id: id);
       _saving = false;
+      _saveStatus = 'Saved';
       _isExiting = true;
+    });
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _saveStatus = '';
+        });
+      }
     });
     showSuccessSnackBar(context, 'Note saved');
     Navigator.pop(context);
@@ -1239,16 +1356,29 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
   void _pickColor() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder:
           (_) => Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 16,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Note Color',
+                    'Note Color',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Choose a color for this note',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Wrap(
@@ -1257,8 +1387,9 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
                   children: [
                     ..._noteColors.map((c) {
                       final selected = _editingNote?.color == c;
+                      final colorName = _noteColorNames[_noteColors.indexOf(c)];
                       return Semantics(
-                        label: c != null ? 'Color $c' : 'No color',
+                        label: c != null ? colorName ?? 'Color' : 'No color',
                         button: true,
                         child: GestureDetector(
                           onTap: () async {
@@ -1280,9 +1411,9 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
                                   selected
                                       ? Border.all(
                                         color:
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
                                         width: 3,
                                       )
                                       : null,
@@ -1360,12 +1491,30 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
     }
   }
 
+  String _priorityDescription(int priority) {
+    switch (priority) {
+      case 3:
+        return 'Urgent - needs attention soon';
+      case 2:
+        return 'Important but not urgent';
+      case 1:
+        return 'Low urgency';
+      default:
+        return 'No priority set';
+    }
+  }
+
   void _showPriorityPicker() {
     showModalBottomSheet(
       context: context,
       builder:
           (_) => Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 16,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1377,12 +1526,22 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
                 const SizedBox(height: 12),
                 ...List.generate(4, (i) {
                   final label = _priorityLabel(i);
+                  final description = _priorityDescription(i);
                   final isSel = (_editingNote?.priority ?? 0) == i;
                   return ListTile(
                     title: Text(label),
+                    subtitle: Text(
+                      description,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                     trailing:
                         isSel
-                            ? const Icon(Icons.check, color: Colors.green)
+                            ? Icon(
+                              Icons.check,
+                              color: Theme.of(context).colorScheme.primary,
+                            )
                             : null,
                     onTap: () async {
                       await _updateNote((n) => n.copyWith(priority: i));
@@ -1407,14 +1566,28 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
         if (!didPop && !_saving) _save();
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         appBar: AppBar(
           title: TextField(
             controller: _titleController,
             decoration: const InputDecoration(
-              hintText: 'Title',
+              labelText: 'Title',
+              hintText: 'Enter note title',
               border: InputBorder.none,
             ),
             style: Theme.of(context).textTheme.titleLarge,
+            maxLength: 100,
+            buildCounter: (context, {required currentLength, required isFocused, maxLength}) {
+              if (!isFocused) return null;
+              return Text(
+                '$currentLength/$maxLength',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: currentLength > 80
+                    ? Theme.of(context).colorScheme.error
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              );
+            },
           ),
           actions: [
             IconButton(
@@ -1426,16 +1599,16 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
               onPressed:
                   () => _updateNote((n) => n.copyWith(favorite: !n.favorite)),
             ),
-            IconButton(
+                     IconButton(
               icon: const Icon(Icons.color_lens_outlined),
-              tooltip: 'Color',
+              tooltip: 'Change color',
               onPressed: _pickColor,
             ),
             IconButton(
               icon: const Icon(Icons.notifications_outlined),
               tooltip:
                   _editingNote?.reminderTime != null
-                      ? 'Reminder set'
+                      ? 'Edit reminder'
                       : 'Set reminder',
               onPressed: _pickReminder,
               color:
@@ -1502,29 +1675,31 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
             ),
           ],
         ),
-        body: Column(
-          children: [
-            QuillSimpleToolbar(
-              controller: _controller,
-              config: const QuillSimpleToolbarConfig(
-                showBackgroundColorButton: false,
-                showColorButton: false,
-                showSubscript: false,
-                showSuperscript: false,
-                showInlineCode: false,
-                showCodeBlock: false,
-                showIndent: false,
-                showDirection: false,
-                showLink: false,
-                showSearchButton: false,
-                showFontFamily: false,
-                showFontSize: false,
-                showSmallButton: false,
-                showAlignmentButtons: false,
-                showLineHeightButton: false,
+        body: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              QuillSimpleToolbar(
+                controller: _controller,
+                config: const QuillSimpleToolbarConfig(
+                  showBackgroundColorButton: false,
+                  showColorButton: false,
+                  showSubscript: false,
+                  showSuperscript: false,
+                  showInlineCode: false,
+                  showCodeBlock: false,
+                  showIndent: false,
+                  showDirection: false,
+                  showLink: false,
+                  showSearchButton: false,
+                  showFontFamily: false,
+                  showFontSize: false,
+                  showSmallButton: false,
+                  showAlignmentButtons: false,
+                  showLineHeightButton: false,
+                ),
               ),
-            ),
-            Expanded(child: QuillEditor.basic(controller: _controller)),
+              Expanded(child: QuillEditor.basic(controller: _controller)),
             if (_editingNote != null && _editingNote!.reminderTime != null)
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -1543,22 +1718,23 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const Spacer(),
-                    SizedBox(
+                     SizedBox(
                       width: 48,
                       height: 48,
-                      child: GestureDetector(
-                        onTap: () async {
+                      child: IconButton(
+                        icon: const Icon(Icons.close, size: 16),
+                        tooltip: 'Remove reminder',
+                        onPressed: () async {
                           await _updateNote(
                             (n) => n.copyWith(reminderTime: null),
                           );
                         },
-                        child: const Icon(Icons.close, size: 16),
                       ),
                     ),
                   ],
                 ),
               ),
-            Container(
+             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
                 border: Border(
@@ -1575,6 +1751,23 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
+                  if (_saveStatus.isNotEmpty) ...[
+                    const SizedBox(width: 12),
+                    if (_saveStatus == 'Saving...')
+                      const SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(strokeWidth: 1.5),
+                      ),
+                    if (_saveStatus == 'Saving...')
+                      const SizedBox(width: 4),
+                    Text(
+                      _saveStatus,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                   if (_editingNote != null) ...[
                     const Spacer(),
                     Text(
@@ -1588,6 +1781,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
               ),
             ),
           ],
+          ),
         ),
       ),
     );
@@ -1666,12 +1860,16 @@ class _NoteCustomColorPickerState extends State<_NoteCustomColorPicker> {
               ),
             ),
             const SizedBox(height: 16),
-            Slider(
-              value: _hsv.hue,
-              min: 0,
-              max: 360,
-              onChanged: (v) => _updateFromHSV(_hsv.withHue(v)),
-              activeColor: color,
+            Semantics(
+              label: 'Hue: ${_hsv.hue.round()} degrees',
+              slider: true,
+              child: Slider(
+                value: _hsv.hue,
+                min: 0,
+                max: 360,
+                onChanged: (v) => _updateFromHSV(_hsv.withHue(v)),
+                activeColor: color,
+              ),
             ),
             const SizedBox(height: 8),
             Row(
@@ -1689,11 +1887,12 @@ class _NoteCustomColorPickerState extends State<_NoteCustomColorPicker> {
                 Expanded(
                   child: TextField(
                     controller: _hexController,
-                    decoration: InputDecoration(
-                      hintText: 'HEX',
+                    decoration: const InputDecoration(
+                      labelText: 'Hex Color',
+                      hintText: 'FF5500',
                       prefixText: '#',
-                      border: const OutlineInputBorder(),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
                     style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
                     onChanged: _updateFromHex,

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -11,6 +13,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../database.dart';
 import '../utils/snackbar_utils.dart';
 import '../features/settings_provider.dart';
+import '../features/onboarding.dart';
 import 'notes.dart';
 import 'habits.dart';
 import 'calendar.dart';
@@ -22,23 +25,30 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(centerTitle: true, title: const Text('Settings')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-        children: [
-          _AppearanceSection(),
-          const SizedBox(height: 24),
-          _NotificationsSection(),
-          const SizedBox(height: 24),
-          _DataSection(),
-          const SizedBox(height: 24),
-          const _LifeTrackerSection(),
-          const SizedBox(height: 24),
-          _CalculatorSection(),
-          const SizedBox(height: 24),
-          _AboutSection(),
-        ],
+      appBar: AppBar(
+        centerTitle: true,
+        title: Text('Settings', style: theme.textTheme.titleLarge),
+      ),
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          children: [
+            _AppearanceSection(),
+            const SizedBox(height: 16),
+            _NotificationsSection(),
+            const SizedBox(height: 16),
+            _DataSection(),
+            const SizedBox(height: 16),
+            const _LifeTrackerSection(),
+            const SizedBox(height: 16),
+            _CalculatorSection(),
+            const SizedBox(height: 16),
+            _AboutSection(),
+          ],
+        ),
       ),
     );
   }
@@ -52,17 +62,20 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: theme.colorScheme.primary),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: theme.colorScheme.primary),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -74,15 +87,15 @@ class _AppearanceSection extends StatelessWidget {
     final settings = context.watch<SettingsProvider>();
 
     if (settings.loading) {
-      return const Card(
+      return Card(
         child: Padding(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _SectionHeader(icon: Icons.palette_rounded, title: 'Appearance'),
-              SizedBox(height: 16),
-              Center(child: CircularProgressIndicator()),
+              const _SectionHeader(icon: Icons.palette_rounded, title: 'Appearance'),
+              const SizedBox(height: 16),
+              const Center(child: CircularProgressIndicator()),
             ],
           ),
         ),
@@ -99,11 +112,11 @@ class _AppearanceSection extends StatelessWidget {
               icon: Icons.palette_rounded,
               title: 'Appearance',
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             ListTile(
               leading: const Icon(Icons.brightness_6_rounded),
               title: const Text('Theme'),
-              subtitle: const Text('Choose light, dark, or system default'),
+              subtitle: const Text('Choose light, dark, or follow system'),
               trailing: DropdownButton<ThemeMode>(
                 value: settings.themeMode,
                 underline: const SizedBox(),
@@ -120,19 +133,32 @@ class _AppearanceSection extends StatelessWidget {
                 ],
                 onChanged: (value) {
                   if (value != null) {
+                    HapticFeedback.selectionClick();
                     settings.setThemeMode(value);
-                    showSuccessSnackBar(context, 'Theme updated');
+                    String modeName;
+                    switch (value) {
+                      case ThemeMode.light:
+                        modeName = 'Light';
+                        break;
+                      case ThemeMode.dark:
+                        modeName = 'Dark';
+                        break;
+                      case ThemeMode.system:
+                        modeName = 'System';
+                        break;
+                    }
+                    showSuccessSnackBar(context, '$modeName theme applied');
                   }
                 },
               ),
             ),
             ListTile(
               leading: const Icon(Icons.color_lens_rounded),
-              title: const Text('Color Seed'),
-              subtitle: const Text('Change the app accent color'),
+              title: const Text('Accent Color'),
+              subtitle: const Text('Choose the app accent color'),
               trailing: Container(
-                width: 24,
-                height: 24,
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(
                   color: settings.colorSeed,
                   shape: BoxShape.circle,
@@ -142,7 +168,10 @@ class _AppearanceSection extends StatelessWidget {
                   ),
                 ),
               ),
-              onTap: () => _showColorPicker(context, settings),
+              onTap: () {
+                HapticFeedback.selectionClick();
+                _showColorPicker(context, settings);
+              },
             ),
             SwitchListTile(
               secondary: const Icon(Icons.calendar_view_week_rounded),
@@ -152,6 +181,7 @@ class _AppearanceSection extends StatelessWidget {
               ),
               value: settings.weekStartsMonday,
               onChanged: (value) {
+                HapticFeedback.selectionClick();
                 settings.setWeekStartsMonday(value);
                 showSuccessSnackBar(
                   context,
@@ -170,7 +200,10 @@ class _AppearanceSection extends StatelessWidget {
                 style: TextStyle(color: theme.colorScheme.error),
               ),
               subtitle: const Text('Restore all settings to defaults'),
-              onTap: () => _confirmResetSettings(context, settings),
+              onTap: () {
+                HapticFeedback.selectionClick();
+                _confirmResetSettings(context, settings);
+              },
             ),
           ],
         ),
@@ -182,11 +215,12 @@ class _AppearanceSection extends StatelessWidget {
     BuildContext context,
     SettingsProvider settings,
   ) async {
+    final theme = Theme.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
           (ctx) => AlertDialog(
-            title: const Text('Reset Settings'),
+            title: const Text('Reset All Settings'),
             content: const Text(
               'This will reset all settings to their default values. Your data will not be affected.',
             ),
@@ -195,9 +229,13 @@ class _AppearanceSection extends StatelessWidget {
                 onPressed: () => Navigator.pop(ctx, false),
                 child: const Text('Cancel'),
               ),
-              TextButton(
+              FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Reset', style: TextStyle(color: Colors.red)),
+                style: FilledButton.styleFrom(
+                  backgroundColor: theme.colorScheme.error,
+                  foregroundColor: theme.colorScheme.onError,
+                ),
+                child: const Text('Reset'),
               ),
             ],
           ),
@@ -233,164 +271,174 @@ class _AppearanceSection extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder:
-          (ctx) => Container(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.7,
-            ),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Accent Color',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(ctx),
-                    ),
-                  ],
-                ),
-                const Divider(),
-                const SizedBox(height: 8),
-                Card(
-                  elevation: 0,
-                  color: theme.colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.3,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    leading: Icon(
-                      Icons.wallpaper_rounded,
-                      color: theme.colorScheme.primary,
-                    ),
-                    title: const Text(
-                      'Default Accent Color',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: const Text(
-                      'Reset to default blue accent',
-                    ),
-                    onTap: () {
-                      settings.setColorSeed(Colors.blue);
-                      Navigator.pop(ctx);
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Text(
-                    'Color Palette',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.outline,
+      builder: (sheetCtx) {
+        return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+          ),
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Accent Color',
+                    style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(sheetCtx),
+                  ),
+                ],
+              ),
+              const Divider(),
+              const SizedBox(height: 8),
+              Card(
+                elevation: 0,
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.3,
                 ),
-                const SizedBox(height: 8),
-                Flexible(
-                  child: GridView.builder(
-                    shrinkWrap: true,
-                    itemCount: colors.length + 1,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 6,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                        ),
-                    itemBuilder: (ctx, index) {
-                      if (index == colors.length) {
-                        return GestureDetector(
-                          onTap: () async {
-                            final color = await showDialog<Color>(
-                              context: context,
-                              builder: (ctx) => _CustomColorPicker(
-                                initialColor: settings.colorSeed,
-                              ),
-                            );
-                            if (color != null && context.mounted) {
-                              settings.setColorSeed(color);
-                              Navigator.pop(ctx);
-                            }
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme
-                                  .surfaceContainerHighest
-                                  .withValues(alpha: 0.5),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: theme.colorScheme.outline,
-                                width: 2,
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.palette_outlined,
-                              color: theme.colorScheme.onSurfaceVariant,
-                              size: 20,
-                            ),
-                          ),
-                        );
-                      }
-                      final color = colors[index];
-                      final isSelected = settings.colorSeed == color;
-                      return GestureDetector(
-                        onTap: () {
-                          settings.setColorSeed(color);
-                          Navigator.pop(ctx);
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                            boxShadow:
-                                isSelected
-                                    ? [
-                                      BoxShadow(
-                                        color: color.withValues(alpha: 0.4),
-                                        blurRadius: 8,
-                                        spreadRadius: 2,
-                                      ),
-                                    ]
-                                    : null,
-                            border: Border.all(
-                              color:
-                                  isSelected
-                                      ? theme.colorScheme.primary
-                                      : Colors.transparent,
-                              width: isSelected ? 3 : 0,
-                            ),
-                          ),
-                          child:
-                              isSelected
-                                  ? Icon(
-                                    Icons.check,
-                                    color:
-                                        color.computeLuminance() > 0.5
-                                            ? Colors.black87
-                                            : Colors.white,
-                                    size: 20,
-                                  )
-                                  : null,
-                        ),
-                      );
-                    },
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ListTile(
+                  leading: Icon(
+                    Icons.wallpaper_rounded,
+                    color: theme.colorScheme.primary,
+                  ),
+                  title: const Text(
+                    'Default Accent Color',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: const Text(
+                    'Reset to default blue accent',
+                  ),
+                  onTap: () async {
+                     HapticFeedback.selectionClick();
+                     await settings.setColorSeed(Colors.blue);
+                     if (sheetCtx.mounted) Navigator.pop(sheetCtx);
+                   },
+                 ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  'Color Palette',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.outline,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 16),
-              ],
-            ),
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  itemCount: colors.length + 1,
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 6,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                      ),
+                  itemBuilder: (gridCtx, index) {
+                    if (index == colors.length) {
+                       return GestureDetector(
+                         onTap: () async {
+                           HapticFeedback.selectionClick();
+                           final color = await showDialog<Color>(
+                             context: sheetCtx,
+                             builder: (dialogCtx) => _CustomColorPicker(
+                               initialColor: settings.colorSeed,
+                             ),
+                           );
+                           if (color != null && sheetCtx.mounted) {
+                             await settings.setColorSeed(color);
+                             if (sheetCtx.mounted) Navigator.pop(sheetCtx);
+                           }
+                         },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest
+                                .withValues(alpha: 0.5),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: theme.colorScheme.outline,
+                              width: 2,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.palette_outlined,
+                            color: theme.colorScheme.onSurfaceVariant,
+                            size: 20,
+                          ),
+                        ),
+                      );
+                    }
+                    final color = colors[index];
+                    final isSelected =
+                        settings.colorSeed.toARGB32() == color.toARGB32();
+                    return GestureDetector(
+                  onTap: () async {
+                    HapticFeedback.selectionClick();
+                    await settings.setColorSeed(color);
+                    if (sheetCtx.mounted) Navigator.pop(sheetCtx);
+                  },
+                  child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          boxShadow:
+                              isSelected
+                                  ? [
+                                    BoxShadow(
+                                      color: color.withValues(alpha: 0.5),
+                                      blurRadius: 12,
+                                      spreadRadius: 3,
+                                    ),
+                                  ]
+                                  : null,
+                          border: Border.all(
+                            color:
+                                isSelected
+                                    ? theme.colorScheme.onSurface
+                                    : Colors.transparent,
+                            width: isSelected ? 3 : 0,
+                          ),
+                        ),
+                        child:
+                            isSelected
+                                ? Icon(
+                                  Icons.check,
+                                  color:
+                                      color.computeLuminance() > 0.5
+                                          ? Colors.black87
+                                          : Colors.white,
+                                  size: 20,
+                                )
+                                : null,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
           ),
+        );
+      },
     );
   }
 }
@@ -411,7 +459,11 @@ class _CustomColorPickerState extends State<_CustomColorPicker> {
   void initState() {
     super.initState();
     _hsv = HSVColor.fromColor(widget.initialColor);
-    _hexController.text = widget.initialColor.toARGB32().toRadixString(16).substring(2).toUpperCase();
+    _hexController.text = widget.initialColor
+        .toARGB32()
+        .toRadixString(16)
+        .substring(2)
+        .toUpperCase();
   }
 
   @override
@@ -423,7 +475,12 @@ class _CustomColorPickerState extends State<_CustomColorPicker> {
   void _updateFromHSV(HSVColor hsv) {
     setState(() {
       _hsv = hsv;
-      final hex = hsv.toColor().toARGB32().toRadixString(16).substring(2).toUpperCase();
+      final hex = hsv
+          .toColor()
+          .toARGB32()
+          .toRadixString(16)
+          .substring(2)
+          .toUpperCase();
       _hexController.text = hex;
     });
   }
@@ -452,12 +509,14 @@ class _CustomColorPickerState extends State<_CustomColorPicker> {
           children: [
             Text(
               'Pick a Color',
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 16),
             Container(
               width: double.infinity,
-              height: 160,
+              height: 60,
               decoration: BoxDecoration(
                 color: color,
                 borderRadius: BorderRadius.circular(12),
@@ -465,7 +524,6 @@ class _CustomColorPickerState extends State<_CustomColorPicker> {
               ),
             ),
             const SizedBox(height: 16),
-            // SV picker
             GestureDetector(
               onPanUpdate: (details) {
                 final box = context.findRenderObject() as RenderBox?;
@@ -495,7 +553,6 @@ class _CustomColorPickerState extends State<_CustomColorPicker> {
               ),
             ),
             const SizedBox(height: 12),
-            // Hue slider
             Slider(
               value: _hsv.hue,
               min: 0,
@@ -504,7 +561,6 @@ class _CustomColorPickerState extends State<_CustomColorPicker> {
               activeColor: color,
             ),
             const SizedBox(height: 8),
-            // Hex input
             Row(
               children: [
                 Container(
@@ -520,13 +576,19 @@ class _CustomColorPickerState extends State<_CustomColorPicker> {
                 Expanded(
                   child: TextField(
                     controller: _hexController,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: 'HEX',
                       prefixText: '#',
-                      border: const OutlineInputBorder(),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                     ),
-                    style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 14,
+                    ),
                     onChanged: _updateFromHex,
                     onSubmitted: (_) => Navigator.pop(context, color),
                   ),
@@ -561,7 +623,6 @@ class _SVOverlayPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Draw grid lines for visual reference
     final paint = Paint()
       ..color = Colors.black.withValues(alpha: 0.08)
       ..strokeWidth = 0.5;
@@ -593,13 +654,14 @@ class _NotificationsSection extends StatelessWidget {
               icon: Icons.notifications_rounded,
               title: 'Notifications',
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             SwitchListTile(
               secondary: const Icon(Icons.notifications_rounded),
               title: const Text('Enable Notifications'),
               subtitle: const Text('Receive habit reminders and event alerts'),
               value: settings.notificationsEnabled,
               onChanged: (value) async {
+                HapticFeedback.selectionClick();
                 if (value) {
                   final granted =
                       await settings.requestNotificationPermissions();
@@ -614,6 +676,12 @@ class _NotificationsSection extends StatelessWidget {
                   }
                 }
                 await settings.setNotificationsEnabled(value);
+                if (context.mounted) {
+                  showSuccessSnackBar(
+                    context,
+                    value ? 'Notifications enabled' : 'Notifications disabled',
+                  );
+                }
               },
             ),
             SwitchListTile(
@@ -621,14 +689,20 @@ class _NotificationsSection extends StatelessWidget {
               title: const Text('Habit Reminders'),
               subtitle: const Text('Get notified at habit reminder times'),
               value: settings.habitRemindersEnabled,
-              onChanged: settings.setHabitRemindersEnabled,
+              onChanged: (value) {
+                HapticFeedback.selectionClick();
+                settings.setHabitRemindersEnabled(value);
+              },
             ),
             SwitchListTile(
               secondary: const Icon(Icons.event_rounded),
               title: const Text('Event Reminders'),
               subtitle: const Text('Get notified before calendar events'),
               value: settings.eventRemindersEnabled,
-              onChanged: settings.setEventRemindersEnabled,
+              onChanged: (value) {
+                HapticFeedback.selectionClick();
+                settings.setEventRemindersEnabled(value);
+              },
             ),
           ],
         ),
@@ -644,6 +718,7 @@ class _DataSection extends StatefulWidget {
 
 class _DataSectionState extends State<_DataSection> {
   bool _loading = false;
+  double? _progress;
 
   @override
   Widget build(BuildContext context) {
@@ -658,30 +733,52 @@ class _DataSectionState extends State<_DataSection> {
               icon: Icons.folder_rounded,
               title: 'Data Management',
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             if (_loading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Center(child: CircularProgressIndicator()),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  children: [
+                    if (_progress != null)
+                      Column(
+                        children: [
+                          LinearProgressIndicator(value: _progress),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${((_progress ?? 0) * 100).round()}%',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
+                      )
+                    else
+                      const CircularProgressIndicator(),
+                  ],
+                ),
               )
             else ...[
               ListTile(
                 leading: const Icon(Icons.download_rounded),
                 title: const Text('Export All Data'),
                 subtitle: const Text(
-                  'Download JSON backup of notes, habits, events, calculator history, and life data',
+                  'Download a JSON backup of all your data',
                 ),
                 trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => _exportData(context),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  _exportData(context);
+                },
               ),
               ListTile(
                 leading: const Icon(Icons.upload_rounded),
                 title: const Text('Import Data'),
                 subtitle: const Text(
-                  'Restore from a previously exported JSON file',
+                  'Restore from a previously exported backup file',
                 ),
                 trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => _importData(context),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  _importData(context);
+                },
               ),
               const Divider(),
               ListTile(
@@ -697,7 +794,10 @@ class _DataSectionState extends State<_DataSection> {
                   'Permanently delete all notes, habits, events, and history',
                 ),
                 trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => _confirmClearAllData(context),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  _confirmClearAllData(context);
+                },
               ),
             ],
           ],
@@ -707,16 +807,22 @@ class _DataSectionState extends State<_DataSection> {
   }
 
   Future<void> _exportData(BuildContext context) async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _progress = 0.1;
+    });
     try {
       final db = await AppDatabase.instance.database;
 
+      setState(() => _progress = 0.2);
       final notes = await db.query('notes');
       final events = await db.query('calendar_events');
       final calcHistory = await db.query('calculator_history');
       final habits = await db.query('habits');
       final habitLogs = await db.query('habit_logs');
       final settings = await db.query('settings');
+
+      setState(() => _progress = 0.5);
 
       final exportData = {
         'version': 1,
@@ -731,18 +837,70 @@ class _DataSectionState extends State<_DataSection> {
 
       final jsonString = const JsonEncoder.withIndent('  ').convert(exportData);
 
-      setState(() => _loading = false);
+      setState(() => _progress = 0.8);
 
-      await Share.share(
-        jsonString,
-        subject:
-            'Personal App Backup - ${DateFormat('yyyy-MM-dd').format(DateTime.now())}',
+      if (!context.mounted) return;
+      final shouldSave = await showDialog<bool>(
+        context: context,
+        builder:
+            (ctx) => AlertDialog(
+              title: const Text('Export Data'),
+              content: const Text(
+                'Would you like to save the backup file or share it?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Share'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Save to Device'),
+                ),
+              ],
+            ),
       );
 
-      if (!mounted) return;
-      showSuccessSnackBar(context, 'Data exported successfully');
+      if (!context.mounted) return;
+
+      if (shouldSave == true) {
+        String? outputPath = await FilePicker.saveFile(
+          dialogTitle: 'Save Backup File',
+          fileName:
+              'personal_app_backup_${DateFormat('yyyy-MM-dd').format(DateTime.now())}.json',
+          type: FileType.custom,
+          allowedExtensions: ['json'],
+          bytes: utf8.encode(jsonString),
+        );
+
+        if (outputPath != null && context.mounted) {
+          showSuccessSnackBar(context, 'Backup saved successfully');
+        }
+      } else {
+        final filePath =
+            '${Directory.systemTemp.path}/personal_app_backup_${DateFormat('yyyy-MM-dd').format(DateTime.now())}.json';
+        final file = File(filePath);
+        await file.writeAsString(jsonString);
+
+        await Share.shareXFiles(
+          [XFile(filePath)],
+          subject:
+              'Personal App Backup - ${DateFormat('yyyy-MM-dd').format(DateTime.now())}',
+        );
+
+        if (!context.mounted) return;
+        showSuccessSnackBar(context, 'Data exported successfully');
+      }
+
+      setState(() {
+        _loading = false;
+        _progress = null;
+      });
     } catch (e) {
-      setState(() => _loading = false);
+      setState(() {
+        _loading = false;
+        _progress = null;
+      });
       debugLog('Export failed: $e');
       if (context.mounted) {
         showErrorSnackBar(context, 'Failed to export data');
@@ -751,7 +909,37 @@ class _DataSectionState extends State<_DataSection> {
   }
 
   Future<void> _importData(BuildContext context) async {
-    setState(() => _loading = true);
+    final theme = Theme.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Import Data'),
+            content: const Text(
+              'This will replace all current data with the imported backup. This action cannot be undone. Continue?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: theme.colorScheme.primary,
+                ),
+                child: const Text('Continue'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    setState(() {
+      _loading = true;
+      _progress = 0.1;
+    });
     try {
       final result = await FilePicker.pickFiles(
         type: FileType.custom,
@@ -760,9 +948,14 @@ class _DataSectionState extends State<_DataSection> {
       );
 
       if (result == null || result.files.isEmpty) {
-        setState(() => _loading = false);
+        setState(() {
+          _loading = false;
+          _progress = null;
+        });
         return;
       }
+
+      setState(() => _progress = 0.2);
 
       final file = result.files.first;
       final content = utf8.decode(file.bytes!);
@@ -770,9 +963,14 @@ class _DataSectionState extends State<_DataSection> {
       final data = jsonDecode(content) as Map<String, dynamic>;
 
       if (data['version'] == null) {
-        setState(() => _loading = false);
+        setState(() {
+          _loading = false;
+          _progress = null;
+        });
         throw const FormatException('Invalid backup file');
       }
+
+      setState(() => _progress = 0.3);
 
       final db = await AppDatabase.instance.database;
       await db.transaction((txn) async {
@@ -783,42 +981,95 @@ class _DataSectionState extends State<_DataSection> {
         await txn.delete('habits');
         await txn.delete('settings');
 
-        for (final note in (data['notes'] as List? ?? [])) {
+        final allNotes = data['notes'] as List? ?? [];
+        final allEvents = data['calendar_events'] as List? ?? [];
+        final allCalc = data['calculator_history'] as List? ?? [];
+        final allHabits = data['habits'] as List? ?? [];
+        final allLogs = data['habit_logs'] as List? ?? [];
+        final allSettings = data['settings'] as List? ?? [];
+        final totalRows =
+            allNotes.length +
+            allEvents.length +
+            allCalc.length +
+            allHabits.length +
+            allLogs.length +
+            allSettings.length;
+        int processed = 0;
+
+        for (final note in allNotes) {
           await txn.insert('notes', Map<String, dynamic>.from(note));
+          processed++;
+          if (totalRows > 0) {
+            setState(() => _progress = 0.3 + (0.5 * processed / totalRows));
+          }
         }
-        for (final event in (data['calendar_events'] as List? ?? [])) {
-          await txn.insert('calendar_events', Map<String, dynamic>.from(event));
+        for (final event in allEvents) {
+          await txn.insert(
+            'calendar_events',
+            Map<String, dynamic>.from(event),
+          );
+          processed++;
+          if (totalRows > 0) {
+            setState(() => _progress = 0.3 + (0.5 * processed / totalRows));
+          }
         }
-        for (final calc in (data['calculator_history'] as List? ?? [])) {
+        for (final calc in allCalc) {
           await txn.insert(
             'calculator_history',
             Map<String, dynamic>.from(calc),
           );
+          processed++;
+          if (totalRows > 0) {
+            setState(() => _progress = 0.3 + (0.5 * processed / totalRows));
+          }
         }
-        for (final habit in (data['habits'] as List? ?? [])) {
+        for (final habit in allHabits) {
           await txn.insert('habits', Map<String, dynamic>.from(habit));
+          processed++;
+          if (totalRows > 0) {
+            setState(() => _progress = 0.3 + (0.5 * processed / totalRows));
+          }
         }
-        for (final log in (data['habit_logs'] as List? ?? [])) {
+        for (final log in allLogs) {
           await txn.insert('habit_logs', Map<String, dynamic>.from(log));
+          processed++;
+          if (totalRows > 0) {
+            setState(() => _progress = 0.3 + (0.5 * processed / totalRows));
+          }
         }
-        for (final setting in (data['settings'] as List? ?? [])) {
+        for (final setting in allSettings) {
           await txn.insert('settings', Map<String, dynamic>.from(setting));
+          processed++;
+          if (totalRows > 0) {
+            setState(() => _progress = 0.3 + (0.5 * processed / totalRows));
+          }
         }
       });
 
-      setState(() => _loading = false);
+      setState(() => _progress = 0.9);
+
+      if (!context.mounted) return;
+      context.read<NotesProvider>().load();
+      context.read<CalendarProvider>().load();
+      context.read<CalculatorProvider>().loadHistory();
+      context.read<HabitsProvider>().load();
+      context.read<LifeProvider>().loadDOB();
+      await context.read<SettingsProvider>().reload();
 
       if (!mounted) return;
-      context.read<NotesProvider>().load();
-      if (mounted) context.read<CalendarProvider>().load();
-      if (mounted) context.read<CalculatorProvider>().loadHistory();
-      if (mounted) context.read<HabitsProvider>().load();
-      if (mounted) context.read<LifeProvider>().loadDOB();
-      if (mounted) await context.read<SettingsProvider>().reload();
-      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _progress = null;
+      });
+
+      if (!context.mounted) return;
+      HapticFeedback.mediumImpact();
       showSuccessSnackBar(context, 'Data imported successfully');
     } catch (e) {
-      setState(() => _loading = false);
+      setState(() {
+        _loading = false;
+        _progress = null;
+      });
       debugLog('Import failed: $e');
       if (context.mounted) {
         showErrorSnackBar(context, 'Failed to import: ${e.toString()}');
@@ -827,25 +1078,32 @@ class _DataSectionState extends State<_DataSection> {
   }
 
   Future<void> _confirmClearAllData(BuildContext context) async {
+    final theme = Theme.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
           (ctx) => AlertDialog(
-            title: const Text('Clear All Data'),
+            icon: Icon(
+              Icons.warning_rounded,
+              color: theme.colorScheme.error,
+              size: 32,
+            ),
+            title: const Text('Clear All Data?'),
             content: const Text(
-              'This will permanently delete ALL your notes, habits, events, calculator history, and settings. This action cannot be undone.',
+              'This will permanently delete all your notes, habits, events, calculator history, and settings. This action cannot be undone.',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
                 child: const Text('Cancel'),
               ),
-              TextButton(
+              FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text(
-                  'Delete Everything',
-                  style: TextStyle(color: Colors.red),
+                style: FilledButton.styleFrom(
+                  backgroundColor: theme.colorScheme.error,
+                  foregroundColor: theme.colorScheme.onError,
                 ),
+                child: const Text('Delete All'),
               ),
             ],
           ),
@@ -856,45 +1114,12 @@ class _DataSectionState extends State<_DataSection> {
     final deleteController = TextEditingController();
     final doubleConfirmed = await showDialog<bool>(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Are You Absolutely Sure?'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('This will permanently delete ALL your data.'),
-                const SizedBox(height: 16),
-                const Text('Type DELETE to confirm:'),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: deleteController,
-                  autofocus: true,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Type DELETE here',
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed:
-                    () => Navigator.pop(
-                      ctx,
-                      deleteController.text.trim() == 'DELETE',
-                    ),
-                child: const Text(
-                  'Confirm',
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
-          ),
+      builder: (ctx) {
+        return _DeleteConfirmationDialog(
+          controller: deleteController,
+          theme: theme,
+        );
+      },
     );
 
     if (doubleConfirmed != true || !context.mounted) return;
@@ -932,7 +1157,31 @@ class _DataSectionState extends State<_DataSection> {
         await context.read<SettingsProvider>().reload();
       }
       if (context.mounted) {
-        showSuccessSnackBar(context, 'All data cleared');
+        HapticFeedback.mediumImpact();
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder:
+              (ctx) => AlertDialog(
+                icon: Icon(
+                  Icons.check_circle_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 48,
+                ),
+                title: const Text('Data Cleared'),
+                content: const Text(
+                  'All data has been successfully cleared. The app is now in a fresh state.',
+                ),
+                actions: [
+                  FilledButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+        );
       }
     } catch (e) {
       setState(() => _loading = false);
@@ -941,6 +1190,81 @@ class _DataSectionState extends State<_DataSection> {
         showErrorSnackBar(context, 'Failed to clear data');
       }
     }
+  }
+}
+
+class _DeleteConfirmationDialog extends StatefulWidget {
+  final TextEditingController controller;
+  final ThemeData theme;
+
+  const _DeleteConfirmationDialog({
+    required this.controller,
+    required this.theme,
+  });
+
+  @override
+  State<_DeleteConfirmationDialog> createState() =>
+      _DeleteConfirmationDialogState();
+}
+
+class _DeleteConfirmationDialogState extends State<_DeleteConfirmationDialog> {
+  bool get _isValid => widget.controller.text.trim() == 'DELETE';
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      icon: Icon(
+        Icons.delete_forever_rounded,
+        color: widget.theme.colorScheme.error,
+        size: 32,
+      ),
+      title: const Text('Final Confirmation'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'This is your final chance to cancel. Type DELETE below to permanently erase all data:',
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: widget.controller,
+            autofocus: true,
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              hintText: 'Type DELETE here',
+              errorText:
+                  widget.controller.text.isNotEmpty && !_isValid
+                      ? 'Type DELETE in all caps'
+                      : null,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed:
+              _isValid ? () => Navigator.pop(context, true) : null,
+          style: FilledButton.styleFrom(
+            backgroundColor: widget.theme.colorScheme.error,
+            foregroundColor: widget.theme.colorScheme.onError,
+          ),
+          child: const Text('Permanently Delete'),
+        ),
+      ],
+    );
   }
 }
 
@@ -953,20 +1277,33 @@ class _LifeTrackerSection extends StatelessWidget {
     final provider = context.watch<LifeProvider>();
 
     final children = <Widget>[
-      const _SectionHeader(icon: Icons.favorite_rounded, title: 'Life Tracker'),
-      const SizedBox(height: 16),
+      const _SectionHeader(
+        icon: Icons.favorite_rounded,
+        title: 'Life Tracker',
+      ),
+      const SizedBox(height: 8),
       if (provider.dob == null) ...[
         Text(
-          'Set your date of birth to enable life tracking',
+          'Set your date of birth to enable life tracking and see your life progress.',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 12),
-        ElevatedButton.icon(
-          onPressed: () => _pickDate(context, provider),
-          icon: const Icon(Icons.calendar_today),
-          label: const Text('Enter Date of Birth'),
+        Semantics(
+          button: true,
+          label: 'Set date of birth',
+          child: ElevatedButton.icon(
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              _pickDate(context, provider);
+            },
+            icon: const Icon(Icons.calendar_today),
+            label: const Text('Set Date of Birth'),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+            ),
+          ),
         ),
       ] else ...[
         ListTile(
@@ -974,23 +1311,35 @@ class _LifeTrackerSection extends StatelessWidget {
           title: const Text('Date of Birth'),
           subtitle: Text(DateFormat('MMMM d, yyyy').format(provider.dob!)),
           trailing: const Icon(Icons.chevron_right_rounded),
-          onTap: () => _pickDate(context, provider),
+          onTap: () {
+            HapticFeedback.selectionClick();
+            _pickDate(context, provider);
+          },
         ),
         ListTile(
-          leading: const Icon(Icons.settings_rounded),
+          leading: const Icon(Icons.speed_rounded),
           title: const Text('Life Expectancy'),
-          subtitle: Text('${provider.lifeExpectancy} years (default: 80)'),
+          subtitle: Text('${provider.lifeExpectancy} years'),
           trailing: const Icon(Icons.chevron_right_rounded),
-          onTap: () => _showLifeExpectancyDialog(context, provider),
+          onTap: () {
+            HapticFeedback.selectionClick();
+            _showLifeExpectancyDialog(context, provider);
+          },
         ),
         ListTile(
-          leading: Icon(Icons.delete_rounded, color: theme.colorScheme.error),
+          leading: Icon(
+            Icons.delete_rounded,
+            color: theme.colorScheme.error,
+          ),
           title: Text(
             'Reset Life Tracker',
             style: TextStyle(color: theme.colorScheme.error),
           ),
           subtitle: const Text('Remove your date of birth and start over'),
-          onTap: () => _confirmReset(context, provider),
+          onTap: () {
+            HapticFeedback.selectionClick();
+            _confirmReset(context, provider);
+          },
         ),
       ],
     ];
@@ -1027,42 +1376,24 @@ class _LifeTrackerSection extends StatelessWidget {
     );
     await showDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Life Expectancy'),
-            content: TextField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Expected years',
-                border: OutlineInputBorder(),
-                helperText: 'Used for progress meter calculation',
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  final years = int.tryParse(controller.text);
-                  if (years != null && years > 0 && years <= 120) {
-                    provider.setLifeExpectancy(years, context);
-                    Navigator.pop(ctx);
-                  }
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          ),
+      builder: (ctx) {
+        return LifeExpectancyDialog(
+          controller: controller,
+          initialValue: provider.lifeExpectancy,
+          onSave: (years) {
+            provider.setLifeExpectancy(years, context);
+          },
+        );
+      },
     );
+    controller.dispose();
   }
 
   Future<void> _confirmReset(
     BuildContext context,
     LifeProvider provider,
   ) async {
+    final theme = Theme.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
@@ -1076,9 +1407,13 @@ class _LifeTrackerSection extends StatelessWidget {
                 onPressed: () => Navigator.pop(ctx, false),
                 child: const Text('Cancel'),
               ),
-              TextButton(
+              FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Reset', style: TextStyle(color: Colors.red)),
+                style: FilledButton.styleFrom(
+                  backgroundColor: theme.colorScheme.error,
+                  foregroundColor: theme.colorScheme.onError,
+                ),
+                child: const Text('Reset'),
               ),
             ],
           ),
@@ -1104,29 +1439,38 @@ class _CalculatorSection extends StatelessWidget {
               icon: Icons.calculate_rounded,
               title: 'Calculator',
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             SwitchListTile(
               secondary: const Icon(Icons.functions_rounded),
               title: const Text('Scientific Mode'),
               subtitle: const Text(
-                'Show advanced functions (sin, cos, log, π, e, etc.)',
+                'Show advanced functions (sin, cos, log, π, e)',
               ),
               value: settings.scientificMode,
-              onChanged: settings.setScientificMode,
+              onChanged: (value) {
+                HapticFeedback.selectionClick();
+                settings.setScientificMode(value);
+              },
             ),
             SwitchListTile(
               secondary: const Icon(Icons.content_copy_rounded),
               title: const Text('Copy Result on Tap'),
-              subtitle: const Text('Tap result to copy to clipboard'),
+              subtitle: const Text('Tap the result to copy to clipboard'),
               value: settings.copyOnTap,
-              onChanged: settings.setCopyOnTap,
+              onChanged: (value) {
+                HapticFeedback.selectionClick();
+                settings.setCopyOnTap(value);
+              },
             ),
             ListTile(
               leading: const Icon(Icons.delete_sweep_rounded),
               title: const Text('Clear History'),
               subtitle: const Text('Delete all calculator history entries'),
               trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => _confirmClearHistory(context),
+              onTap: () {
+                HapticFeedback.selectionClick();
+                _confirmClearHistory(context);
+              },
             ),
           ],
         ),
@@ -1135,6 +1479,7 @@ class _CalculatorSection extends StatelessWidget {
   }
 
   Future<void> _confirmClearHistory(BuildContext context) async {
+    final theme = Theme.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
@@ -1146,9 +1491,13 @@ class _CalculatorSection extends StatelessWidget {
                 onPressed: () => Navigator.pop(ctx, false),
                 child: const Text('Cancel'),
               ),
-              TextButton(
+              FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Clear', style: TextStyle(color: Colors.red)),
+                style: FilledButton.styleFrom(
+                  backgroundColor: theme.colorScheme.error,
+                  foregroundColor: theme.colorScheme.onError,
+                ),
+                child: const Text('Clear'),
               ),
             ],
           ),
@@ -1165,7 +1514,8 @@ class _AboutSection extends StatefulWidget {
 }
 
 class _AboutSectionState extends State<_AboutSection> {
-  String _version = '';
+  String? _version;
+  bool _loading = true;
 
   @override
   void initState() {
@@ -1177,10 +1527,18 @@ class _AboutSectionState extends State<_AboutSection> {
     try {
       final info = await PackageInfo.fromPlatform();
       if (mounted) {
-        setState(() => _version = '${info.version}+${info.buildNumber}');
+        setState(() {
+          _version = '${info.version}+${info.buildNumber}';
+          _loading = false;
+        });
       }
     } catch (_) {
-      if (mounted) setState(() => _version = '1.0.0+1');
+      if (mounted) {
+        setState(() {
+          _version = '1.0.0+1';
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -1196,17 +1554,33 @@ class _AboutSectionState extends State<_AboutSection> {
               icon: Icons.info_outline_rounded,
               title: 'About',
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             ListTile(
               leading: const Icon(Icons.info_rounded),
               title: const Text('Version'),
-              subtitle: Text(_version.isEmpty ? 'Loading...' : _version),
+              subtitle:
+                  _loading
+                      ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('Loading...'),
+                        ],
+                      )
+                      : Text(_version ?? 'Unknown'),
             ),
             ListTile(
               leading: const Icon(Icons.code_rounded),
               title: const Text('Source Code'),
-              subtitle: const Text('github.com/kssaichandan/PERSONAL-APP'),
+              subtitle: const Text('View project on GitHub'),
+              trailing: const Icon(Icons.open_in_new_rounded, size: 18),
               onTap: () async {
+                HapticFeedback.selectionClick();
                 final uri = Uri.parse(
                   'https://github.com/kssaichandan/PERSONAL-APP',
                 );
@@ -1222,20 +1596,50 @@ class _AboutSectionState extends State<_AboutSection> {
               title: const Text('Licenses'),
               subtitle: const Text('View open source licenses'),
               onTap: () {
-                showLicensePage(context: context);
+                HapticFeedback.selectionClick();
+                showLicensePage(
+                  context: context,
+                  applicationName: 'Personal App',
+                  applicationVersion: _version,
+                );
               },
             ),
             ListTile(
               leading: const Icon(Icons.school_rounded),
               title: const Text('Show Tutorial'),
               subtitle: const Text('Replay the onboarding tutorial'),
+              trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () async {
+                HapticFeedback.selectionClick();
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder:
+                      (ctx) => AlertDialog(
+                        title: const Text('Replay Tutorial'),
+                        content: const Text(
+                          'This will restart the onboarding tutorial. Continue?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Cancel'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text('Continue'),
+                          ),
+                        ],
+                      ),
+                );
+                if (confirmed != true || !context.mounted) return;
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.setBool('onboarding_complete_v1', false);
                 if (context.mounted) {
-                  showSuccessSnackBar(
+                  Navigator.pushReplacement(
                     context,
-                    'Tutorial will show on next app launch',
+                    MaterialPageRoute(
+                      builder: (_) => const OnboardingScreen(),
+                    ),
                   );
                 }
               },

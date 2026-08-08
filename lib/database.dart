@@ -97,10 +97,16 @@ class AppDatabase {
             value TEXT NOT NULL
           )
         ''');
+        await db.execute('CREATE INDEX idx_notes_deleted_at ON notes(deleted_at)');
+        await db.execute('CREATE INDEX idx_notes_updated_at ON notes(updated_at)');
+        await db.execute('CREATE INDEX idx_notes_pinned ON notes(pinned)');
+        await db.execute('CREATE INDEX idx_calendar_events_date ON calendar_events(date)');
+        await db.execute('CREATE INDEX idx_habit_logs_habit_id ON habit_logs(habit_id)');
+        await db.execute('CREATE INDEX idx_habit_logs_date ON habit_logs(date)');
+        await db.execute('CREATE INDEX idx_habits_display_order ON habits(display_order)');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 3) {
-          // Alter notes table to add new columns if they do not exist
           final notesColumns = {
             'favorite': 'INTEGER NOT NULL DEFAULT 0',
             'color': 'INTEGER',
@@ -117,7 +123,6 @@ class AppDatabase {
             } catch (_) {}
           }
 
-          // Alter habits table to add new columns if they do not exist
           final habitsColumns = {
             'color': 'INTEGER DEFAULT 4284993700',
             'display_order': 'INTEGER DEFAULT 0',
@@ -130,7 +135,6 @@ class AppDatabase {
             } catch (_) {}
           }
 
-          // Alter calendar_events table to add new columns if they do not exist
           final calendarColumns = {
             'notes': "TEXT DEFAULT ''",
             'category': "TEXT DEFAULT 'General'",

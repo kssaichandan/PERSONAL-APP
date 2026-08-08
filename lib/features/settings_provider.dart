@@ -14,6 +14,7 @@ class SettingsProvider extends ChangeNotifier {
   bool _copyOnTap = true;
   bool _weekStartsMonday = true;
   bool _loading = true;
+  bool _hasLoaded = false;
 
   ThemeMode get themeMode => _themeMode;
   Color get colorSeed => _colorSeed;
@@ -49,6 +50,7 @@ class SettingsProvider extends ChangeNotifier {
     } catch (e) {
       debugLog('Failed to load settings: $e');
     }
+    _hasLoaded = true;
     _loading = false;
   }
 
@@ -59,10 +61,19 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   Future<void> _loadSettings() async {
-    if (!_loading) {
-      _loading = true;
-      notifyListeners();
+    if (_hasLoaded) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        _loadSettingsFromPrefs(prefs);
+        notifyListeners();
+      } catch (e) {
+        debugLog('Failed to load settings: $e');
+      }
+      return;
     }
+
+    _loading = true;
+    notifyListeners();
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -72,6 +83,16 @@ class SettingsProvider extends ChangeNotifier {
     }
 
     notifyListeners();
+  }
+
+  Future<T?> getSetting<T>(String key) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.get(key) as T?;
+    } catch (e) {
+      debugLog('Failed to get setting $key: $e');
+      return null;
+    }
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
