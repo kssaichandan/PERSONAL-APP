@@ -415,22 +415,25 @@ class _LifeScreenContentState extends State<_LifeScreenContent>
                     padding: const EdgeInsets.all(24),
                     child: Column(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'TIME ELAPSED SINCE BIRTH',
-                              style: theme.textTheme.labelLarge?.copyWith(
-                                letterSpacing: 1.5,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'TIME ELAPSED SINCE BIRTH',
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  letterSpacing: 1.5,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              _LiveBadge(
+                                controller: _pulseController,
                                 color: theme.colorScheme.primary,
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            _LiveBadge(
-                              controller: _pulseController,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 16),
                         Semantics(

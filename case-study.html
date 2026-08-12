@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personal App — Interaction Design & Functional Layout Case Study (Notes Module)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+    background: #f1f5f9;
+    color: #1e293b;
+    padding: 0;
+    line-height: 1.8;
+  }
+
+  .page-wrap {
+    max-width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    background: white;
+    padding: 50px 60px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  /* ---------- TYPOGRAPHY ---------- */
+  h1 {
+    font-size: 30px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    color: #64748b;
+    font-size: 15px;
+    font-weight: 400;
+    margin-bottom: 6px;
+  }
+
+  .case-label {
+    font-size: 14px;
+    color: #475569;
+    margin-top: 2px;
+    margin-bottom: 18px;
+  }
+
+  .meta {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px 20px;
+    margin: 18px 0 32px;
+    font-size: 14px;
+    color: #475569;
+    line-height: 1.7;
+  }
+  .meta strong { color: #0f172a; }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1e40af;
+    margin-top: 40px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 3px solid #dbeafe;
+  }
+
+  h3 {
+    font-size: 17px;
+    font-weight: 700;
+    color: #334155;
+    margin-top: 26px;
+    margin-bottom: 10px;
+  }
+
+  h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #475569;
+    margin-top: 16px;
+    margin-bottom: 8px;
+  }
+
+  p { font-size: 14px; color: #334155; margin-bottom: 12px; }
+
+  /* ---------- TABLES ---------- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 16px 0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th {
+    background: #1e40af;
+    color: white;
+    font-weight: 600;
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 13px;
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #334155;
+    font-size: 13px;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #fafbfc; }
+
+  /* ---------- COMPONENTS ---------- */
+  .card {
+    background: #fafbfc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 18px 0;
+  }
+  .card-title {
+    font-weight: 700;
+    color: #0f172a;
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+
+  ul, ol {
+    padding-left: 24px;
+    margin-bottom: 14px;
+  }
+  li {
+    font-size: 14px;
+    color: #334155;
+    margin-bottom: 6px;
+    line-height: 1.7;
+  }
+  li strong { color: #0f172a; }
+
+  .tag {
+    display: inline-block;
+    background: #e2e8f0;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #475569;
+    font-weight: 500;
+  }
+
+  /* ---------- FLOW BOX ---------- */
+  .flow-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 18px;
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+  .flow-arrow { color: #94a3b8; font-size: 20px; font-weight: 300; }
+  .flow-screen {
+    background: white;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 5px 12px;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  /* ---------- RULE GRID ---------- */
+  .rule-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin: 18px 0;
+  }
+  .rule-card {
+    background: #fafbfc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .rule-card h4 {
+    margin-top: 0;
+    font-size: 15px;
+    color: #0f172a;
+    margin-bottom: 8px;
+  }
+  .rule-card p {
+    font-size: 13px;
+    color: #475569;
+  }
+
+  .consolidation-box {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 18px 0;
+  }
+  .consolidation-box h4 {
+    color: #1d4ed8;
+    margin-top: 0;
+    margin-bottom: 12px;
+  }
+  .consolidation-box p { color: #1e3a5f; }
+
+  .checklist { list-style: none; padding: 0; }
+  .checklist li {
+    padding: 12px 0;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 14px;
+    color: #334155;
+    line-height: 1.6;
+  }
+  .checklist li:last-child { border-bottom: none; }
+  .check { color: #16a34a; font-weight: 800; font-size: 16px; }
+
+  /* ---------- ANNEXURE ITEMS ---------- */
+  .annexure-item {
+    background: #fafbfc;
+    border-left: 4px solid #2563eb;
+    padding: 16px 20px;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .annexure-item h4 {
+    margin: 0 0 4px 0;
+    font-size: 15px;
+    color: #0f172a;
+  }
+  .annexure-item p {
+    font-size: 13px;
+    color: #475569;
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  .color-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin-right: 4px;
+    border: 1px solid rgba(0,0,0,0.1);
+  }
+
+  .fig-label {
+    font-size: 13px;
+    color: #64748b;
+    font-style: italic;
+    margin-top: 2px;
+    margin-bottom: 14px;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 36px 0;
+  }
+
+  /* ===== WIREFRAMES ===== */
+  .wfa {
+    --phone-bg: #ffffff;
+    --phone-border: #1e293b;
+    --primary: #2563eb;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border-color: #cbd5e1;
+    --card-bg: #f8fafc;
+  }
+  .wfa * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
+  .wfa .phone-frame {
+    width: 100%;
+    max-width: 300px;
+    background: var(--phone-bg);
+    border: 2px solid #cbd5e1;
+    border-radius: 28px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .wfa .notch {
+    width: 90px;
+    height: 14px;
+    background: #1e293b;
+    margin: 0 auto;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    flex-shrink: 0;
+  }
+  .wfa .screen-meta {
+    padding: 4px 10px;
+    background: #e2e8f0;
+    font-size: 10px;
+    font-weight: 600;
+    color: #475569;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .wfa .screen-content {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    flex: 1;
+  }
+  .wfa .app-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 8px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+  .wfa .pc-card {
+    background: var(--card-bg);
+    border: 1px dashed var(--border-color);
+    border-radius: 6px;
+    padding: 7px;
+  }
+  .wfa .pbtn {
+    background: var(--primary);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 10px;
+  }
+  .wfa .pbtn-outline {
+    border: 1px solid var(--border-color);
+    background: white;
+    color: var(--text-main);
+    padding: 4px 8px;
+    border-radius: 5px;
+    font-size: 10px;
+  }
+  .wfa .bottom-sheet {
+    margin-top: auto;
+    background: #ffffff;
+    border: 2px solid #2563eb;
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    padding: 10px;
+    flex-shrink: 0;
+  }
+  .wfa .sheet-handle {
+    width: 28px;
+    height: 4px;
+    background: #cbd5e1;
+    border-radius: 2px;
+    margin: 0 auto 8px auto;
+  }
+  .wfa .bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    padding: 5px 2px;
+    background: #ffffff;
+    border-top: 1px solid var(--border-color);
+    margin-top: auto;
+    flex-shrink: 0;
+  }
+  .wfa .nav-item { text-align: center; font-size: 8px; color: var(--text-muted); line-height: 1.2; }
+  .wfa .nav-item.active { color: var(--primary); font-weight: 700; }
+  .wfa .pbadge {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 8px;
+    font-weight: 600;
+  }
+  .wfa .color-dot {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid #cbd5e1;
+  }
+
+  /* ===== PRINT ===== */
+  @page { size: A4; margin: 15mm 18mm; }
+
+  @media print {
+    body { background: white; }
+    .page-wrap {
+      padding: 0;
+      max-width: 100%;
+      box-shadow: none;
+      min-height: auto;
+    }
+    h2 { break-after: avoid; page-break-after: avoid; }
+    h3 { break-after: avoid; page-break-after: avoid; }
+    table { font-size: 11px; }
+    tr { page-break-inside: avoid; }
+    td, th { padding: 5px 8px; }
+    .card { break-inside: avoid; page-break-inside: avoid; }
+    .rule-card { break-inside: avoid; page-break-inside: avoid; }
+    .annexure-item { break-inside: avoid; page-break-inside: avoid; }
+    .consolidation-box { break-inside: avoid; page-break-inside: avoid; }
+    .flow-box { break-inside: avoid; page-break-inside: avoid; }
+    .checklist { break-inside: avoid; page-break-inside: avoid; }
+    .checklist li { page-break-inside: avoid; }
+    .wfa .phone-frame { border: 1px solid #94a3b8; max-width: 220px; overflow: visible; page-break-inside: avoid; }
+    .wfa .screen-content { font-size: 8px; padding: 4px; }
+    .wfa .screen-meta { font-size: 7px; padding: 2px 4px; }
+    .wfa .bottom-nav { padding: 2px; }
+    .wfa .app-bar { font-size: 8px; padding: 3px 6px; }
+    .wfa .pc-card { padding: 4px 5px; }
+    .wfa .bottom-sheet { padding: 5px 7px; }
+    .page-break-before { page-break-before: always; }
+    .page-break-after { page-break-after: always; }
+    hr { break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-wrap">
+
+<h1>Identifying Interaction Design and Functional Layout</h1>
+<p class="subtitle">Practical implementation of interaction design and functional layouts</p>
+<p class="case-label">Case study: <strong>Personal App &mdash; Notes Module</strong> (Rich Text Notes with Search, Color Coding, Priority, Trash)</p>
+
+<div class="meta">
+  <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <span><strong>Submitted by:</strong> SAI CHANDAN KS (23MIS0115)</span>
+    <span><strong>Tools:</strong> Flutter 3.22+ &middot; Dart 3.7+ &middot; Provider &middot; SQLite</span>
+  </div>
+</div>
+
+<!-- ===== 1. AIM ===== -->
+<h2>1. Aim</h2>
+<p>To identify user requirements for a notes application, design an interaction prototype based on those requirements, and implement it with consistent placement, wording, and colour so the user can build an accurate mental model of the interface &mdash; demonstrated through the <strong>Notes module</strong> of Personal App, a local-first rich text notes application with search, colour coding, priority tagging, trash management, and reminder scheduling.</p>
+
+<!-- ===== 2. OBJECTIVES ===== -->
+<h2>2. Objectives</h2>
+<ol>
+  <li>Understand the principles of interaction design and functional layout.</li>
+  <li>Translate user requirements into a working design prototype (Activity 1).</li>
+  <li>Apply consistency rules &mdash; button placement, label wording, colour scheme &mdash; across every screen (Activity 2).</li>
+  <li>Evaluate whether the resulting interface supports an accurate, predictable mental model.</li>
+</ol>
+
+<!-- ===== 3. THEORY ===== -->
+<h2>3. Theory</h2>
+
+<h3>3.1 Interaction Design</h3>
+<p>Interaction design (IxD) is the practice of designing how a user and a system communicate &mdash; what happens when the user clicks, types, taps, or navigates. It focuses on the sequence of screens and states a user moves through to complete a task, not just the visual appearance of a single screen. In the Notes module, this includes the transition from the notes list to the editor, the flow from an empty state to a populated list, and the feedback loops (snackbars, progress indicators, confirmation dialogs) that confirm user actions.</p>
+
+<h3>3.2 Functional Layout</h3>
+<p>A functional layout arranges elements on a screen &mdash; navigation, primary actions, forms, content &mdash; so that the arrangement itself supports the task. In the Notes module, the primary action (create a new note) is always a floating action button at the bottom-right, the search bar is always at the top, and the bottom navigation bar persists with the Notes tab highlighted.</p>
+
+<h3>3.3 Consistency Principles</h3>
+<p>Three concrete rules are applied throughout the Notes module:</p>
+<ul>
+  <li><strong>Placement consistency</strong> &mdash; The FAB (create) is always bottom-right. The trash icon is always top-right in the editor. The search bar is always the first element in the app bar.</li>
+  <li><strong>Wording consistency</strong> &mdash; &ldquo;Save&rdquo; commits edits, &ldquo;Cancel&rdquo; discards, &ldquo;Delete&rdquo; moves to trash, &ldquo;Discard&rdquo; confirms loss of unsaved changes. These labels never change.</li>
+  <li><strong>Colour consistency</strong> &mdash; Blue = primary action, red = destructive/delete, amber = warning/medium priority, green = success/low priority. Each colour keeps one meaning.</li>
+</ul>
+
+<h3>3.4 Mental Model</h3>
+<p>A mental model is the user&rsquo;s internal expectation of how a system behaves, built from repeated exposure to consistent patterns. When placement, wording, and colour stay consistent, a user who learns the interface on the Notes List screen can correctly predict how the Editor, Trash, Color Picker, and Priority Picker will behave &mdash; reducing errors and learning time.</p>
+
+<!-- ===== 4. SOFTWARE / TOOLS ===== -->
+<h2>4. Software / Tools Used</h2>
+
+<table>
+  <thead>
+    <tr><th style="width:28%;">Tool</th><th>Purpose</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Flutter 3.22+</td><td>Cross-platform UI framework (Material 3 design system)</td></tr>
+    <tr><td>Dart 3.7+</td><td>Programming language with sound null safety</td></tr>
+    <tr><td>Provider</td><td>State management (ChangeNotifier-based)</td></tr>
+    <tr><td>SQLite (sqflite)</td><td>Local encrypted relational database</td></tr>
+    <tr><td>flutter_quill</td><td>Rich text editor (bold, italic, lists, headers, links, images)</td></tr>
+    <tr><td>flutter_local_notifications + timezone</td><td>Push notification scheduling for note reminders</td></tr>
+    <tr><td>shared_preferences</td><td>Key-value storage for preferences</td></tr>
+    <tr><td>share_plus</td><td>Share note content to other apps</td></tr>
+    <tr><td>intl</td><td>Date/time formatting</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<!-- ===== 5. ACTIVITY 1 ===== -->
+<h2>5. Activity 1 &mdash; Design and Prototype the Interaction</h2>
+<p class="subtitle" style="margin-bottom:16px;">Case study: <strong>Personal App &mdash; Notes Module</strong>.</p>
+
+<h3>5.1 Step 1 &mdash; Identify user requirements</h3>
+
+<table>
+  <thead>
+    <tr><th style="width:4%;">#</th><th style="width:42%;">User requirement</th><th>Screen / interaction it maps to</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>The user needs to create and organize rich-text notes with formatting.</td><td>Notes Editor &mdash; Quill rich text with bold, italic, lists, headers, links, images</td></tr>
+    <tr><td>2</td><td>The user needs to visually distinguish notes by colour.</td><td>Color Picker &mdash; 14 presets + custom HSV/Hex input</td></tr>
+    <tr><td>3</td><td>The user needs to set priority levels on notes.</td><td>Priority Picker &mdash; None / Low (green) / Medium (amber) / High (red)</td></tr>
+    <tr><td>4</td><td>The user needs to find notes quickly without scrolling.</td><td>Search bar &mdash; real-time filtering by title and content</td></tr>
+    <tr><td>5</td><td>The user needs to bulk-delete or bulk-move notes to trash.</td><td>Selection Mode &mdash; long-press to enter, select-all, bulk delete</td></tr>
+    <tr><td>6</td><td>The user needs to recover accidentally deleted notes.</td><td>Trash bottom sheet &mdash; restore or permanently delete per item</td></tr>
+    <tr><td>7</td><td>The user needs to pin or favourite important notes.</td><td>Note card &mdash; pin icon on list + favourite star in editor</td></tr>
+    <tr><td>8</td><td>The user needs to set reminders on notes.</td><td>Editor &mdash; reminder time picker with notification scheduling</td></tr>
+    <tr><td>9</td><td>The user needs to see when a note was last updated.</td><td>Note card &mdash; relative timestamp (&ldquo;2h ago&rdquo;, &ldquo;Yesterday&rdquo;)</td></tr>
+    <tr><td>10</td><td>The user must confirm before losing unsaved changes.</td><td>Discard Changes dialog &mdash; &ldquo;Cancel&rdquo; vs &ldquo;Discard&rdquo;</td></tr>
+    <tr><td>11</td><td>The user needs feedback when notes cannot be loaded.</td><td>Loading spinner + Error state with Retry button</td></tr>
+    <tr><td>12</td><td>The user needs a clear empty state when no notes exist.</td><td>Empty state &mdash; illustration + &ldquo;Tap + to create your first note&rdquo;</td></tr>
+  </tbody>
+</table>
+
+<h3>5.2 Step 2 &mdash; Map the screen flow</h3>
+<p>Before building anything in Flutter, the screens and transitions between them were mapped so navigation was planned rather than improvised:</p>
+
+<div class="flow-box">
+  <span class="flow-screen">Onboarding</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Main Navigation (Notes tab)</span>
+</div>
+<p class="fig-label">Figure 1: Path to the Notes module.</p>
+
+<div class="flow-box">
+  <span class="flow-screen">Notes List</span>
+  <span class="flow-arrow">⇄</span>
+  <span class="flow-screen">Notes Editor</span>
+  <span class="flow-arrow">⇢</span>
+  <span class="flow-screen">Color Picker / Priority Picker / Reminder</span>
+</div>
+<div class="flow-box">
+  <span class="flow-screen">Notes List</span>
+  <span class="flow-arrow">⇢</span>
+  <span class="flow-screen">Trash (bottom sheet)</span>
+  <span class="flow-arrow">⇢</span>
+  <span class="flow-screen">Restore or Delete Permanently</span>
+</div>
+<div class="flow-box">
+  <span class="flow-screen">Notes List</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Selection Mode</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Bulk Delete</span>
+</div>
+<div class="flow-box">
+  <span class="flow-screen">Notes Editor</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Back pressed</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Discard Changes dialog</span>
+</div>
+<p class="fig-label">Figure 2: Notes module screen flows. The bottom navigation bar persists on every screen.</p>
+
+<h3>5.3 Step 3 &mdash; Build the prototype</h3>
+<p>The Notes module prototype is implemented as part of a complete Flutter application with 14 distinct UI views covering all edge cases:</p>
+<ul>
+  <li><strong>14 unique views</strong> &mdash; Loading, Error, Empty, List with data, Search (with results), Search (no results), Selection Mode, Editor, Color Picker Sheet, Priority Picker Sheet, Trash Sheet (with items), Trash Sheet (empty), Discard Changes dialog, Custom Color dialog.</li>
+  <li><strong>Reusable components</strong> &mdash; FAB, Bottom Sheet, Dialog, Progress Bar, Chip, Card &mdash; built once and reused across all views.</li>
+  <li><strong>Persistent navigation</strong> &mdash; A Material 3 bottom navigation bar is present on every screen with the Notes tab highlighted.</li>
+  <li><strong>State coverage</strong> &mdash; Every async operation has Loading &rarr; Error &rarr; Empty &rarr; Data states with retry and feedback.</li>
+</ul>
+
+<div class="card">
+  <div class="card-title">Notes Module &mdash; View Inventory</div>
+  <table>
+    <tr><th style="width:20%;">Category</th><th>Views</th></tr>
+    <tr><td>List States</td><td>Loading, Error, Empty, With Data</td></tr>
+    <tr><td>Search</td><td>Search with results, Search no results</td></tr>
+    <tr><td>Actions</td><td>Selection Mode, Editor Screen</td></tr>
+    <tr><td>Sheets</td><td>Color Picker (14 presets + custom), Priority Picker (None/Low/Medium/High), Trash (with items), Trash (empty)</td></tr>
+    <tr><td>Dialogs</td><td>Delete confirmation, Discard changes, Custom Color (HSV/Hex)</td></tr>
+  </table>
+</div>
+
+<hr>
+
+<!-- ===== 6. ACTIVITY 2 ===== -->
+<h2 class="page-break-before">6. Activity 2 &mdash; Apply and Verify Consistency</h2>
+<p>Activity 2 was implemented by fixing four rules once and reusing them across every Notes screen, rather than styling each screen independently.</p>
+
+<h3>6.1 Consistency rules applied</h3>
+
+<div class="rule-grid">
+  <div class="rule-card">
+    <h4>Button Placement</h4>
+    <p>The create button is always a <strong>blue (#2563EB) FAB</strong> at bottom-right on the Notes list. In the editor, <strong>Save</strong> is top-right, <strong>Delete</strong> (trash icon) is top-right. Dialogs always place the confirm action on the right and cancel on the left.</p>
+  </div>
+  <div class="rule-card">
+    <h4>Label Wording</h4>
+    <p>&lsquo;Save&rsquo;, &lsquo;Cancel&rsquo;, &lsquo;Delete&rsquo;, &lsquo;Discard&rsquo;, &lsquo;Retry&rsquo;, &lsquo;Apply&rsquo; never change across screens. Confirmation dialogs echo the verb: &lsquo;Move to trash?&rsquo;, &lsquo;Discard changes?&rsquo;. The editor commit button always says &lsquo;Save&rsquo; (or &lsquo;Create&rsquo; for new notes).</p>
+  </div>
+  <div class="rule-card">
+    <h4>Colour Scheme</h4>
+    <p>
+      <span class="color-swatch" style="background:#2563eb;"></span> <strong>Blue</strong> &mdash; primary action, active tab, FAB, Apply button<br>
+      <span class="color-swatch" style="background:#ef4444;"></span> <strong>Red</strong> &mdash; destructive (delete, discard), high priority chip<br>
+      <span class="color-swatch" style="background:#22c55e;"></span> <strong>Green</strong> &mdash; success, low priority chip<br>
+      <span class="color-swatch" style="background:#f59e0b;"></span> <strong>Amber</strong> &mdash; warning, medium priority chip<br>
+      No colour is reused for a second meaning.
+    </p>
+  </div>
+  <div class="rule-card">
+    <h4>Icon Position</h4>
+    <p>Search is always the leftmost icon in the app bar. The create FAB is always bottom-right. Edit/tap on a note navigates to the editor. Delete/trash is always top-right of its item or card. The back arrow is always top-left in the editor.</p>
+  </div>
+</div>
+
+<h3>6.2 How this builds an accurate mental model</h3>
+<p>Because the same four rules are reused rather than redesigned per screen, a user only needs to learn the pattern once. After using the Notes list for one session, the user already knows &mdash; without being told &mdash; that:</p>
+<ul>
+  <li>The blue FAB creates a new note.</li>
+  <li>Long-press on any note enters selection mode for bulk actions.</li>
+  <li>A red button means deletion (always requires a confirmation dialog).</li>
+  <li>A &ldquo;Discard&rdquo; dialog has two buttons: &ldquo;Cancel&rdquo; (left, outline) and &ldquo;Discard&rdquo; (right, red).</li>
+  <li>Tapping back with unsaved changes triggers a &ldquo;Discard changes?&rdquo; confirmation.</li>
+  <li>Blue = tappable/actionable, grey = disabled/read-only, amber = medium priority, red = high priority.</li>
+</ul>
+<p>This predictability is the practical outcome this experiment asks students to demonstrate.</p>
+
+<div class="consolidation-box">
+  <h4>Consistency Matrix &mdash; Verified Across All 14 Notes Views</h4>
+  <table style="margin:0;">
+    <tr><th style="width:24%;">Rule</th><th style="width:44%;">Where verified</th><th>Result</th></tr>
+    <tr><td>Primary button in same position</td><td>FAB, Save, Delete, Discard across all views</td><td><span class="check">✓</span> Bottom-right (FAB) or top-right (editor actions)</td></tr>
+    <tr><td>Same action = same word</td><td>Save / Cancel / Delete / Discard / Retry / Apply</td><td><span class="check">✓</span> Identical across all Notes screens</td></tr>
+    <tr><td>Each colour = one meaning</td><td>Blue (action), Red (destructive), Green (success), Amber (warning)</td><td><span class="check">✓</span> No colour reused for a second meaning</td></tr>
+    <tr><td>Can user predict unseen screen?</td><td>Tested: Trash, Color Picker, Priority Picker all reuse list patterns</td><td><span class="check">✓</span> Yes &mdash; FAB, selection, delete, discard all match</td></tr>
+    <tr><td>Error/Loading/Empty states</td><td>Notes list, Search, Trash</td><td><span class="check">✓</span> Consistently handled with Retry or empty-state CTA</td></tr>
+    <tr><td>Destructive action protection</td><td>Delete, Discard, Permanent delete from trash</td><td><span class="check">✓</span> Always requires confirmation dialog</td></tr>
+  </table>
+</div>
+
+<hr>
+
+<!-- ===== 7. OUTPUT / RESULT ===== -->
+<h2>7. Output / Result</h2>
+<p>The completed Notes module prototype is implemented within a fully functional Flutter application. The module opens with a notes list (or empty state for first-time users), provides rich-text editing via flutter_quill, and supports colour coding (14 presets + custom), priority tagging, search, selection mode for bulk actions, and a trash system with restore capability.</p>
+<p>The design system (colour styles, text styles, and reusable widget components) is implemented directly in Dart code via shared Flutter widgets and Material 3 theme configuration, ensuring every screen follows the same placement, wording, and colour rules.</p>
+
+<h3>7.1 Self-evaluation checklist</h3>
+
+<ul class="checklist">
+  <li><span class="check">✓</span> <strong>Is the primary action in the same position on every screen?</strong><br>
+  <span class="tag">Yes</span> &mdash; FAB bottom-right for create; Save top-right in editor; Discard right-side in dialogs</li>
+
+  <li><span class="check">✓</span> <strong>Does the same action always use the same word?</strong><br>
+  <span class="tag">Yes</span> &mdash; Save / Cancel / Delete / Discard / Retry / Apply unchanged across all views</li>
+
+  <li><span class="check">✓</span> <strong>Is each colour assigned exactly one meaning?</strong><br>
+  <span class="tag">Yes</span> &mdash; Blue = action, Red = destructive, Green = success/low pri, Amber = warning/med pri</li>
+
+  <li><span class="check">✓</span> <strong>Can a user predict an unseen screen from a seen one?</strong><br>
+  <span class="tag">Yes</span> &mdash; Trash, Color Picker, and Priority Picker all reuse FAB, selection, and dialog patterns from the notes list</li>
+
+  <li><span class="check">✓</span> <strong>Does every loading/error state provide feedback and recovery?</strong><br>
+  <span class="tag">Yes</span> &mdash; Loading spinner + Error state with Retry button</li>
+
+  <li><span class="check">✓</span> <strong>Is every destructive action protected by a confirmation dialog?</strong><br>
+  <span class="tag">Yes</span> &mdash; Delete, Discard, Permanent delete all require explicit confirmation</li>
+
+  <li><span class="check">✓</span> <strong>Are both empty and populated states handled?</strong><br>
+  <span class="tag">Yes</span> &mdash; Notes list, Search, and Trash all have empty states with CTAs</li>
+
+  <li><span class="check">✓</span> <strong>Does the bottom navigation persist?</strong><br>
+  <span class="tag">Yes</span> &mdash; 6-tab Material 3 navigation bar with Notes tab highlighted</li>
+</ul>
+
+<hr>
+
+<!-- ===== 8. ANNEXURE A ===== -->
+<h2>Annexure A &mdash; Selected UI/UX Ideas Integrated</h2>
+<p>Five ideas from the reference design-thinking framework were integrated into the Notes module, each mapped to a real user requirement rather than added as decoration:</p>
+
+<div class="annexure-item">
+  <h4>1. Progressive Onboarding with Skip</h4>
+  <p><strong>Screen:</strong> Onboarding (5 pages) &nbsp;|&nbsp; <strong>User problem it solves:</strong> First-time users see all features (Notes, Habits, Calendar, Calculator, Life Tracker) in one flow. The Notes page introduces rich text editing before the user even opens the app.</p>
+</div>
+<div class="annexure-item">
+  <h4>2. Colour + Priority Visual Encoding</h4>
+  <p><strong>Screen:</strong> Notes List + Note Editor &nbsp;|&nbsp; <strong>User problem it solves:</strong> Users visually scan notes by colour (14 presets + custom HSV/Hex) and priority (None/Low/Medium/High with colour-coded chips). Priority colours match the app&rsquo;s colour semantics (Low = green, Medium = amber, High = red).</p>
+</div>
+<div class="annexure-item">
+  <h4>3. Search with Real-Time Feedback</h4>
+  <p><strong>Screen:</strong> Notes List &nbsp;|&nbsp; <strong>User problem it solves:</strong> Users filter notes instantly by typing in the search bar. Both hit and no-result states are handled, with a clear &ldquo;No results found&rdquo; message and suggestion to try a different term.</p>
+</div>
+<div class="annexure-item">
+  <h4>4. Trash with Restore Safety Net</h4>
+  <p><strong>Screen:</strong> Trash Bottom Sheet &nbsp;|&nbsp; <strong>User problem it solves:</strong> Deleted notes are not permanently removed immediately. Users can restore notes from trash or permanently delete them. The trash clearly shows deletion timestamps and offers &ldquo;Empty Trash&rdquo; for bulk cleanup.</p>
+</div>
+<div class="annexure-item">
+  <h4>5. Discard Changes Confirmation</h4>
+  <p><strong>Screen:</strong> Notes Editor &nbsp;|&nbsp; <strong>User problem it solves:</strong> Prevents accidental data loss by showing a confirmation dialog when the user presses back with unsaved changes. The dialog uses consistent wording (&ldquo;Discard changes?&rdquo;) and buttons (&ldquo;Cancel&rdquo; / &ldquo;Discard&rdquo;).</p>
+</div>
+
+<hr>
+
+<!-- ===== 9. ANNEXURE B ===== -->
+<h2 class="page-break-before">Annexure B &mdash; Screen Wireframes (Notes Module)</h2>
+<p>Six representative screens from the Notes module, showing the full user journey from onboarding through navigation, notes list, editor, trash, and colour picker.</p>
+
+<div class="wfa">
+  <div style="display:flex;flex-wrap:wrap;gap:24px;justify-content:center;">
+
+    <!-- Screen 01: Onboarding -->
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen-meta">Screen 01: Onboarding (Page 1 of 5)</div>
+      <div class="screen-content" style="text-align:center;padding:16px 10px;gap:8px;">
+        <div><span style="color:var(--primary);font-size:14px;">●</span> <span style="font-size:14px;">○</span> ○ ○ ○</div>
+        <div style="font-size:36px;padding:8px 0;">📝</div>
+        <div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Rich Text Notes</div>
+          <p style="color:var(--text-muted);font-size:11px;margin:0;line-height:1.5;">Create beautiful notes with colors,<br>priorities, and rich formatting.</p>
+        </div>
+        <div style="font-size:9px;color:var(--text-muted);">Other pages: Habits, Calendar, Calculator, Life Tracker</div>
+        <div style="display:flex;justify-content:space-between;width:100%;margin-top:4px;">
+          <span class="pbtn-outline">Skip</span>
+          <span class="pbtn">Next &rarr;</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 02: Main Navigation -->
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen-meta">Screen 02: Main Navigation (Notes active)</div>
+      <div class="screen-content">
+        <div class="app-bar"><span>🔍</span> <span>Personal App</span> <span></span></div>
+        <div class="pc-card" style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:10px;min-height:120px;">
+          Main Content Area<br>(Notes tab active)
+        </div>
+        <div class="bottom-nav">
+          <div class="nav-item active">📝<br>Notes</div>
+          <div class="nav-item">✅<br>Habits</div>
+          <div class="nav-item">📅<br>Cal</div>
+          <div class="nav-item">🔢<br>Calc</div>
+          <div class="nav-item">⏱<br>Life</div>
+          <div class="nav-item">⚙️<br>Settings</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 03: Notes List -->
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen-meta">Screen 03: Notes List View</div>
+      <div class="screen-content">
+        <div class="pc-card" style="padding:5px 7px;font-size:10px;">🔍 Search title &amp; content...</div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text-muted);">
+          <span>Sort: Updated ▼</span> <span>⊡ List/Grid ⊟</span>
+        </div>
+        <div class="pc-card" style="border-left:3px solid #dbeafe;padding:6px 7px;">
+          <div style="display:flex;justify-content:space-between;">
+            <span><strong style="font-size:10px;">📌 Meeting Notes</strong> ★</span>
+            <span class="pbadge" style="background:#fee2e2;">High</span>
+          </div>
+          <div style="color:var(--text-muted);font-size:9px;margin:2px 0;">Discussed Q3 roadmap...</div>
+          <div style="font-size:8px;color:var(--text-muted);">2h ago</div>
+        </div>
+        <div class="pc-card" style="border-left:3px solid #dcfce7;padding:6px 7px;">
+          <div style="display:flex;justify-content:space-between;">
+            <span><strong style="font-size:10px;">Grocery List</strong></span>
+            <span class="pbadge" style="background:#dcfce7;">Low</span>
+          </div>
+          <div style="color:var(--text-muted);font-size:9px;margin:2px 0;">Milk, eggs, bread...</div>
+          <div style="font-size:8px;color:var(--text-muted);">Yesterday</div>
+        </div>
+        <div class="pc-card" style="border-left:3px solid #fef9c3;padding:6px 7px;">
+          <div style="display:flex;justify-content:space-between;">
+            <span><strong style="font-size:10px;">💡 App Ideas</strong> 🎨</span>
+            <span class="pbadge" style="background:#f3e8ff;">Medium</span>
+          </div>
+          <div style="color:var(--text-muted);font-size:9px;margin:2px 0;">Dark mode toggle, new...</div>
+          <div style="font-size:8px;color:var(--text-muted);">3d ago</div>
+        </div>
+        <div style="margin-top:auto;display:flex;justify-content:flex-end;">
+          <span class="pbtn" style="border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:15px;">+</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 04: Note Editor -->
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen-meta">Screen 04: Note Editor</div>
+      <div class="screen-content">
+        <div class="app-bar"><span>&larr; Back</span> <span>★ 🎨 ⏰ 📎 💾</span></div>
+        <div class="pc-card" style="padding:5px 7px;font-weight:600;font-size:10px;">Title: Meeting Notes</div>
+        <div class="pc-card" style="padding:4px 7px;text-align:center;font-size:9px;background:#e2e8f0;">
+          [Quill Toolbar: B I U H1 H2 List Quote Link]
+        </div>
+        <div class="pc-card" style="flex:1;font-size:10px;line-height:1.6;padding:7px;">
+          Discussed Q3 roadmap:<br>
+          &bull; Launch v2.0 by October<br>
+          &bull; Hire 2 engineers<br>
+          &bull; Budget approved ✅
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 05: Trash Sheet -->
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen-meta">Screen 05: Trash Bottom Sheet</div>
+      <div class="screen-content" style="padding:0;">
+        <div style="padding:12px;color:var(--text-muted);font-size:9px;text-align:center;">
+          [Notes List Background &mdash; dimmed behind sheet]
+        </div>
+        <div class="bottom-sheet" style="padding:8px 10px;">
+          <div class="sheet-handle"></div>
+          <div style="display:flex;justify-content:space-between;font-weight:700;margin-bottom:6px;font-size:11px;">
+            <span>🗑 Trash (3 items)</span>
+            <span style="color:#dc2626;font-size:9px;font-weight:normal;">Empty Trash</span>
+          </div>
+          <div class="pc-card" style="margin-bottom:3px;display:flex;justify-content:space-between;align-items:center;padding:5px 7px;">
+            <div><strong style="font-size:10px;">Old Note</strong><br><span style="font-size:8px;color:var(--text-muted);">Deleted 5d ago</span></div>
+            <div style="display:flex;gap:4px;">
+              <span class="pbtn-outline" style="padding:2px 5px;font-size:8px;">↩ Restore</span>
+              <span class="pbtn-outline" style="padding:2px 5px;font-size:8px;color:#dc2626;">🗑</span>
+            </div>
+          </div>
+          <div class="pc-card" style="margin-bottom:3px;display:flex;justify-content:space-between;align-items:center;padding:5px 7px;">
+            <div><strong style="font-size:10px;">Draft ideas</strong><br><span style="font-size:8px;color:var(--text-muted);">Deleted 2d ago</span></div>
+            <div style="display:flex;gap:4px;">
+              <span class="pbtn-outline" style="padding:2px 5px;font-size:8px;">↩ Restore</span>
+              <span class="pbtn-outline" style="padding:2px 5px;font-size:8px;color:#dc2626;">🗑</span>
+            </div>
+          </div>
+          <div class="pc-card" style="display:flex;justify-content:space-between;align-items:center;padding:5px 7px;">
+            <div><strong style="font-size:10px;">Temp note</strong><br><span style="font-size:8px;color:var(--text-muted);">Deleted 1h ago</span></div>
+            <div style="display:flex;gap:4px;">
+              <span class="pbtn-outline" style="padding:2px 5px;font-size:8px;">↩ Restore</span>
+              <span class="pbtn-outline" style="padding:2px 5px;font-size:8px;color:#dc2626;">🗑</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 06: Color Picker -->
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen-meta">Screen 06: Color Picker Sheet</div>
+      <div class="screen-content" style="padding:0;">
+        <div style="padding:12px;color:var(--text-muted);font-size:9px;text-align:center;">[Editor Background &mdash; dimmed]</div>
+        <div class="bottom-sheet" style="padding:8px 10px;">
+          <div class="sheet-handle"></div>
+          <div style="font-weight:700;margin-bottom:4px;font-size:11px;">Note Color</div>
+          <div style="font-size:9px;color:var(--text-muted);margin-bottom:6px;">14 presets + custom</div>
+          <div style="line-height:1.8;">
+            <span class="color-dot" style="background:#ffffff;border:2px solid #333;"></span>
+            <span class="color-dot" style="background:#ef4444;"></span>
+            <span class="color-dot" style="background:#ec4899;"></span>
+            <span class="color-dot" style="background:#a855f7;"></span>
+            <span class="color-dot" style="background:#6366f1;"></span>
+            <span class="color-dot" style="background:#3b82f6;"></span>
+            <span class="color-dot" style="background:#06b6d4;"></span>
+          </div>
+          <div style="line-height:1.8;margin-bottom:4px;">
+            <span class="color-dot" style="background:#14b8a6;"></span>
+            <span class="color-dot" style="background:#22c55e;"></span>
+            <span class="color-dot" style="background:#84cc16;"></span>
+            <span class="color-dot" style="background:#eab308;"></span>
+            <span class="color-dot" style="background:#f97316;"></span>
+            <span class="color-dot" style="background:#78716c;"></span>
+            <span class="color-dot" style="background:#1e293b;"></span>
+          </div>
+          <div class="pbtn-outline" style="text-align:center;margin:6px 0;font-size:9px;">
+            + Custom Color (HSV picker / Hex input)
+          </div>
+          <div class="pbtn" style="width:100%;font-size:10px;">Apply</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div>
+</body>
+</html>

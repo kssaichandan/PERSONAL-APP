@@ -165,9 +165,7 @@ class NotesProvider extends ChangeNotifier {
 
   List<Note> get notes {
     var list = _query.isNotEmpty ? _filtered : _notes;
-    if (!_showArchived) {
-      list = list.where((n) => !n.archived && n.deletedAt == null).toList();
-    }
+    list = list.where((n) => n.deletedAt == null && (_showArchived || !n.archived)).toList();
     return _sorted(list);
   }
 
@@ -436,6 +434,7 @@ class NotesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -613,30 +612,50 @@ class NotesScreen extends StatelessWidget {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: TextField(
-                decoration: InputDecoration(
-                  labelText: 'Search notes',
-                  hintText: 'Search by title or content',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: Consumer<NotesProvider>(
-                    builder:
-                        (_, p, __) =>
-                            p.query.isNotEmpty
-                                ? IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  tooltip: 'Clear search',
-                                  onPressed: () => p.search(''),
-                                )
-                                : const SizedBox.shrink(),
-                  ),
-                  border: const OutlineInputBorder(),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(28),
                 ),
-                onChanged: context.read<NotesProvider>().search,
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search notes by title or content...',
+                    hintStyle: TextStyle(
+                      fontSize: 14,
+                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      color: theme.colorScheme.primary,
+                    ),
+                    suffixIcon: Consumer<NotesProvider>(
+                      builder:
+                          (_, p, __) =>
+                              p.query.isNotEmpty
+                                  ? IconButton(
+                                    icon: const Icon(Icons.close_rounded, size: 20),
+                                    tooltip: 'Clear search',
+                                    onPressed: () => p.search(''),
+                                  )
+                                  : const SizedBox.shrink(),
+                    ),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(28),
+                      borderSide: BorderSide(
+                        color: theme.colorScheme.primary,
+                        width: 1.5,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                  ),
+                  onChanged: context.read<NotesProvider>().search,
+                ),
               ),
             ),
             Padding(
@@ -1026,13 +1045,23 @@ class _NoteCard extends StatelessWidget {
 
     Color? bg;
     if (note.color != null) {
-      bg = Color(note.color!).withValues(alpha: 0.5);
+      bg = Color(note.color!).withValues(alpha: theme.brightness == Brightness.dark ? 0.25 : 0.4);
     }
 
     final card = Card(
       color: bg,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: provider.selectedNotes.contains(note.id)
+              ? theme.colorScheme.primary
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+          width: provider.selectedNotes.contains(note.id) ? 2 : 1,
+        ),
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap:
             provider.isSelectionMode
                 ? () {
@@ -1054,61 +1083,107 @@ class _NoteCard extends StatelessWidget {
           provider.toggleSelection(note.id!);
         },
         child: Padding(
-          padding: EdgeInsets.all(grid ? 10 : 12),
+          padding: EdgeInsets.all(grid ? 12 : 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Flexible(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  Expanded(
+                    child: Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         if (note.pinned)
-                          Semantics(
-                            label: 'Pinned',
-                            child: Padding(
-                              padding: EdgeInsets.only(right: grid ? 2 : 4),
-                              child: Icon(
-                                Icons.push_pin,
-                                size: 14,
-                                color: theme.colorScheme.primary,
-                              ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(6),
                             ),
-                          ),
-                        if (note.favorite)
-                          Semantics(
-                            label: 'Favorite',
-                            child: Padding(
-                              padding: EdgeInsets.only(right: grid ? 2 : 4),
-                              child: const Icon(
-                                Icons.star,
-                                size: 14,
-                                color: Colors.amber,
-                              ),
-                            ),
-                          ),
-                        if (note.reminderTime != null)
-                          Semantics(
-                            label: 'Has reminder set',
-                            child: Padding(
-                              padding: EdgeInsets.only(right: grid ? 2 : 4),
-                              child: const Icon(Icons.notifications, size: 14),
-                            ),
-                          ),
-                        if (note.priority > 0 && !grid)
-                          Semantics(
-                            label: 'Priority $note.priority',
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                Icon(
+                                  Icons.push_pin_rounded,
+                                  size: 12,
+                                  color: theme.colorScheme.onPrimaryContainer,
+                                ),
                                 const SizedBox(width: 2),
-                                ...List.generate(
-                                  note.priority,
-                                  (_) => Icon(
-                                    Icons.flag,
-                                    size: 14,
-                                    color: theme.colorScheme.tertiary,
+                                Text(
+                                  'Pinned',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.onPrimaryContainer,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (note.favorite)
+                          const Icon(
+                            Icons.star_rounded,
+                            size: 16,
+                            color: Colors.amber,
+                          ),
+                        if (note.reminderTime != null)
+                          Icon(
+                            Icons.notifications_active_rounded,
+                            size: 14,
+                            color: theme.colorScheme.secondary,
+                          ),
+                        if (note.priority > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: switch (note.priority) {
+                                3 => theme.brightness == Brightness.dark ? const Color(0xFF5C1D1D) : const Color(0xFFFFEBEE),
+                                2 => theme.brightness == Brightness.dark ? const Color(0xFF5C3A1D) : const Color(0xFFFFF3E0),
+                                _ => theme.brightness == Brightness.dark ? const Color(0xFF1D4A5C) : const Color(0xE0E0F7FA),
+                              },
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: switch (note.priority) {
+                                  3 => const Color(0xFFE53935).withValues(alpha: 0.4),
+                                  2 => const Color(0xFFFB8C00).withValues(alpha: 0.4),
+                                  _ => const Color(0xFF00ACC1).withValues(alpha: 0.4),
+                                },
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  switch (note.priority) {
+                                    3 => Icons.local_fire_department_rounded,
+                                    2 => Icons.bolt_rounded,
+                                    _ => Icons.arrow_downward_rounded,
+                                  },
+                                  size: 11,
+                                  color: switch (note.priority) {
+                                    3 => const Color(0xFFE53935),
+                                    2 => const Color(0xFFFB8C00),
+                                    _ => const Color(0xFF00ACC1),
+                                  },
+                                ),
+                                const SizedBox(width: 2),
+                                Text(
+                                  switch (note.priority) {
+                                    3 => 'High',
+                                    2 => 'Med',
+                                    _ => 'Low',
+                                  },
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: switch (note.priority) {
+                                      3 => const Color(0xFFE53935),
+                                      2 => const Color(0xFFFB8C00),
+                                      _ => const Color(0xFF00ACC1),
+                                    },
                                   ),
                                 ),
                               ],
@@ -1118,53 +1193,40 @@ class _NoteCard extends StatelessWidget {
                     ),
                   ),
                   if (provider.isSelectionMode)
-                    Semantics(
-                      label:
+                    Icon(
+                      provider.selectedNotes.contains(note.id)
+                          ? Icons.check_circle_rounded
+                          : Icons.circle_outlined,
+                      size: 20,
+                      color:
                           provider.selectedNotes.contains(note.id)
-                              ? 'Selected'
-                              : 'Not selected',
-                      button: true,
-                      child: SizedBox(
-                        width: 32,
-                        height: 32,
-                        child: GestureDetector(
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            provider.toggleSelection(note.id!);
-                          },
-                          child: Icon(
-                            provider.selectedNotes.contains(note.id)
-                                ? Icons.check_circle
-                                : Icons.circle_outlined,
-                            size: grid ? 18 : 20,
-                            color:
-                                provider.selectedNotes.contains(note.id)
-                                    ? theme.colorScheme.primary
-                                    : theme.colorScheme.outline,
-                          ),
-                        ),
-                      ),
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.outline,
                     ),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text(
-                note.title.isEmpty ? 'Untitled' : note.title,
+                note.title.isEmpty ? 'Untitled Note' : note.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              if (!grid) ...[
-                const SizedBox(height: 4),
-                Text(
-                  deltaToPlainText(note.content),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
                 ),
-              ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                deltaToPlainText(note.content).trim().isEmpty
+                    ? 'No additional text'
+                    : deltaToPlainText(note.content),
+                maxLines: grid ? 3 : 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  height: 1.35,
+                ),
+              ),
             ],
           ),
         ),

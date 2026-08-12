@@ -225,7 +225,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.byIcon(Icons.search), findsOneWidget);
+      expect(find.byIcon(Icons.search_rounded), findsOneWidget);
     });
   });
 
@@ -519,8 +519,8 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.byIcon(Icons.chevron_left), findsOneWidget);
-      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
     });
 
     testWidgets('Shows day names', (WidgetTester tester) async {
@@ -573,7 +573,7 @@ void main() {
       await tester.pump();
 
       expect(find.byType(FloatingActionButton), findsOneWidget);
-      expect(find.byIcon(Icons.add), findsOneWidget);
+      expect(find.descendant(of: find.byType(FloatingActionButton), matching: find.byIcon(Icons.add_rounded)), findsOneWidget);
     });
 
     testWidgets('Shows search and filter buttons', (WidgetTester tester) async {

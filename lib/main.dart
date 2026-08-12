@@ -16,6 +16,8 @@ import 'features/onboarding.dart';
 import 'services/notification_service.dart';
 import 'utils/snackbar_utils.dart';
 
+import 'theme/app_theme.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
@@ -69,22 +71,16 @@ class PersonalApp extends StatelessWidget {
             scaffoldMessengerKey: scaffoldMessengerKey,
             title: 'Personal App',
             debugShowCheckedModeBanner: false,
+            themeAnimationDuration: const Duration(milliseconds: 350),
+            themeAnimationCurve: Curves.easeInOutCubic,
             localizationsDelegates: const [
               FlutterQuillLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
             ],
             supportedLocales: const [Locale('en')],
-            theme: ThemeData(
-              colorSchemeSeed: theme.$2,
-              useMaterial3: true,
-              brightness: Brightness.light,
-            ),
-            darkTheme: ThemeData(
-              colorSchemeSeed: theme.$2,
-              useMaterial3: true,
-              brightness: Brightness.dark,
-            ),
+            theme: AppTheme.lightTheme(theme.$2),
+            darkTheme: AppTheme.darkTheme(theme.$2),
             themeMode: theme.$1,
             home:
                 prefs.getBool('onboarding_complete_v1') ?? false
@@ -130,19 +126,19 @@ class _MainScreenState extends State<MainScreen> {
   Widget _buildCurrentScreen() {
     switch (_tab) {
       case 0:
-        return const NotesScreen();
+        return const NotesScreen(key: ValueKey('NotesScreen'));
       case 1:
-        return const HabitsScreen();
+        return const HabitsScreen(key: ValueKey('HabitsScreen'));
       case 2:
-        return const CalendarScreen();
+        return const CalendarScreen(key: ValueKey('CalendarScreen'));
       case 3:
-        return const CalculatorScreen();
+        return const CalculatorScreen(key: ValueKey('CalculatorScreen'));
       case 4:
-        return const LifeScreen();
+        return const LifeScreen(key: ValueKey('LifeScreen'));
       case 5:
-        return const SettingsScreen();
+        return const SettingsScreen(key: ValueKey('SettingsScreen'));
       default:
-        return const NotesScreen();
+        return const NotesScreen(key: ValueKey('NotesScreen'));
     }
   }
 
@@ -151,25 +147,25 @@ class _MainScreenState extends State<MainScreen> {
     final theme = Theme.of(context);
     const destinations = [
       NavigationDestination(
-        icon: Icon(Icons.note_rounded),
-        selectedIcon: Icon(Icons.note_rounded),
+        icon: Icon(Icons.description_outlined),
+        selectedIcon: Icon(Icons.description_rounded),
         label: 'Notes',
         tooltip: 'Notes',
       ),
       NavigationDestination(
-        icon: Icon(Icons.checklist_rtl_rounded),
-        selectedIcon: Icon(Icons.checklist_rtl_rounded),
+        icon: Icon(Icons.check_circle_outline_rounded),
+        selectedIcon: Icon(Icons.check_circle_rounded),
         label: 'Habits',
         tooltip: 'Habits',
       ),
       NavigationDestination(
-        icon: Icon(Icons.calendar_month_rounded),
+        icon: Icon(Icons.calendar_today_outlined),
         selectedIcon: Icon(Icons.calendar_month_rounded),
         label: 'Calendar',
         tooltip: 'Calendar',
       ),
       NavigationDestination(
-        icon: Icon(Icons.calculate_rounded),
+        icon: Icon(Icons.calculate_outlined),
         selectedIcon: Icon(Icons.calculate_rounded),
         label: 'Calculator',
         tooltip: 'Calculator',
@@ -201,13 +197,34 @@ class _MainScreenState extends State<MainScreen> {
                     selectedIndex: _tab,
                     onDestinationSelected: _selectTab,
                     labelType: NavigationRailLabelType.all,
-                    backgroundColor: theme.colorScheme.surface,
+                    backgroundColor: theme.colorScheme.surfaceContainer,
                     leading: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Icon(
-                        Icons.dashboard_rounded,
-                        color: theme.colorScheme.primary,
-                        size: 28,
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              theme.colorScheme.primaryContainer,
+                              theme.colorScheme.primary.withValues(alpha: 0.8),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: theme.colorScheme.primary.withValues(alpha: 0.25),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.dashboard_rounded,
+                          color: theme.colorScheme.onPrimary,
+                          size: 24,
+                        ),
                       ),
                     ),
                     destinations:
@@ -221,21 +238,46 @@ class _MainScreenState extends State<MainScreen> {
                             )
                             .toList(),
                   ),
-                Expanded(child: _buildCurrentScreen()),
+                Expanded(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    switchInCurve: Curves.fastOutSlowIn,
+                    switchOutCurve: Curves.easeInOutCubic,
+                    transitionBuilder: (child, animation) {
+                      return FadeTransition(
+                        opacity: animation,
+                        child: ScaleTransition(
+                          scale: Tween<double>(begin: 0.96, end: 1.0).animate(animation),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: _buildCurrentScreen(),
+                  ),
+                ),
               ],
             ),
           ),
           bottomNavigationBar:
               isWide
                   ? null
-                  : NavigationBar(
-                    selectedIndex: _tab,
-                    onDestinationSelected: _selectTab,
-                    labelBehavior:
-                        NavigationDestinationLabelBehavior.alwaysShow,
-                    height: 80,
-                    destinations: destinations,
-                  ),
+                  : Container(
+                      decoration: BoxDecoration(
+                        border: Border(
+                          top: BorderSide(
+                            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: NavigationBar(
+                        selectedIndex: _tab,
+                        onDestinationSelected: _selectTab,
+                        labelBehavior:
+                            NavigationDestinationLabelBehavior.alwaysShow,
+                        destinations: destinations,
+                      ),
+                    ),
         );
       },
     );

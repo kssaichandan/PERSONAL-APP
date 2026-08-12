@@ -1,0 +1,1660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personal App — Complete Wireframe Deck (49 Screens + Flow Arrows)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --bg: #0f172a;
+    --phone-bg: #ffffff;
+    --phone-border: #1e293b;
+    --primary: #2563eb;
+    --primary-light: #eff6ff;
+    --primary-dark: #1d4ed8;
+    --surface: #f8fafc;
+    --surface-2: #f1f5f9;
+    --text: #0f172a;
+    --text-2: #334155;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --success: #22c55e;
+    --error: #ef4444;
+    --warning: #f59e0b;
+    --arrow-color: #94a3b8;
+    --section-bg: #1e293b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: white; padding: 30px; }
+
+  .page-header { text-align: center; margin-bottom: 50px; }
+  .page-header h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; }
+  .page-header p { color: #94a3b8; margin-top: 8px; font-size: 14px; }
+  .page-header .badge-row { display: flex; justify-content: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+  .page-header .badge { background: var(--section-bg); padding: 4px 12px; border-radius: 20px; font-size: 11px; color: #94a3b8; }
+
+  /* ===== FLOW SECTION ===== */
+  .flow-section { margin-bottom: 60px; }
+  .flow-title {
+    font-size: 20px; font-weight: 700; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .flow-title .tag {
+    background: var(--primary); color: white; padding: 2px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 600;
+  }
+  .flow-subtitle { color: #94a3b8; font-size: 13px; margin-bottom: 20px; margin-top: -12px; }
+
+  .flow-row {
+    display: flex; align-items: center; gap: 8px; overflow-x: auto; padding-bottom: 20px;
+    scroll-snap-type: x mandatory;
+  }
+  .flow-row.wrap { flex-wrap: wrap; }
+
+  .flow-arrow {
+    font-size: 28px; color: var(--arrow-color); flex-shrink: 0; 
+    scroll-snap-align: center;
+  }
+  .flow-arrow-label { font-size: 9px; color: #64748b; text-align: center; margin-top: -4px; }
+
+  /* ===== PHONE FRAME ===== */
+  .phone {
+    width: 320px; min-height: 640px; 
+    background: var(--phone-bg); border-radius: 40px;
+    border: 6px solid var(--phone-border); 
+    position: relative; display: flex; flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+    overflow: hidden; flex-shrink: 0; scroll-snap-align: start;
+  }
+
+  /* Dynamic Island */
+  .dynamic-island {
+    width: 100px; height: 28px; background: #1e293b;
+    border-radius: 20px; margin: 6px auto 0 auto;
+    position: relative; z-index: 10;
+  }
+
+  /* Status Bar */
+  .status-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 20px 0 20px; font-size: 11px; font-weight: 700; color: var(--text-2);
+    height: 20px;
+  }
+  .status-bar .time { font-weight: 700; }
+  .status-bar .icons { display: flex; gap: 4px; font-size: 10px; }
+
+  /* Screen Label */
+  .screen-label {
+    background: #f1f5f9; text-align: center; padding: 3px 8px;
+    font-size: 9px; font-weight: 700; color: #475569; letter-spacing: 0.3px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .screen-label .state-tag {
+    display: inline-block; background: #dbeafe; color: #1d4ed8;
+    padding: 0 6px; border-radius: 4px; font-size: 8px; margin-left: 6px;
+  }
+  .screen-label .state-tag.error { background: #fee2e2; color: #dc2626; }
+  .screen-label .state-tag.empty { background: #fef3c7; color: #d97706; }
+  .screen-label .state-tag.loading { background: #e0e7ff; color: #4338ca; }
+
+  /* Phone Content */
+  .phone-content {
+    flex: 1; padding: 8px 10px; display: flex; flex-direction: column;
+    gap: 6px; overflow: hidden; font-size: 11px; color: var(--text);
+  }
+
+  /* ===== REUSABLE UI COMPONENTS ===== */
+  .appbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 8px; min-height: 36px;
+    font-weight: 600; font-size: 13px;
+  }
+  .appbar .left, .appbar .right { display: flex; align-items: center; gap: 6px; }
+  .appbar .icon-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--surface-2); font-size: 13px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px;
+  }
+  .card-sm { padding: 6px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; border-radius: 24px; font-weight: 600; font-size: 11px; cursor: default; }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-2); }
+  .btn-danger { background: var(--error); color: white; }
+  .btn-sm { padding: 4px 10px; font-size: 10px; border-radius: 16px; }
+
+  .chip { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 16px; font-size: 9px; font-weight: 500; background: var(--surface-2); border: 1px solid var(--border); }
+  .chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+  .progress-bar { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+  .progress-bar .fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+
+  .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin: 1px; }
+  .dot.red { background: #ef4444; }
+  .dot.blue { background: #3b82f6; }
+  .dot.green { background: #22c55e; }
+  .dot.gray { background: #cbd5e1; }
+
+  .bottom-nav {
+    display: flex; justify-content: space-around; padding: 4px 0 6px;
+    border-top: 1px solid var(--border); background: white; flex-shrink: 0;
+  }
+  .bottom-nav .nav-item { text-align: center; font-size: 8px; color: var(--text-muted); padding: 2px 6px; border-radius: 8px; }
+  .bottom-nav .nav-item .icon { font-size: 16px; display: block; }
+  .bottom-nav .nav-item.active { color: var(--primary); font-weight: 700; background: var(--primary-light); }
+
+  .bottom-sheet-overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.3);
+    display: flex; flex-direction: column; justify-content: flex-end;
+  }
+  .bottom-sheet {
+    background: white; border-radius: 20px 20px 0 0; padding: 12px 16px 16px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+  }
+  .sheet-handle { width: 32px; height: 4px; background: #cbd5e1; border-radius: 2px; margin: 0 auto 12px; }
+
+  .dialog-overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .dialog {
+    background: white; border-radius: 20px; padding: 20px; margin: 0 20px;
+    max-width: 280px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .dialog h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .dialog p { font-size: 11px; color: var(--text-muted); line-height: 1.4; margin-bottom: 16px; }
+  .dialog-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .dialog-actions .btn { min-width: 60px; }
+
+  .fade-layer { opacity: 0.6; filter: blur(0.5px); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .grid-7 { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+
+  .text-muted { color: var(--text-muted); }
+  .text-center { text-align: center; }
+  .mt-auto { margin-top: auto; }
+  .flex { display: flex; }
+  .flex-between { display: flex; justify-content: space-between; align-items: center; }
+  .gap-4 { gap: 4px; }
+  .gap-8 { gap: 8px; }
+  .gap-12 { gap: 12px; }
+
+  @media print {
+    body { background: white; padding: 10px; }
+    .phone { box-shadow: none; border: 2px solid #000; break-inside: avoid; }
+    .flow-row { flex-wrap: wrap; }
+    .page-break { page-break-after: always; break-after: page; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Personal App — Complete Screen Inventory</h1>
+  <p>49 screens, sheets, dialogs, and states with full edge-case coverage and navigation flows</p>
+  <div class="badge-row">
+    <span class="badge">📱 6 Modules</span>
+    <span class="badge">🔁 7 Flows</span>
+    <span class="badge">⚡ 15+ Edge Cases</span>
+    <span class="badge">📋 49 Total Views</span>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- FLOW 1: ONBOARDING -->
+<!-- ======================================================================== -->
+<div class="flow-section page-break">
+  <div class="flow-title"><span class="tag">Flow 1</span> App Launch → Onboarding → Main Navigation</div>
+  <div class="flow-subtitle">First-time user experience: splash → 5-page tutorial → home</div>
+
+  <div class="flow-row wrap">
+
+    <!-- 1. Launch Screen -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Launch / Splash</div>
+      <div class="phone-content" style="align-items:center;justify-content:center;text-align:center;">
+        <div style="font-size:40px;">📝</div>
+        <div style="font-size:16px;font-weight:800;margin-top:8px;">Personal App</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Your all-in-one life organizer</div>
+        <div class="progress-bar" style="width:120px;margin-top:20px;"><div class="fill" style="width:30%;background:var(--primary);"></div></div>
+        <div style="font-size:9px;color:var(--text-muted);margin-top:6px;">Loading...</div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- 2. Onboarding Page 1 -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Onboarding — Notes</div>
+      <div class="phone-content" style="align-items:center;justify-content:center;text-align:center;">
+        <div style="display:flex;gap:6px;margin-bottom:auto;">● ○ ○ ○ ○</div>
+        <div style="font-size:48px;">📝</div>
+        <div><h3 style="font-size:16px;font-weight:700;">Rich Text Notes</h3><p style="font-size:11px;color:var(--text-muted);margin-top:4px;">Create beautiful notes with colors,<br>priorities, and rich formatting.</p></div>
+        <div class="flex-between" style="width:100%;margin-top:auto;">
+          <span class="btn btn-outline btn-sm">Skip</span>
+          <span class="btn btn-primary btn-sm">Next →</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- 3. Onboarding Page 2 -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Onboarding — Habits</div>
+      <div class="phone-content" style="align-items:center;justify-content:center;text-align:center;">
+        <div style="display:flex;gap:6px;margin-bottom:auto;">○ ● ○ ○ ○</div>
+        <div style="font-size:48px;">✅</div>
+        <div><h3 style="font-size:16px;font-weight:700;">Daily Habits</h3><p style="font-size:11px;color:var(--text-muted);margin-top:4px;">Track daily routines, build streaks,<br>and achieve your goals.</p></div>
+        <div class="flex-between" style="width:100%;margin-top:auto;">
+          <span class="btn btn-outline btn-sm">Skip</span>
+          <span class="btn btn-primary btn-sm">Next →</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- 4. Onboarding Page 3 -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Onboarding — Calendar</div>
+      <div class="phone-content" style="align-items:center;justify-content:center;text-align:center;">
+        <div style="display:flex;gap:6px;margin-bottom:auto;">○ ○ ● ○ ○</div>
+        <div style="font-size:48px;">📅</div>
+        <div><h3 style="font-size:16px;font-weight:700;">Smart Calendar</h3><p style="font-size:11px;color:var(--text-muted);margin-top:4px;">Schedule events, set reminders,<br>and stay organized.</p></div>
+        <div class="flex-between" style="width:100%;margin-top:auto;">
+          <span class="btn btn-outline btn-sm">Skip</span>
+          <span class="btn btn-primary btn-sm">Next →</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- 5. Onboarding Page 4 -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Onboarding — Calculator</div>
+      <div class="phone-content" style="align-items:center;justify-content:center;text-align:center;">
+        <div style="display:flex;gap:6px;margin-bottom:auto;">○ ○ ○ ● ○</div>
+        <div style="font-size:48px;">🔢</div>
+        <div><h3 style="font-size:16px;font-weight:700;">Built-in Calculator</h3><p style="font-size:11px;color:var(--text-muted);margin-top:4px;">Basic &amp; scientific calculations<br>with history and memory.</p></div>
+        <div class="flex-between" style="width:100%;margin-top:auto;">
+          <span class="btn btn-outline btn-sm">Skip</span>
+          <span class="btn btn-primary btn-sm">Next →</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- 6. Onboarding Page 5 -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Onboarding — Life Tracker</div>
+      <div class="phone-content" style="align-items:center;justify-content:center;text-align:center;">
+        <div style="display:flex;gap:6px;margin-bottom:auto;">○ ○ ○ ○ ●</div>
+        <div style="font-size:48px;">⌛</div>
+        <div><h3 style="font-size:16px;font-weight:700;">Life Tracker</h3><p style="font-size:11px;color:var(--text-muted);margin-top:4px;">Track your journey from birth<br>to your life expectancy.</p></div>
+        <div style="margin-top:auto;width:100%;">
+          <span class="btn btn-primary" style="width:100%;">Get Started</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- 7. Main Navigation -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:42</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Main Navigation (Notes active)</div>
+      <div class="phone-content">
+        <div class="appbar"><span class="left">🔍</span><span style="font-weight:700;">Notes</span><span class="right"><span class="icon-btn">⊞</span></span></div>
+        <div class="card" style="flex:1;display:flex;align-items:center;justify-content:center;">
+          <div class="text-center"><div style="font-size:32px;">📝</div><p style="font-size:11px;color:var(--text-muted);margin-top:6px;">Tap + to create your first note</p></div>
+        </div>
+        <div class="bottom-nav">
+          <div class="nav-item active"><span class="icon">📝</span>Notes</div>
+          <div class="nav-item"><span class="icon">✅</span>Habits</div>
+          <div class="nav-item"><span class="icon">📅</span>Calendar</div>
+          <div class="nav-item"><span class="icon">🔢</span>Calc</div>
+          <div class="nav-item"><span class="icon">⌛</span>Life</div>
+          <div class="nav-item"><span class="icon">⚙️</span>Settings</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- FLOW 2: NOTES — Complete with all edge cases -->
+<!-- ======================================================================== -->
+<div class="flow-section page-break">
+  <div class="flow-title"><span class="tag">Flow 2</span> Notes Module — 14 screens (all states)</div>
+  <div class="flow-subtitle">Loading → Empty → Data → Search → Selection → Editor → Sheets → Dialogs</div>
+
+  <div class="flow-row wrap">
+
+    <!-- Notes: Loading -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Notes — Loading <span class="state-tag loading">loading</span></div>
+      <div class="phone-content" style="align-items:center;justify-content:center;">
+        <div class="spinner" style="width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite;"></div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">Loading notes...</div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item active"><span class="icon">📝</span>Notes</div><div class="nav-item"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+    <div class="flow-arrow" style="font-size:20px;">→</div>
+
+    <!-- Notes: Error -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Notes — Error <span class="state-tag error">error</span></div>
+      <div class="phone-content" style="align-items:center;justify-content:center;text-align:center;">
+        <div style="font-size:40px;color:var(--error);">⚠️</div>
+        <div style="font-size:13px;font-weight:700;margin-top:8px;color:var(--error);">Failed to load notes</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Could not access the database.</div>
+        <span class="btn btn-primary btn-sm" style="margin-top:12px;">Retry</span>
+      </div>
+      <div class="bottom-nav"><div class="nav-item active"><span class="icon">📝</span>Notes</div><div class="nav-item"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+    <div class="flow-arrow" style="font-size:20px;">→</div>
+
+    <!-- Notes: Empty -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Notes — Empty <span class="state-tag empty">empty</span></div>
+      <div class="phone-content" style="align-items:center;justify-content:center;text-align:center;">
+        <div style="font-size:40px;">📝</div>
+        <div style="font-size:13px;font-weight:700;margin-top:8px;">No notes yet</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Tap the + button to create your first note.</div>
+        <div style="margin-top:auto;align-self:flex-end;"><div class="icon-btn" style="width:40px;height:40px;background:var(--primary);color:white;border-radius:50%;font-size:20px;display:flex;align-items:center;justify-content:center;">+</div></div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item active"><span class="icon">📝</span>Notes</div><div class="nav-item"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Notes: With Data -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Notes — List View (with data)</div>
+      <div class="phone-content">
+        <div class="appbar"><span class="left">🔍</span><span style="font-weight:700;">Notes</span><span class="right"><span class="icon-btn">⊞</span></span></div>
+        <div class="flex-between"><span style="font-size:9px;color:var(--text-muted);">Sort: Updated ▼</span><span style="font-size:9px;color:var(--text-muted);">⊡ ⊟</span></div>
+
+        <div class="card" style="border-left: 4px solid #3b82f6;">
+          <div class="flex-between"><span><strong>📌 Meeting Notes</strong> ★</span><span class="chip" style="background:#fee2e2;color:#dc2626;">High</span></div>
+          <div style="color:var(--text-muted);font-size:10px;margin:4px 0;">Discussed Q3 roadmap, budget...</div>
+          <div style="font-size:9px;color:var(--text-muted);">2h ago • 🔔 Jun 20</div>
+        </div>
+
+        <div class="card" style="border-left: 4px solid #22c55e;">
+          <div class="flex-between"><span><strong>Grocery List</strong></span><span class="chip" style="background:#dcfce7;color:#16a34a;">Low</span></div>
+          <div style="color:var(--text-muted);font-size:10px;margin:4px 0;">Milk, eggs, bread, butter...</div>
+          <div style="font-size:9px;color:var(--text-muted);">Yesterday</div>
+        </div>
+
+        <div class="card" style="border-left: 4px solid #a855f7;">
+          <div class="flex-between"><span><strong>📎 App Ideas</strong> 🎨</span><span class="chip" style="background:#f3e8ff;color:#9333ea;">Medium</span></div>
+          <div style="color:var(--text-muted);font-size:10px;margin:4px 0;">Dark mode toggle, new habit types...</div>
+          <div style="font-size:9px;color:var(--text-muted);">3d ago</div>
+        </div>
+
+        <div class="mt-auto" style="align-self:flex-end;"><div class="icon-btn" style="width:40px;height:40px;background:var(--primary);color:white;border-radius:50%;font-size:20px;display:flex;align-items:center;justify-content:center;">+</div></div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item active"><span class="icon">📝</span>Notes</div><div class="nav-item"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Notes: Search with results -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Notes — Search (with results)</div>
+      <div class="phone-content">
+        <div class="card-sm" style="background:#f1f5f9;">🔍 <span style="color:var(--text-2);font-weight:600;">meeting</span></div>
+        <div class="card" style="border-left: 4px solid #3b82f6;">
+          <div class="flex-between"><span><strong>📌 Meeting Notes</strong></span><span class="chip" style="background:#fee2e2;color:#dc2626;">High</span></div>
+          <div style="color:var(--text-2);font-size:10px;margin:4px 0;">Discussed Q3 roadmap...</div>
+        </div>
+        <div style="font-size:9px;color:var(--text-muted);text-align:center;margin-top:4px;">1 result found</div>
+        <div class="mt-auto" style="align-self:flex-end;"><div class="icon-btn" style="width:40px;height:40px;background:var(--primary);color:white;border-radius:50%;font-size:20px;display:flex;align-items:center;justify-content:center;">+</div></div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item active"><span class="icon">📝</span>Notes</div><div class="nav-item"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Notes: Search no results -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Notes — Search (no results) <span class="state-tag empty">empty</span></div>
+      <div class="phone-content" style="align-items:center;justify-content:center;text-align:center;">
+        <div class="card-sm" style="background:#f1f5f9;width:100%;">🔍 <span style="color:var(--text-2);font-weight:600;">xyznonexistent</span></div>
+        <div style="font-size:32px;margin-top:20px;">🔍</div>
+        <div style="font-size:13px;font-weight:700;margin-top:8px;">No results found</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Try a different search term.</div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item active"><span class="icon">📝</span>Notes</div><div class="nav-item"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Notes Flow Part 2: Selection → Editor → Sheets -->
+<div class="flow-section page-break">
+  <div class="flow-title"><span class="tag">Flow 2 (cont.)</span> Notes — Selection, Editor, Sheets &amp; Dialogs</div>
+  <div class="flow-subtitle">Long-press → Selection mode → Tap note → Editor → Color/Priority/Trash</div>
+
+  <div class="flow-row wrap">
+
+    <!-- Notes: Selection Mode -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Notes — Selection Mode</div>
+      <div class="phone-content">
+        <div class="appbar" style="background:var(--primary-light);">
+          <span class="left"><span class="icon-btn" style="background:transparent;">✕</span></span>
+          <span style="font-weight:700;color:var(--primary);">2 selected</span>
+          <span class="right"><span class="icon-btn">🗑</span></span>
+        </div>
+        <div class="card" style="border-left:4px solid #3b82f6;background:#eff6ff;">
+          <div class="flex-between"><span><strong>📌 Meeting Notes</strong></span><span>☑️</span></div>
+          <div style="color:var(--text-muted);font-size:10px;">Discussed Q3 roadmap...</div>
+        </div>
+        <div class="card" style="border-left:4px solid #22c55e;">
+          <div class="flex-between"><span><strong>Grocery List</strong></span><span>⬜</span></div>
+          <div style="color:var(--text-muted);font-size:10px;">Milk, eggs, bread...</div>
+        </div>
+        <div class="card" style="border-left:4px solid #a855f7;background:#eff6ff;">
+          <div class="flex-between"><span><strong>📎 App Ideas</strong></span><span>☑️</span></div>
+          <div style="color:var(--text-muted);font-size:10px;">Dark mode toggle...</div>
+        </div>
+        <div class="card-sm text-center" style="color:var(--primary);font-weight:600;">Select All</div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item active"><span class="icon">📝</span>Notes</div><div class="nav-item"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Notes: Editor Screen -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Note Editor</div>
+      <div class="phone-content">
+        <div class="appbar"><span class="left">←</span><span style="font-weight:600;">Edit Note</span><span class="right"><span class="icon-btn">★</span><span class="icon-btn">🎨</span><span class="icon-btn">⏰</span><span class="icon-btn" style="background:var(--primary);color:white;">💾</span></span></div>
+        <div class="card-sm" style="font-weight:600;">Title: Meeting Notes</div>
+        <div style="display:flex;gap:4px;font-size:9px;background:#f1f5f9;padding:4px 6px;border-radius:6px;">
+          <span style="font-weight:800;">B</span><span style="font-style:italic;font-weight:600;">I</span><span style="text-decoration:underline;">U</span><span>H1</span><span>•</span><span>1.</span><span>☑️</span><span>🔗</span><span>📷</span>
+        </div>
+        <div class="card" style="flex:1;font-size:11px;line-height:1.6;">
+          Discussed Q3 roadmap:<br>
+          • Launch v2.0 by October<br>
+          • Hire 2 engineers<br>
+          • Budget approved ✅<br><br>
+          Action items:<br>
+          1. Send recap to team<br>
+          2. Schedule follow-up<br>
+          3. ...
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Notes: Delete Confirmation Dialog -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Delete Confirmation Dialog</div>
+      <div class="phone-content fade-layer">
+        <div class="appbar" style="opacity:0.4;"><span class="left">←</span><span>Edit Note</span><span class="right">...</span></div>
+        <div class="card" style="flex:1;opacity:0.4;"></div>
+      </div>
+      <div class="dialog-overlay">
+        <div class="dialog">
+          <h4>Move to trash?</h4>
+          <p>This note will be moved to the trash. You can restore it later or permanently delete it.</p>
+          <div class="dialog-actions">
+            <span class="btn btn-outline btn-sm">Cancel</span>
+            <span class="btn btn-sm" style="background:var(--text-2);color:white;">Delete</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Notes: Color Picker Sheet -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Color Picker Sheet</div>
+      <div class="phone-content fade-layer" style="justify-content:flex-end;">
+        <div style="opacity:0.3;flex:1;display:flex;align-items:center;justify-content:center;">
+          <div class="card-sm">[Editor content dimmed]</div>
+        </div>
+        <div class="bottom-sheet" style="position:relative;">
+          <div class="sheet-handle"></div>
+          <div style="font-weight:700;margin-bottom:8px;">Note Color</div>
+          <div style="font-size:9px;color:var(--text-muted);margin-bottom:6px;">14 presets + custom</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+            <span style="width:22px;height:22px;border-radius:50%;background:white;border:2px solid #94a3b8;"></span>
+            <span style="width:22px;height:22px;border-radius:50%;background:#ef4444;"></span>
+            <span style="width:22px;height:22px;border-radius:50%;background:#ec4899;"></span>
+            <span style="width:22px;height:22px;border-radius:50%;background:#a855f7;"></span>
+            <span style="width:22px;height:22px;border-radius:50%;background:#6366f1;"></span>
+            <span style="width:22px;height:22px;border-radius:50%;background:#3b82f6;border:2px solid var(--primary);"></span>
+            <span style="width:22px;height:22px;border-radius:50%;background:#06b6d4;"></span>
+            <span style="width:22px;height:22px;border-radius:50%;background:#14b8a6;"></span>
+            <span style="width:22px;height:22px;border-radius:50%;background:#22c55e;"></span>
+            <span style="width:22px;height:22px;border-radius:50%;background:#84cc16;"></span>
+            <span style="width:22px;height:22px;border-radius:50%;background:#eab308;"></span>
+            <span style="width:22px;height:22px;border-radius:50%;background:#f97316;"></span>
+            <span style="width:22px;height:22px;border-radius:50%;background:#78716c;"></span>
+            <span style="width:22px;height:22px;border-radius:50%;background:#1e293b;"></span>
+          </div>
+          <div class="btn-outline btn-sm" style="text-align:center;width:100%;margin-bottom:8px;">+ Custom Color (HSV / Hex)</div>
+          <div class="btn btn-primary" style="width:100%;">Apply</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Notes: Priority Picker Sheet -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Priority Picker Sheet</div>
+      <div class="phone-content fade-layer" style="justify-content:flex-end;">
+        <div style="opacity:0.3;flex:1;"></div>
+        <div class="bottom-sheet">
+          <div class="sheet-handle"></div>
+          <div style="font-weight:700;margin-bottom:8px;">Priority</div>
+          <div class="grid-2" style="gap:8px;">
+            <div class="card-sm text-center" style="border:2px solid #e2e8f0;"><span style="font-size:10px;">None</span></div>
+            <div class="card-sm text-center" style="border:2px solid #22c55e;"><span style="font-size:10px;color:#16a34a;">🟢 Low</span></div>
+            <div class="card-sm text-center" style="border:2px solid #f59e0b;"><span style="font-size:10px;color:#d97706;">🟡 Medium</span></div>
+            <div class="card-sm text-center" style="border:2px solid var(--primary);background:#eff6ff;"><span style="font-size:10px;color:#dc2626;">🔴 High</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Notes: Trash + CustomColor (continuation) -->
+<div class="flow-section">
+  <div class="flow-title"><span class="tag">Flow 2 (end)</span> Trash, Custom Color Dialog, Discard Changes</div>
+  <div class="flow-row wrap">
+
+    <!-- Notes: Trash Sheet with items -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Trash Sheet (with items)</div>
+      <div class="phone-content fade-layer" style="justify-content:flex-end;">
+        <div style="opacity:0.3;flex:1;display:flex;align-items:center;justify-content:center;">
+          <div class="card-sm">[Notes list dimmed]</div>
+        </div>
+        <div class="bottom-sheet">
+          <div class="sheet-handle"></div>
+          <div class="flex-between"><span style="font-weight:700;">🗑 Trash</span><span style="font-size:10px;color:#dc2626;">Empty Trash</span></div>
+          <div class="flex-between card-sm" style="margin-top:6px;">
+            <div><span style="font-weight:600;">Old draft</span><br><span style="font-size:9px;color:var(--text-muted);">Deleted 5d ago</span></div>
+            <div><span class="btn-outline btn-sm">↩</span><span class="btn-outline btn-sm" style="color:#dc2626;margin-left:4px;">🗑</span></div>
+          </div>
+          <div class="flex-between card-sm" style="margin-top:4px;">
+            <div><span style="font-weight:600;">Temp note</span><br><span style="font-size:9px;color:var(--text-muted);">Deleted 1h ago</span></div>
+            <div><span class="btn-outline btn-sm">↩</span><span class="btn-outline btn-sm" style="color:#dc2626;margin-left:4px;">🗑</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Notes: Trash Empty -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Trash Sheet (empty) <span class="state-tag empty">empty</span></div>
+      <div class="phone-content fade-layer" style="justify-content:flex-end;">
+        <div style="opacity:0.3;flex:1;"></div>
+        <div class="bottom-sheet">
+          <div class="sheet-handle"></div>
+          <div style="font-weight:700;">🗑 Trash</div>
+          <div class="text-center" style="padding:20px 0;">
+            <div style="font-size:24px;">🗑️</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Trash is empty</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Notes: Discard Changes Dialog -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Discard Changes Dialog</div>
+      <div class="phone-content fade-layer">
+        <div style="opacity:0.4;flex:1;">
+          <div class="appbar">← Edit Note</div>
+          <div class="card-sm">Title: Meeting Notes</div>
+          <div class="card" style="flex:1;">Discussed Q3 roadmap... [edited content]</div>
+        </div>
+      </div>
+      <div class="dialog-overlay">
+        <div class="dialog">
+          <h4>Discard changes?</h4>
+          <p>You have unsaved changes. Do you want to discard them?</p>
+          <div class="dialog-actions">
+            <span class="btn btn-outline btn-sm">Cancel</span>
+            <span class="btn btn-sm" style="background:#dc2626;color:white;">Discard</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes: Custom Color Dialog -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Custom Color Dialog</div>
+      <div class="phone-content fade-layer">
+        <div style="opacity:0.4;flex:1;display:flex;align-items:center;justify-content:center;">
+          <div class="card-sm">[Editor dimmed]</div>
+        </div>
+      </div>
+      <div class="dialog-overlay">
+        <div class="dialog">
+          <h4>Custom Color</h4>
+          <div style="margin:12px 0;">
+            <div style="height:120px;border-radius:12px;background:linear-gradient(to right,red,yellow,lime,cyan,blue,magenta,red);margin-bottom:8px;"></div>
+            <div style="height:8px;border-radius:4px;background:linear-gradient(to right,#000,#fff);margin-bottom:8px;"></div>
+            <div class="card-sm" style="font-size:10px;"><span style="color:var(--text-muted);">Hex:</span> #2563EB</div>
+          </div>
+          <div class="dialog-actions">
+            <span class="btn btn-outline btn-sm">Cancel</span>
+            <span class="btn btn-primary btn-sm">Apply</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ======================================================================== -->
+<!-- FLOW 3: HABITS — All states -->
+<!-- ======================================================================== -->
+<div class="flow-section">
+  <div class="flow-title"><span class="tag">Flow 3</span> Habits Module — 10 screens</div>
+  <div class="flow-subtitle">Loading → Error → Empty → Data → Add → Icon Picker → Selection → Monthly</div>
+
+  <div class="flow-row wrap">
+
+    <!-- Habits: Loading -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Habits — Loading <span class="state-tag loading">loading</span></div>
+      <div class="phone-content" style="align-items:center;justify-content:center;">
+        <div style="width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear;"></div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">Loading habits...</div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item"><span class="icon">📝</span>Notes</div><div class="nav-item active"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+    <div class="flow-arrow" style="font-size:20px;">→</div>
+
+    <!-- Habits: Error -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Habits — Error <span class="state-tag error">error</span></div>
+      <div class="phone-content" style="align-items:center;justify-content:center;text-align:center;">
+        <div style="font-size:40px;color:var(--error);">⚠️</div>
+        <div style="font-size:13px;font-weight:700;margin-top:8px;color:var(--error);">Failed to load habits</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Database error occurred.</div>
+        <span class="btn btn-primary btn-sm" style="margin-top:12px;">Retry</span>
+      </div>
+      <div class="bottom-nav"><div class="nav-item"><span class="icon">📝</span>Notes</div><div class="nav-item active"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+    <div class="flow-arrow" style="font-size:20px;">→</div>
+
+    <!-- Habits: Empty -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Habits — Empty <span class="state-tag empty">empty</span></div>
+      <div class="phone-content" style="align-items:center;justify-content:center;text-align:center;">
+        <div style="font-size:40px;">✅</div>
+        <div style="font-size:13px;font-weight:700;margin-top:8px;">No habits yet</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Create your first habit to start tracking!</div>
+        <div style="margin-top:16px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;">
+          <span class="chip">💊 Medication</span>
+          <span class="chip">📖 Reading</span>
+          <span class="chip">🏃 Running</span>
+          <span class="chip">💧 Water</span>
+        </div>
+        <div class="mt-auto" style="align-self:flex-end;"><div class="icon-btn" style="width:40px;height:40px;background:var(--primary);color:white;border-radius:50%;font-size:20px;display:flex;align-items:center;justify-content:center;">+</div></div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item"><span class="icon">📝</span>Notes</div><div class="nav-item active"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Habits: With Data -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Habits — Main View</div>
+      <div class="phone-content">
+        <div class="appbar"><span style="font-weight:700;">Habits</span><span class="right"><span class="icon-btn">🔍</span><span class="icon-btn" style="background:var(--primary);color:white;">+</span></span></div>
+        <div class="card" style="background:#eff6ff;border-color:#bfdbfe;">
+          <div class="flex-between"><span style="font-weight:700;">✅ 5 of 8 done</span><span style="font-size:10px;color:var(--primary);">62%</span></div>
+          <div class="progress-bar" style="margin-top:6px;"><div class="fill" style="width:62%;background:var(--primary);"></div></div>
+          <div style="font-size:9px;color:var(--primary);margin-top:4px;">🎉 Keep going!</div>
+        </div>
+        <div style="font-size:9px;color:var(--text-muted);">← drag to reorder</div>
+        <div style="display:flex;gap:6px;overflow-x:auto;">
+          <div class="card text-center" style="min-width:56px;border:2px solid #dbeafe;"><div style="font-size:20px;">💊</div><div style="font-size:8px;font-weight:600;">Medi</div><div style="font-size:8px;color:#f59e0b;">🔥12</div></div>
+          <div class="card text-center" style="min-width:56px;"><div style="font-size:20px;">📖</div><div style="font-size:8px;font-weight:600;">Read</div><div style="font-size:8px;color:#f59e0b;">🔥5</div></div>
+          <div class="card text-center" style="min-width:56px;"><div style="font-size:20px;">🏃</div><div style="font-size:8px;font-weight:600;">Run</div><div style="font-size:8px;color:#f59e0b;">🔥3</div></div>
+          <div class="card text-center" style="min-width:56px;"><div style="font-size:20px;">🧘</div><div style="font-size:8px;font-weight:600;">Mind</div><div style="font-size:8px;color:#f59e0b;">🔥8</div></div>
+          <div class="card text-center" style="min-width:56px;"><div style="font-size:20px;">💧</div><div style="font-size:8px;font-weight:600;">Water</div><div style="font-size:8px;color:var(--text-muted);">New</div></div>
+        </div>
+        <div class="card" style="padding:8px;">
+          <div class="flex-between"><span style="font-weight:600;">This Week</span><span style="font-size:9px;color:var(--text-muted);">M T W T F S S</span></div>
+          <div style="display:flex;gap:6px;margin-top:4px;">
+            <div style="text-align:center;"><div style="font-size:9px;color:var(--text-muted);">M</div><div style="width:20px;height:20px;border-radius:50%;background:#22c55e;margin:2px auto;"></div></div>
+            <div style="text-align:center;"><div style="font-size:9px;color:var(--text-muted);">T</div><div style="width:20px;height:20px;border-radius:50%;background:#22c55e;margin:2px auto;"></div></div>
+            <div style="text-align:center;"><div style="font-size:9px;color:var(--text-muted);">W</div><div style="width:20px;height:20px;border-radius:50%;background:#22c55e;margin:2px auto;"></div></div>
+            <div style="text-align:center;"><div style="font-size:9px;color:var(--text-muted);">T</div><div style="width:20px;height:20px;border-radius:50%;background:#e2e8f0;margin:2px auto;"></div></div>
+            <div style="text-align:center;"><div style="font-size:9px;color:var(--text-muted);">F</div><div style="width:20px;height:20px;border-radius:50%;background:#e2e8f0;margin:2px auto;"></div></div>
+            <div style="text-align:center;"><div style="font-size:9px;color:var(--text-muted);">S</div><div style="width:20px;height:20px;border-radius:50%;background:#e2e8f0;margin:2px auto;"></div></div>
+            <div style="text-align:center;"><div style="font-size:9px;color:var(--text-muted);">S</div><div style="width:20px;height:20px;border-radius:50%;background:#e2e8f0;margin:2px auto;"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item"><span class="icon">📝</span>Notes</div><div class="nav-item active"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Habits: Monthly Heatmap -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Habits — Monthly Heatmap</div>
+      <div class="phone-content">
+        <div class="flex-between"><span style="font-weight:700;">📅 June 2026</span><span>&lt; Today &gt;</span></div>
+        <div class="card">
+          <div class="grid-7" style="font-size:9px;color:var(--text-muted);font-weight:600;">S M T W T F S</div>
+          <div class="grid-7" style="margin-top:4px;font-size:9px;">
+            <div></div><div>1<span class="dot green"></span></div><div>2<span class="dot green"></span></div><div>3<span class="dot green"></span></div><div>4<span class="dot gray"></span></div><div>5<span class="dot gray"></span></div><div>6<span class="dot green"></span></div>
+            <div>7<span class="dot green"></span></div><div>8<span class="dot green"></span></div><div>9<span class="dot gray"></span></div><div>10<span class="dot gray"></span></div><div>11<span class="dot blue"></span></div><div>12<span class="dot green"></span></div><div>13<span class="dot green"></span></div>
+            <div>14<span class="dot green"></span></div><div>15</div><div>16</div><div>17</div><div>18<span class="dot green"></span></div><div>19<span class="dot green"></span></div><div>20</div>
+          </div>
+        </div>
+        <div class="card-sm flex-between">
+          <div class="text-center"><div style="font-weight:700;">12</div><div style="font-size:9px;color:var(--text-muted);">Done</div></div>
+          <div class="text-center"><div style="font-weight:700;">3🔥</div><div style="font-size:9px;color:var(--text-muted);">Streak</div></div>
+          <div class="text-center"><div style="font-weight:700;">7🏆</div><div style="font-size:9px;color:var(--text-muted);">Best</div></div>
+        </div>
+        <div class="progress-bar"><div class="fill" style="width:40%;background:var(--primary);"></div></div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item"><span class="icon">📝</span>Notes</div><div class="nav-item active"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Habits: Sheets & Dialogs -->
+<div class="flow-section">
+  <div class="flow-title"><span class="tag">Flow 3 (cont.)</span> Habits — Sheets, Icon Picker, Selection, Dialogs</div>
+  <div class="flow-row wrap">
+
+    <!-- Habits: Add Sheet -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Habit Editor Sheet</div>
+      <div class="phone-content fade-layer" style="justify-content:flex-end;">
+        <div style="opacity:0.3;flex:1;"></div>
+        <div class="bottom-sheet">
+          <div class="sheet-handle"></div>
+          <div style="font-weight:700;margin-bottom:8px;">🌙 New Habit</div>
+          <div class="card-sm" style="margin-bottom:6px;">Habit Name: Morning Meditation</div>
+          <div class="flex-between card-sm" style="margin-bottom:6px;">
+            <span style="font-size:10px;">Icon: <span style="font-size:18px;">☀️</span></span><span class="btn-outline btn-sm">Choose</span>
+          </div>
+          <div style="margin-bottom:6px;">
+            <span style="font-size:9px;color:var(--text-muted);">Color:</span>
+            <div style="display:flex;gap:4px;margin-top:2px;">
+              <span class="dot" style="width:16px;height:16px;background:#3b82f6;border:2px solid var(--primary);"></span>
+              <span class="dot" style="width:16px;height:16px;background:#ef4444;"></span>
+              <span class="dot" style="width:16px;height:16px;background:#22c55e;"></span>
+              <span class="dot" style="width:16px;height:16px;background:#eab308;"></span>
+              <span class="dot" style="width:16px;height:16px;background:#a855f7;"></span>
+              <span class="dot" style="width:16px;height:16px;background:#ec4899;"></span>
+              <span class="dot" style="width:16px;height:16px;background:#f97316;"></span>
+              <span style="font-size:9px;color:var(--text-muted);">+5 more</span>
+            </div>
+          </div>
+          <div style="margin-bottom:6px;">
+            <span style="font-size:9px;color:var(--text-muted);">Type:</span>
+            <div class="grid-3" style="margin-top:4px;">
+              <span class="btn-primary btn-sm" style="text-align:center;">Yes/No</span>
+              <span class="btn-outline btn-sm" style="text-align:center;">Count+Target</span>
+              <span class="btn-outline btn-sm" style="text-align:center;">Free Count</span>
+            </div>
+          </div>
+          <div class="flex-between card-sm" style="margin-bottom:8px;">
+            <span style="font-size:10px;">⏰ Reminder: 7:00 AM</span>
+            <span style="font-size:9px;color:#dc2626;">Clear</span>
+          </div>
+          <div class="flex-between gap-8">
+            <span class="btn-outline btn-sm" style="flex:1;text-align:center;">Cancel</span>
+            <span class="btn-primary btn-sm" style="flex:1;text-align:center;">Create Habit</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Habits: Icon Picker -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Icon Picker</div>
+      <div class="phone-content">
+        <div class="appbar"><span style="font-weight:700;">Choose Icon</span><span style="color:var(--primary);font-weight:600;">Done</span></div>
+        <div style="display:flex;gap:4px;overflow-x:auto;padding:4px 0;">
+          <span class="chip active">All</span>
+          <span class="chip">Health</span>
+          <span class="chip">Mind</span>
+          <span class="chip">Self-Care</span>
+          <span class="chip">Play</span>
+          <span class="chip">Finance</span>
+          <span class="chip">Social</span>
+          <span class="chip">Home</span>
+          <span class="chip">Goals</span>
+        </div>
+        <div style="font-size:9px;color:var(--text-muted);">55 icons</div>
+        <div class="grid-5" style="text-align:center;font-size:22px;">
+          <div class="card-sm" style="padding:8px;">💊</div>
+          <div class="card-sm" style="padding:8px;">🏃</div>
+          <div class="card-sm" style="padding:8px;border:2px solid var(--primary);background:#eff6ff;">☀️</div>
+          <div class="card-sm" style="padding:8px;">🧘</div>
+          <div class="card-sm" style="padding:8px;">💧</div>
+          <div class="card-sm" style="padding:8px;">📖</div>
+          <div class="card-sm" style="padding:8px;">✍️</div>
+          <div class="card-sm" style="padding:8px;">🎯</div>
+          <div class="card-sm" style="padding:8px;">🧠</div>
+          <div class="card-sm" style="padding:8px;">😴</div>
+          <div class="card-sm" style="padding:8px;">💰</div>
+          <div class="card-sm" style="padding:8px;">🏠</div>
+          <div class="card-sm" style="padding:8px;">🎨</div>
+          <div class="card-sm" style="padding:8px;">🎵</div>
+          <div class="card-sm" style="padding:8px;">🥗</div>
+        </div>
+        <div style="margin-top:auto;text-align:center;font-size:10px;color:var(--text-muted);">Selected: ☀️ Meditation</div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Habits: Selection Mode -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Habits — Selection Mode</div>
+      <div class="phone-content">
+        <div class="appbar" style="background:var(--primary-light);">
+          <span class="left"><span class="icon-btn" style="background:transparent;">✕</span></span>
+          <span style="font-weight:700;color:var(--primary);">3 selected</span>
+          <span class="right"><span class="icon-btn">🗑</span></span>
+        </div>
+        <div class="card-sm flex-between" style="background:#eff6ff;">
+          <span>💊 <strong>Medication</strong> ☑️</span>
+          <span style="font-size:9px;color:var(--primary);">🔥12</span>
+        </div>
+        <div class="card-sm flex-between">
+          <span>📖 <strong>Reading</strong> ⬜</span>
+          <span style="font-size:9px;color:var(--text-muted);">🔥5</span>
+        </div>
+        <div class="card-sm flex-between" style="background:#eff6ff;">
+          <span>🏃 <strong>Running</strong> ☑️</span>
+          <span style="font-size:9px;color:var(--text-muted);">🔥3</span>
+        </div>
+        <div class="card-sm flex-between" style="background:#eff6ff;">
+          <span>🧘 <strong>Mindfulness</strong> ☑️</span>
+          <span style="font-size:9px;color:var(--primary);">🔥8</span>
+        </div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item"><span class="icon">📝</span>Notes</div><div class="nav-item active"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Habits: Delete Dialog -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Habit Delete Dialog</div>
+      <div class="phone-content fade-layer">
+        <div style="opacity:0.4;flex:1;"></div>
+      </div>
+      <div class="dialog-overlay">
+        <div class="dialog">
+          <h4>Delete habit?</h4>
+          <p>This will permanently delete "Medication" and all its progress logs. This cannot be undone.</p>
+          <div class="dialog-actions">
+            <span class="btn btn-outline btn-sm">Cancel</span>
+            <span class="btn btn-sm" style="background:#dc2626;color:white;">Delete</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Habits: Discard Changes Dialog -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Discard Habit Changes</div>
+      <div class="phone-content fade-layer">
+        <div style="opacity:0.4;flex:1;"></div>
+      </div>
+      <div class="dialog-overlay">
+        <div class="dialog">
+          <h4>Discard changes?</h4>
+          <p>You have unsaved changes to this habit. Do you want to discard them?</p>
+          <div class="dialog-actions">
+            <span class="btn btn-outline btn-sm">Keep Editing</span>
+            <span class="btn btn-sm" style="background:#dc2626;color:white;">Discard</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ======================================================================== -->
+<!-- FLOW 4: CALENDAR -->
+<!-- ======================================================================== -->
+<div class="flow-section">
+  <div class="flow-title"><span class="tag">Flow 4</span> Calendar Module — 6 screens</div>
+  <div class="flow-subtitle">Loading → Empty → Grid → Day Detail → Event Editor → Discard</div>
+
+  <div class="flow-row wrap">
+
+    <!-- Calendar: Loading -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Calendar — Loading <span class="state-tag loading">loading</span></div>
+      <div class="phone-content" style="align-items:center;justify-content:center;">
+        <div style="width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear;"></div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">Loading events...</div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item"><span class="icon">📝</span>Notes</div><div class="nav-item"><span class="icon">✅</span>Habits</div><div class="nav-item active"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Calendar: With Events -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Calendar — Month Grid</div>
+      <div class="phone-content">
+        <div class="appbar"><span style="font-weight:700;">← June 2026 →</span><span class="right"><span class="icon-btn">🔍</span><span class="icon-btn" style="background:var(--primary);color:white;">+</span></span></div>
+        <div class="grid-7" style="font-size:9px;color:var(--text-muted);font-weight:600;">M T W T F S S</div>
+        <div class="grid-7" style="gap:4px;font-size:11px;text-align:center;">
+          <div></div><div></div><div><span style="font-weight:600;">1</span><br><span class="dot red"></span></div><div><span>2</span><br><span class="dot blue"></span></div><div><span>3</span></div><div><span>4</span></div><div><span>5</span></div>
+          <div><span>6</span></div><div><span>7</span></div><div><span>8</span></div><div><span>9</span></div><div><span style="font-weight:600;">10</span><br><span class="dot green"></span></div><div><span>11</span><br><span class="dot blue"></span></div><div><span>12</span></div>
+          <div><span>13</span></div><div><span>14</span></div><div><span>15</span></div><div><span>16</span></div><div><span>17</span></div><div><span>18</span></div><div><span>19</span></div>
+          <div><span>20</span></div><div><span>21</span></div><div><span>22</span></div><div><span>23</span></div><div><span>24</span></div><div><span>25</span></div><div><span>26</span></div>
+          <div><span>27</span></div><div><span>28</span></div><div><span>29</span></div><div><span>30</span></div>
+        </div>
+        <div class="flex-between"><span class="chip" style="font-size:9px;">All Categories ▼</span><span class="card-sm" style="font-size:9px;padding:4px 8px;">🔍 Search events...</span></div>
+        <div style="font-size:9px;color:var(--text-muted);margin-top:2px;">
+          <span class="dot red"></span> Work <span class="dot blue"></span> General <span class="dot green"></span> Personal
+        </div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item"><span class="icon">📝</span>Notes</div><div class="nav-item"><span class="icon">✅</span>Habits</div><div class="nav-item active"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Calendar: Day Detail Sheet -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Day Detail Sheet</div>
+      <div class="phone-content fade-layer" style="justify-content:flex-end;">
+        <div style="opacity:0.3;flex:1;display:flex;align-items:center;justify-content:center;">
+          <div class="card-sm">[Calendar grid dimmed]</div>
+        </div>
+        <div class="bottom-sheet">
+          <div class="sheet-handle"></div>
+          <div style="font-weight:700;">📅 Wednesday, June 3</div>
+          <div class="flex-between card-sm" style="margin-top:8px;">
+            <div><span class="chip" style="background:#fee2e2;color:#dc2626;">Work</span> <span style="font-weight:600;">10:00 Dentist</span></div>
+            <div><span style="font-size:12px;">✏️</span><span style="font-size:12px;margin-left:6px;">🗑</span></div>
+          </div>
+          <div class="flex-between card-sm" style="margin-top:4px;">
+            <div><span class="chip" style="background:#dbeafe;color:#2563eb;">General</span> <span style="font-weight:600;">14:00 Team standup</span></div>
+            <div><span style="font-size:12px;">✏️</span><span style="font-size:12px;margin-left:6px;">🗑</span></div>
+          </div>
+          <div class="btn-outline btn-sm" style="width:100%;text-align:center;margin-top:8px;">+ Add Event</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Calendar: Event Editor -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Event Editor Sheet</div>
+      <div class="phone-content fade-layer" style="justify-content:flex-end;">
+        <div style="opacity:0.3;flex:1;"></div>
+        <div class="bottom-sheet">
+          <div class="sheet-handle"></div>
+          <div style="font-weight:700;margin-bottom:8px;">New Event</div>
+          <div class="card-sm">Title: Team Standup</div>
+          <div class="flex-between" style="margin:6px 0;">
+            <span class="btn-outline btn-sm">📅 June 3, 2026</span>
+            <span class="btn-outline btn-sm">⏰ 2:00 PM</span>
+          </div>
+          <div style="margin-bottom:6px;">
+            <span style="font-size:9px;color:var(--text-muted);">Category:</span>
+            <div style="display:flex;gap:4px;margin-top:4px;">
+              <span class="btn-outline btn-sm">General</span>
+              <span class="btn-primary btn-sm">Work</span>
+              <span class="btn-outline btn-sm">Personal</span>
+              <span class="btn-outline btn-sm">Urgent</span>
+            </div>
+          </div>
+          <div class="card-sm" style="font-size:10px;color:var(--text-muted);margin-bottom:6px;">Notes: Daily sync on project progress</div>
+          <div style="margin-bottom:8px;">
+            <span style="font-size:9px;color:var(--text-muted);">Repeats: <strong>Daily</strong></span>
+            <span style="font-size:9px;color:var(--text-muted);margin-left:8px;">Until: Jul 3, 2026</span>
+          </div>
+          <div style="font-size:9px;color:var(--text-muted);margin-bottom:8px;">Options: None | Daily | Weekly | Monthly | Yearly</div>
+          <div class="flex-between gap-8">
+            <span class="btn-outline btn-sm" style="flex:1;text-align:center;color:#dc2626;">Delete</span>
+            <span class="btn-primary btn-sm" style="flex:1;text-align:center;">Save</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Calendar: Discard Dialog -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Event Discard Dialog</div>
+      <div class="phone-content fade-layer"><div style="opacity:0.4;flex:1;"></div></div>
+      <div class="dialog-overlay">
+        <div class="dialog">
+          <h4>Discard changes?</h4>
+          <p>You have unsaved changes to this event.</p>
+          <div class="dialog-actions">
+            <span class="btn btn-outline btn-sm">Cancel</span>
+            <span class="btn btn-sm" style="background:#dc2626;color:white;">Discard</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calendar: Search with filter -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Calendar — Search + Filter</div>
+      <div class="phone-content">
+        <div class="card-sm" style="background:#f1f5f9;">🔍 <span style="font-weight:600;">standup</span></div>
+        <div class="flex-between"><span class="chip active" style="font-size:9px;">Work</span><span style="font-size:9px;color:var(--text-muted);">1 result</span></div>
+        <div class="card flex-between" style="margin-top:4px;">
+          <div><span class="chip" style="background:#fee2e2;">Work</span> 14:00 Team standup</div>
+          <span>✏️ 🗑</span>
+        </div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item"><span class="icon">📝</span>Notes</div><div class="nav-item"><span class="icon">✅</span>Habits</div><div class="nav-item active"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ======================================================================== -->
+<!-- FLOW 5: CALCULATOR -->
+<!-- ======================================================================== -->
+<div class="flow-section">
+  <div class="flow-title"><span class="tag">Flow 5</span> Calculator Module — 5 screens</div>
+  <div class="flow-subtitle">Basic → Scientific → History → History Empty → Memory</div>
+
+  <div class="flow-row wrap">
+
+    <!-- Calc: Basic -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Calculator — Basic Mode</div>
+      <div class="phone-content">
+        <div class="appbar"><span style="font-weight:700;">Calculator</span><span class="right"><span class="icon-btn">SCI</span><span class="icon-btn">📋</span></span></div>
+        <div class="card" style="text-align:right;min-height:50px;">
+          <div style="font-size:10px;color:var(--text-muted);">23 + 45</div>
+          <div style="font-size:22px;font-weight:800;">= 68</div>
+        </div>
+        <div style="font-size:9px;color:var(--text-muted);text-align:right;">50 char limit</div>
+        <div class="grid-4" style="gap:6px;text-align:center;font-weight:600;">
+          <div class="card-sm" style="background:#f1f5f9;">C</div>
+          <div class="card-sm" style="background:#f1f5f9;">±</div>
+          <div class="card-sm" style="background:#f1f5f9;">%</div>
+          <div class="card-sm" style="background:#ffe4e6;color:#dc2626;font-weight:800;">÷</div>
+          <div class="card-sm">7</div> <div class="card-sm">8</div> <div class="card-sm">9</div>
+          <div class="card-sm" style="background:#ffe4e6;color:#dc2626;font-weight:800;">×</div>
+          <div class="card-sm">4</div> <div class="card-sm">5</div> <div class="card-sm">6</div>
+          <div class="card-sm" style="background:#ffe4e6;color:#dc2626;font-weight:800;">−</div>
+          <div class="card-sm">1</div> <div class="card-sm">2</div> <div class="card-sm">3</div>
+          <div class="card-sm" style="background:#ffe4e6;color:#dc2626;font-weight:800;">+</div>
+          <div class="card-sm" style="grid-column:span 2;">0</div>
+          <div class="card-sm">.</div>
+          <div class="card-sm" style="background:var(--primary);color:white;font-weight:800;">=</div>
+        </div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item"><span class="icon">📝</span>Notes</div><div class="nav-item"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item active"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Calc: Scientific -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Calculator — Scientific Mode</div>
+      <div class="phone-content">
+        <div class="appbar"><span style="font-weight:700;">Calculator <span class="chip" style="background:var(--primary);color:white;font-size:8px;">SCI</span></span><span class="right"><span class="icon-btn">BASIC</span><span class="icon-btn">📋</span></span></div>
+        <div class="card" style="text-align:right;min-height:40px;">
+          <div style="font-size:10px;color:var(--text-muted);">sin(45)</div>
+          <div style="font-size:18px;font-weight:800;">= 0.707</div>
+        </div>
+        <div class="grid-4" style="gap:4px;text-align:center;font-size:10px;">
+          <div class="card-sm" style="background:#f0fdf4;">sin</div>
+          <div class="card-sm" style="background:#f0fdf4;">cos</div>
+          <div class="card-sm" style="background:#f0fdf4;">tan</div>
+          <div class="card-sm" style="background:#f0fdf4;">log</div>
+          <div class="card-sm" style="background:#f0fdf4;">ln</div>
+          <div class="card-sm" style="background:#f0fdf4;">√</div>
+          <div class="card-sm" style="background:#f0fdf4;">x²</div>
+          <div class="card-sm" style="background:#f0fdf4;">^</div>
+          <div class="card-sm" style="background:#f0fdf4;">π</div>
+          <div class="card-sm" style="background:#f0fdf4;">e</div>
+          <div class="card-sm" style="background:#f0fdf4;">(</div>
+          <div class="card-sm" style="background:#f0fdf4;">)</div>
+        </div>
+        <div class="grid-4" style="gap:4px;text-align:center;font-size:10px;">
+          <div class="card-sm" style="background:#fef3c7;">MC</div>
+          <div class="card-sm" style="background:#fef3c7;">MR</div>
+          <div class="card-sm" style="background:#fef3c7;">M+</div>
+          <div class="card-sm" style="background:#fef3c7;">M−</div>
+        </div>
+        <div class="grid-4" style="gap:4px;text-align:center;font-weight:600;font-size:11px;">
+          <div class="card-sm" style="background:#f1f5f9;">C</div><div class="card-sm" style="background:#f1f5f9;">±</div><div class="card-sm" style="background:#f1f5f9;">%</div><div class="card-sm" style="background:#ffe4e6;color:#dc2626;">÷</div>
+          <div class="card-sm">7</div><div class="card-sm">8</div><div class="card-sm">9</div><div class="card-sm" style="background:#ffe4e6;color:#dc2626;">×</div>
+          <div class="card-sm">4</div><div class="card-sm">5</div><div class="card-sm">6</div><div class="card-sm" style="background:#ffe4e6;color:#dc2626;">−</div>
+          <div class="card-sm">1</div><div class="card-sm">2</div><div class="card-sm">3</div><div class="card-sm" style="background:#ffe4e6;color:#dc2626;">+</div>
+          <div class="card-sm" style="grid-column:span 2;">0</div><div class="card-sm">.</div><div class="card-sm" style="background:var(--primary);color:white;">=</div>
+        </div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item"><span class="icon">📝</span>Notes</div><div class="nav-item"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item active"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Calc: History Sheet -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Calculator — History Sheet</div>
+      <div class="phone-content fade-layer" style="justify-content:flex-end;">
+        <div style="opacity:0.3;flex:1;display:flex;align-items:center;justify-content:center;">
+          <div class="card-sm">[Keypad dimmed]</div>
+        </div>
+        <div class="bottom-sheet">
+          <div class="sheet-handle"></div>
+          <div class="flex-between"><span style="font-weight:700;">📋 History</span><span style="font-size:10px;color:#dc2626;">Clear All</span></div>
+          <div class="flex-between card-sm" style="margin-top:6px;">
+            <div><span style="font-weight:600;">23 + 45 = 68</span><br><span style="font-size:9px;color:var(--text-muted);">Just now</span></div>
+            <span style="font-size:12px;">↩</span>
+          </div>
+          <div class="flex-between card-sm" style="margin-top:4px;">
+            <div><span style="font-weight:600;">100 × 3.14 = 314</span><br><span style="font-size:9px;color:var(--text-muted);">5 min ago</span></div>
+            <span style="font-size:12px;">↩</span>
+          </div>
+          <div class="flex-between card-sm" style="margin-top:4px;">
+            <div><span style="font-weight:600;">sin(30) = 0.5</span><br><span style="font-size:9px;color:var(--text-muted);">1h ago</span></div>
+            <span style="font-size:12px;">↩</span>
+          </div>
+          <div style="font-size:9px;color:var(--text-muted);text-align:center;margin-top:6px;">Last 50 entries • tap to reload</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Calc: History Empty -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Calculator — History Empty</div>
+      <div class="phone-content fade-layer" style="justify-content:flex-end;">
+        <div style="opacity:0.3;flex:1;"></div>
+        <div class="bottom-sheet">
+          <div class="sheet-handle"></div>
+          <div style="font-weight:700;">📋 History</div>
+          <div class="text-center" style="padding:20px 0;">
+            <div style="font-size:24px;">📋</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">No history yet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calc: Error State -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Calculator — Error</div>
+      <div class="phone-content">
+        <div class="appbar"><span style="font-weight:700;">Calculator</span><span class="right"><span class="icon-btn">SCI</span><span class="icon-btn">📋</span></span></div>
+        <div class="card" style="text-align:right;min-height:50px;">
+          <div style="font-size:18px;font-weight:800;color:#dc2626;">Error</div>
+          <div style="font-size:10px;color:var(--text-muted);">Division by zero</div>
+        </div>
+        <div class="grid-4" style="gap:6px;text-align:center;font-weight:600;">
+          <div class="card-sm" style="background:#f1f5f9;">C</div>
+          <div class="card-sm" style="background:#f1f5f9;">±</div>
+          <div class="card-sm" style="background:#f1f5f9;">%</div>
+          <div class="card-sm" style="background:#ffe4e6;color:#dc2626;">÷</div>
+          <div class="card-sm">7</div> <div class="card-sm">8</div> <div class="card-sm">9</div>
+          <div class="card-sm" style="background:#ffe4e6;color:#dc2626;">×</div>
+          <div class="card-sm">4</div> <div class="card-sm">5</div> <div class="card-sm">6</div>
+          <div class="card-sm" style="background:#ffe4e6;color:#dc2626;">−</div>
+          <div class="card-sm">1</div> <div class="card-sm">2</div> <div class="card-sm">3</div>
+          <div class="card-sm" style="background:#ffe4e6;color:#dc2626;">+</div>
+          <div class="card-sm" style="grid-column:span 2;">0</div>
+          <div class="card-sm">.</div>
+          <div class="card-sm" style="background:var(--primary);color:white;">=</div>
+        </div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item"><span class="icon">📝</span>Notes</div><div class="nav-item"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item active"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ======================================================================== -->
+<!-- FLOW 6: LIFE TRACKER -->
+<!-- ======================================================================== -->
+<div class="flow-section">
+  <div class="flow-title"><span class="tag">Flow 6</span> Life Tracker — 5 screens</div>
+  <div class="flow-subtitle">Loading → Empty (no DOB) → With Data → Life Expectancy → Reset DOB</div>
+
+  <div class="flow-row wrap">
+
+    <!-- Life: Loading -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Life Tracker — Loading <span class="state-tag loading">loading</span></div>
+      <div class="phone-content" style="align-items:center;justify-content:center;">
+        <div style="width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear;"></div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">Loading...</div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item"><span class="icon">📝</span>Notes</div><div class="nav-item"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item active"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Life: Empty (no DOB) -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Life Tracker — No DOB Set <span class="state-tag empty">empty</span></div>
+      <div class="phone-content" style="align-items:center;justify-content:center;text-align:center;">
+        <div style="font-size:56px;">⌛</div>
+        <div style="font-size:16px;font-weight:700;margin-top:12px;">Track Your Journey</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:8px;max-width:240px;">Enter your date of birth to see how much life you've lived and how much remains.</div>
+        <div class="btn btn-primary" style="margin-top:20px;">📅 Enter Date of Birth</div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item"><span class="icon">📝</span>Notes</div><div class="nav-item"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item active"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Life: With Data -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Life Tracker — Main View</div>
+      <div class="phone-content">
+        <div class="appbar"><span style="font-weight:700;">Life Tracker</span><span class="right"><span class="icon-btn">⚙️</span><span class="icon-btn">🔄</span></span></div>
+        <div class="card" style="text-align:center;background:var(--primary-light);">
+          <div style="font-size:10px;color:var(--text-muted);">Born: Jun 15, 2000</div>
+          <div style="font-size:18px;font-weight:800;color:var(--primary);margin-top:4px;">25 yrs, 3 mos, 14 days</div>
+          <div style="font-size:9px;color:var(--text-muted);margin-top:4px;">updates every 1 second</div>
+        </div>
+        <div class="card">
+          <div class="flex-between"><span style="font-size:11px;">Life Progress:</span><span style="font-weight:700;color:var(--primary);">31.4%</span></div>
+          <div class="progress-bar" style="margin:6px 0;"><div class="fill" style="width:31.4%;background:var(--primary);"></div></div>
+          <div style="font-size:9px;color:var(--text-muted);">Expected remaining: 54 yrs, 8 mos, 16 days</div>
+        </div>
+        <div class="grid-5" style="text-align:center;gap:4px;">
+          <div class="card-sm" style="padding:6px;"><div style="font-weight:700;">9,273</div><div style="font-size:8px;color:var(--text-muted);">Days</div></div>
+          <div class="card-sm" style="padding:6px;"><div style="font-weight:700;">1,325</div><div style="font-size:8px;color:var(--text-muted);">Weeks</div></div>
+          <div class="card-sm" style="padding:6px;"><div style="font-weight:700;">222.5k</div><div style="font-size:8px;color:var(--text-muted);">Hours</div></div>
+          <div class="card-sm" style="padding:6px;"><div style="font-weight:700;">13.3M</div><div style="font-size:8px;color:var(--text-muted);">Mins</div></div>
+          <div class="card-sm" style="padding:6px;"><div style="font-weight:700;">800M</div><div style="font-size:8px;color:var(--text-muted);">Secs</div></div>
+        </div>
+        <div style="font-size:9px;color:var(--text-muted);text-align:center;">
+          Life expectancy: 80 yrs &nbsp;|&nbsp; <span style="color:var(--primary);">🔵 &lt;50%</span> <span style="color:#d97706;">🟡 50-80%</span> <span style="color:#dc2626;">🔴 &gt;80%</span>
+        </div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item"><span class="icon">📝</span>Notes</div><div class="nav-item"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item active"><span class="icon">⌛</span>Life</div><div class="nav-item"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Life: Expectancy Dialog -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Life Expectancy Dialog</div>
+      <div class="phone-content fade-layer"><div style="opacity:0.4;flex:1;display:flex;align-items:center;justify-content:center;"><div class="card-sm">[Life Tracker dimmed]</div></div></div>
+      <div class="dialog-overlay">
+        <div class="dialog">
+          <h4>Life Expectancy</h4>
+          <p>Set your expected lifespan to calculate remaining time.</p>
+          <div class="card-sm" style="text-align:center;margin-bottom:16px;">
+            <span style="font-size:24px;font-weight:800;">80</span><span style="font-size:12px;color:var(--text-muted);"> years</span>
+          </div>
+          <div style="font-size:9px;color:var(--text-muted);text-align:center;margin-bottom:8px;">Range: 1 - 120 years</div>
+          <div class="dialog-actions">
+            <span class="btn btn-outline btn-sm">Cancel</span>
+            <span class="btn btn-primary btn-sm">Save</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Life: Reset DOB Dialog -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Reset DOB Dialog</div>
+      <div class="phone-content fade-layer"><div style="opacity:0.4;flex:1;"></div></div>
+      <div class="dialog-overlay">
+        <div class="dialog">
+          <h4>Reset Date of Birth?</h4>
+          <p>This will clear your date of birth and all life tracker data. You can set it again later.</p>
+          <div class="dialog-actions">
+            <span class="btn btn-outline btn-sm">Cancel</span>
+            <span class="btn btn-sm" style="background:#dc2626;color:white;">Reset</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ======================================================================== -->
+<!-- FLOW 7: SETTINGS -->
+<!-- ======================================================================== -->
+<div class="flow-section">
+  <div class="flow-title"><span class="tag">Flow 7</span> Settings Module — 6 screens</div>
+  <div class="flow-subtitle">Full Settings → Color Picker → Clear Data → Import/Export → Permission → Biometric Lock</div>
+
+  <div class="flow-row wrap">
+
+    <!-- Settings: Full -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Settings — Main</div>
+      <div class="phone-content" style="gap:4px;overflow-y:auto;">
+        <div class="appbar"><span style="font-weight:700;">Settings</span></div>
+
+        <div style="font-size:10px;font-weight:700;color:var(--primary);margin-top:4px;">APPEARANCE</div>
+        <div class="flex-between card-sm"><span>Theme</span><span class="btn-outline btn-sm">Light ▼</span></div>
+        <div class="flex-between card-sm"><span>Accent color</span><span style="display:flex;gap:3px;"><span class="dot" style="width:14px;height:14px;background:#3b82f6;"></span><span class="dot" style="width:14px;height:14px;background:#22c55e;"></span><span class="dot" style="width:14px;height:14px;background:#ef4444;"></span><span style="font-size:9px;color:var(--text-muted);">+14</span></span></div>
+        <div class="flex-between card-sm"><span>Week starts Monday</span><span class="chip" style="background:var(--primary);color:white;">ON</span></div>
+
+        <div style="font-size:10px;font-weight:700;color:var(--primary);margin-top:4px;">NOTIFICATIONS</div>
+        <div class="flex-between card-sm"><span>🔔 Enable notifications</span><span class="chip" style="background:var(--primary);color:white;">ON</span></div>
+        <div class="flex-between card-sm" style="padding-left:20px;"><span>📊 Habit reminders</span><span class="chip" style="background:var(--primary);color:white;">ON</span></div>
+        <div class="flex-between card-sm" style="padding-left:20px;"><span>📅 Event reminders</span><span class="chip" style="background:#e2e8f0;">OFF</span></div>
+
+        <div style="font-size:10px;font-weight:700;color:var(--primary);margin-top:4px;">DATA MANAGEMENT</div>
+        <div class="grid-3" style="gap:4px;">
+          <span class="btn-outline btn-sm text-center">📤 Export</span>
+          <span class="btn-outline btn-sm text-center">📥 Import</span>
+          <span class="btn-outline btn-sm text-center" style="color:#dc2626;">🗑 Clear</span>
+        </div>
+
+        <div style="font-size:10px;font-weight:700;color:var(--primary);margin-top:4px;">LIFE TRACKER</div>
+        <div class="flex-between card-sm"><span>DOB</span><span>Jun 15, 2000 <span style="font-size:9px;color:var(--primary);">Change</span></span></div>
+        <div class="flex-between card-sm"><span>Life expectancy</span><span>80 yrs <span style="font-size:9px;color:var(--primary);">Edit</span></span></div>
+        <div class="card-sm" style="color:#dc2626;font-size:10px;">Reset Life Tracker</div>
+
+        <div style="font-size:10px;font-weight:700;color:var(--primary);margin-top:4px;">CALCULATOR</div>
+        <div class="flex-between card-sm"><span>Scientific mode</span><span class="chip" style="background:#e2e8f0;">OFF</span></div>
+        <div class="flex-between card-sm"><span>Copy result on tap</span><span class="chip" style="background:var(--primary);color:white;">ON</span></div>
+        <div class="card-sm" style="font-size:10px;">Clear History</div>
+
+        <div style="font-size:10px;font-weight:700;color:var(--primary);margin-top:4px;">ABOUT</div>
+        <div class="card-sm" style="font-size:10px;">Version 1.0.0+1</div>
+        <div class="card-sm" style="font-size:10px;">Source Code • Licenses • Show Tutorial</div>
+      </div>
+      <div class="bottom-nav"><div class="nav-item"><span class="icon">📝</span>Notes</div><div class="nav-item"><span class="icon">✅</span>Habits</div><div class="nav-item"><span class="icon">📅</span>Calendar</div><div class="nav-item"><span class="icon">🔢</span>Calc</div><div class="nav-item"><span class="icon">⌛</span>Life</div><div class="nav-item active"><span class="icon">⚙️</span>Settings</div></div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Settings: Color Picker Dialog -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Accent Color Picker</div>
+      <div class="phone-content fade-layer"><div style="opacity:0.4;flex:1;"><div class="appbar" style="opacity:0.4;">Settings</div></div></div>
+      <div class="dialog-overlay">
+        <div class="dialog" style="max-width:300px;">
+          <h4>Accent Color</h4>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;justify-content:center;">
+            <span style="width:28px;height:28px;border-radius:50%;background:#3b82f6;border:3px solid var(--primary);"></span>
+            <span style="width:28px;height:28px;border-radius:50%;background:#6366f1;"></span>
+            <span style="width:28px;height:28px;border-radius:50%;background:#8b5cf6;"></span>
+            <span style="width:28px;height:28px;border-radius:50%;background:#a855f7;"></span>
+            <span style="width:28px;height:28px;border-radius:50%;background:#ec4899;"></span>
+            <span style="width:28px;height:28px;border-radius:50%;background:#ef4444;"></span>
+            <span style="width:28px;height:28px;border-radius:50%;background:#f97316;"></span>
+            <span style="width:28px;height:28px;border-radius:50%;background:#eab308;"></span>
+            <span style="width:28px;height:28px;border-radius:50%;background:#22c55e;"></span>
+            <span style="width:28px;height:28px;border-radius:50%;background:#14b8a6;"></span>
+            <span style="width:28px;height:28px;border-radius:50%;background:#06b6d4;"></span>
+            <span style="width:28px;height:28px;border-radius:50%;background:#78716c;"></span>
+            <span style="width:28px;height:28px;border-radius:50%;background:#1e293b;"></span>
+            <span style="width:28px;height:28px;border-radius:50%;background:white;border:2px solid #94a3b8;"></span>
+          </div>
+          <div class="btn-outline btn-sm" style="text-align:center;width:100%;margin-bottom:8px;">+ Custom (HSV / Hex)</div>
+          <div class="dialog-actions"><span class="btn btn-outline btn-sm">Cancel</span><span class="btn btn-primary btn-sm">Apply</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Settings: Clear Data Dialog -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Clear Data — Type DELETE</div>
+      <div class="phone-content fade-layer"><div style="opacity:0.4;flex:1;"></div></div>
+      <div class="dialog-overlay">
+        <div class="dialog">
+          <h4>Clear all data?</h4>
+          <p style="font-size:10px;">This will permanently delete all your notes, habits, calendar events, calculator history, and life tracker data. This action cannot be undone.</p>
+          <p style="font-size:10px;font-weight:600;color:#dc2626;">Type DELETE to confirm:</p>
+          <div class="card-sm" style="margin:8px 0;text-align:center;font-weight:700;letter-spacing:2px;font-size:14px;">DELETE</div>
+          <div class="dialog-actions">
+            <span class="btn btn-outline btn-sm">Cancel</span>
+            <span class="btn btn-sm" style="background:#dc2626;color:white;">Confirm Delete</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Settings: Notification Permission -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Notification Permission Dialog</div>
+      <div class="phone-content fade-layer"><div style="opacity:0.4;flex:1;"><div class="appbar" style="opacity:0.4;">Settings</div></div></div>
+      <div class="dialog-overlay">
+        <div class="dialog">
+          <h4>Enable Notifications</h4>
+          <p>Allow Personal App to send you reminders for habits, events, and notes? You can change this later in Settings.</p>
+          <div class="dialog-actions">
+            <span class="btn btn-outline btn-sm">Not Now</span>
+            <span class="btn btn-primary btn-sm">Allow</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Settings: Biometric Lock -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Biometric Lock Screen</div>
+      <div class="phone-content" style="align-items:center;justify-content:center;text-align:center;background:linear-gradient(135deg,#1e293b,#0f172a);color:white;">
+        <div style="font-size:48px;margin-bottom:16px;">🔒</div>
+        <div style="font-size:16px;font-weight:700;">App Locked</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:8px;">Authenticate to access your data</div>
+        <div style="display:flex;gap:16px;margin-top:24px;">
+          <div style="width:48px;height:48px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:22px;">🔐</div>
+        </div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:12px;">Use fingerprint or PIN</div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- Settings: Import Confirmation -->
+    <div class="phone">
+      <div class="dynamic-island"></div>
+      <div class="status-bar"><span class="time">9:41</span><span class="icons">📶 🔋</span></div>
+      <div class="screen-label">Import Data Confirmation</div>
+      <div class="phone-content fade-layer"><div style="opacity:0.4;flex:1;"></div></div>
+      <div class="dialog-overlay">
+        <div class="dialog">
+          <h4>Import Data?</h4>
+          <p>This will merge the imported data with your existing data. Duplicates may be created.</p>
+          <div class="flex-between card-sm" style="margin-bottom:12px;">
+            <span style="font-size:10px;">personal_app_backup.json</span>
+            <span style="font-size:10px;color:var(--text-muted);">12.4 KB</span>
+          </div>
+          <div class="dialog-actions">
+            <span class="btn btn-outline btn-sm">Cancel</span>
+            <span class="btn btn-primary btn-sm">Import</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- LEGEND -->
+<!-- ======================================================================== -->
+<div style="margin-top:40px;padding:20px;background:var(--section-bg);border-radius:16px;">
+  <div style="font-size:16px;font-weight:700;margin-bottom:12px;">Legend</div>
+  <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:12px;">
+    <div><span style="display:inline-block;width:32px;height:4px;background:var(--arrow-color);vertical-align:middle;margin-right:8px;"></span> Navigation flow</div>
+    <div><span class="state-tag loading" style="font-size:11px;">loading</span> Loading state</div>
+    <div><span class="state-tag error" style="font-size:11px;">error</span> Error state</div>
+    <div><span class="state-tag empty" style="font-size:11px;">empty</span> Empty state</div>
+    <div><span style="display:inline-block;width:12px;height:12px;background:var(--primary-light);border:1px solid #bfdbfe;vertical-align:middle;margin-right:4px;"></span> Highlighted/Selected</div>
+    <div><span style="display:inline-block;width:12px;height:12px;background:#ffe4e6;vertical-align:middle;margin-right:4px;"></span> Warning/Destructive</div>
+    <div><span style="display:inline-block;width:12px;height:12px;background:#f0fdf4;vertical-align:middle;margin-right:4px;"></span> Scientific/Functions</div>
+  </div>
+</div>
+
+<style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+
+</body>
+</html>

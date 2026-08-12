@@ -127,7 +127,7 @@ void main() {
       provider.input('÷');
       provider.input('0');
       provider.input('=');
-      expect(provider.result, equals('Error'));
+      expect(provider.result, equals('Cannot divide by zero'));
     });
 
     test('evaluate handles decimal numbers', () {

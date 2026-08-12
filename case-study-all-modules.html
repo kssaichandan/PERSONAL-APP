@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personal App — Interaction Design & Functional Layout Case Study (Complete Application)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+    background: #f1f5f9;
+    color: #1e293b;
+    padding: 0;
+    line-height: 1.8;
+  }
+
+  .page-wrap {
+    max-width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    background: white;
+    padding: 50px 60px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  h1 {
+    font-size: 30px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    color: #64748b;
+    font-size: 15px;
+    font-weight: 400;
+    margin-bottom: 6px;
+  }
+
+  .case-label {
+    font-size: 14px;
+    color: #475569;
+    margin-top: 2px;
+    margin-bottom: 18px;
+  }
+
+  .meta {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px 20px;
+    margin: 18px 0 32px;
+    font-size: 14px;
+    color: #475569;
+    line-height: 1.7;
+  }
+  .meta strong { color: #0f172a; }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1e40af;
+    margin-top: 40px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 3px solid #dbeafe;
+  }
+
+  h3 {
+    font-size: 17px;
+    font-weight: 700;
+    color: #334155;
+    margin-top: 26px;
+    margin-bottom: 10px;
+  }
+
+  h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e40af;
+    margin-top: 20px;
+    margin-bottom: 8px;
+    padding: 4px 0;
+  }
+
+  p { font-size: 14px; color: #334155; margin-bottom: 12px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 16px 0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th {
+    background: #1e40af;
+    color: white;
+    font-weight: 600;
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 13px;
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #334155;
+    font-size: 13px;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #fafbfc; }
+
+  .card {
+    background: #fafbfc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 18px 0;
+  }
+  .card-title {
+    font-weight: 700;
+    color: #0f172a;
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+
+  ul, ol {
+    padding-left: 24px;
+    margin-bottom: 14px;
+  }
+  li {
+    font-size: 14px;
+    color: #334155;
+    margin-bottom: 6px;
+    line-height: 1.7;
+  }
+  li strong { color: #0f172a; }
+
+  .tag {
+    display: inline-block;
+    background: #e2e8f0;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #475569;
+    font-weight: 500;
+  }
+
+  .flow-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 18px;
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+  .flow-arrow { color: #94a3b8; font-size: 20px; font-weight: 300; }
+  .flow-screen {
+    background: white;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 5px 12px;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .rule-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin: 18px 0;
+  }
+  .rule-card {
+    background: #fafbfc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .rule-card h4 {
+    margin-top: 0;
+    font-size: 15px;
+    color: #0f172a;
+    margin-bottom: 8px;
+  }
+  .rule-card p {
+    font-size: 13px;
+    color: #475569;
+  }
+
+  .consolidation-box {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 18px 0;
+  }
+  .consolidation-box h4 {
+    color: #1d4ed8;
+    margin-top: 0;
+    margin-bottom: 12px;
+  }
+  .consolidation-box p { color: #1e3a5f; }
+
+  .checklist { list-style: none; padding: 0; }
+  .checklist li {
+    padding: 12px 0;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 14px;
+    color: #334155;
+    line-height: 1.6;
+  }
+  .checklist li:last-child { border-bottom: none; }
+  .check { color: #16a34a; font-weight: 800; font-size: 16px; }
+
+  .annexure-item {
+    background: #fafbfc;
+    border-left: 4px solid #2563eb;
+    padding: 16px 20px;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .annexure-item h4 {
+    margin: 0 0 4px 0;
+    font-size: 15px;
+    color: #0f172a;
+  }
+  .annexure-item p {
+    font-size: 13px;
+    color: #475569;
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  .color-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin-right: 4px;
+    border: 1px solid rgba(0,0,0,0.1);
+  }
+
+  .fig-label {
+    font-size: 13px;
+    color: #64748b;
+    font-style: italic;
+    margin-top: 2px;
+    margin-bottom: 14px;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 36px 0;
+  }
+
+  .module-tag {
+    display: inline-block;
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 3px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  /* ===== WIREFRAMES ===== */
+  .wfa {
+    --phone-bg: #ffffff;
+    --primary: #2563eb;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border-color: #cbd5e1;
+    --card-bg: #f8fafc;
+  }
+  .wfa * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
+  .wfa .phone-frame {
+    width: 100%;
+    max-width: 300px;
+    background: var(--phone-bg);
+    border: 2px solid #cbd5e1;
+    border-radius: 28px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .wfa .notch {
+    width: 90px;
+    height: 14px;
+    background: #1e293b;
+    margin: 0 auto;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    flex-shrink: 0;
+  }
+  .wfa .screen-meta {
+    padding: 4px 10px;
+    background: #e2e8f0;
+    font-size: 10px;
+    font-weight: 600;
+    color: #475569;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .wfa .screen-content {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    flex: 1;
+  }
+  .wfa .app-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 8px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+  .wfa .pc-card {
+    background: var(--card-bg);
+    border: 1px dashed var(--border-color);
+    border-radius: 6px;
+    padding: 7px;
+  }
+  .wfa .pbtn {
+    background: var(--primary);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 10px;
+  }
+  .wfa .pbtn-outline {
+    border: 1px solid var(--border-color);
+    background: white;
+    color: var(--text-main);
+    padding: 4px 8px;
+    border-radius: 5px;
+    font-size: 10px;
+  }
+  .wfa .bottom-sheet {
+    margin-top: auto;
+    background: #ffffff;
+    border: 2px solid #2563eb;
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    padding: 10px;
+    flex-shrink: 0;
+  }
+  .wfa .sheet-handle {
+    width: 28px;
+    height: 4px;
+    background: #cbd5e1;
+    border-radius: 2px;
+    margin: 0 auto 8px auto;
+  }
+  .wfa .bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    padding: 5px 2px;
+    background: #ffffff;
+    border-top: 1px solid var(--border-color);
+    margin-top: auto;
+    flex-shrink: 0;
+  }
+  .wfa .nav-item { text-align: center; font-size: 8px; color: var(--text-muted); line-height: 1.2; }
+  .wfa .nav-item.active { color: var(--primary); font-weight: 700; }
+  .wfa .pbadge {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 8px;
+    font-weight: 600;
+  }
+  .wfa .color-dot {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid #cbd5e1;
+  }
+  .wfa .calc-display {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 8px;
+    text-align: right;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Inter', monospace;
+    min-height: 36px;
+  }
+  .wfa .calc-row {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+  }
+  .wfa .calc-btn {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 6px 0;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    flex: 1;
+  }
+  .wfa .calc-btn.op { background: #dbeafe; color: #1e40af; }
+  .wfa .calc-btn.eq { background: #2563eb; color: white; }
+  .wfa .life-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px;
+    text-align: center;
+  }
+  .wfa .life-number {
+    font-size: 20px;
+    font-weight: 800;
+    color: #2563eb;
+    line-height: 1.1;
+  }
+  .wfa .life-label {
+    font-size: 8px;
+    color: var(--text-muted);
+  }
+
+  @page { size: A4; margin: 15mm 18mm; }
+
+  @media print {
+    body { background: white; }
+    .page-wrap { padding: 0; max-width: 100%; box-shadow: none; min-height: auto; }
+    h2 { break-after: avoid; page-break-after: avoid; }
+    h3 { break-after: avoid; page-break-after: avoid; }
+    h4 { break-after: avoid; }
+    table { font-size: 10px; }
+    tr { page-break-inside: avoid; }
+    td, th { padding: 4px 6px; }
+    .card { break-inside: avoid; page-break-inside: avoid; }
+    .rule-card { break-inside: avoid; page-break-inside: avoid; }
+    .annexure-item { break-inside: avoid; page-break-inside: avoid; }
+    .consolidation-box { break-inside: avoid; page-break-inside: avoid; }
+    .flow-box { break-inside: avoid; page-break-inside: avoid; }
+    .checklist { break-inside: avoid; page-break-inside: avoid; }
+    .checklist li { page-break-inside: avoid; }
+    .wfa .phone-frame { border: 1px solid #94a3b8; max-width: 200px; overflow: visible; page-break-inside: avoid; }
+    .wfa .screen-content { font-size: 7px; padding: 3px; gap: 3px; }
+    .wfa .screen-meta { font-size: 6px; padding: 2px 4px; }
+    .wfa .bottom-nav { padding: 1px; }
+    .wfa .app-bar { font-size: 7px; padding: 2px 4px; }
+    .wfa .pc-card { padding: 3px 4px; }
+    .wfa .bottom-sheet { padding: 4px 5px; }
+    .wfa .calc-display { font-size: 10px; padding: 4px; }
+    .wfa .calc-btn { font-size: 7px; padding: 3px 0; }
+    .wfa .pbtn { font-size: 7px; padding: 2px 6px; }
+    .wfa .pbtn-outline { font-size: 7px; padding: 2px 5px; }
+    .wfa .life-number { font-size: 14px; }
+    .page-break-before { page-break-before: always; }
+    hr { break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-wrap">
+
+<h1>Identifying Interaction Design and Functional Layout</h1>
+<p class="subtitle">Practical implementation of interaction design and functional layouts</p>
+<p class="case-label">Case study: <strong>Personal App — Complete Application</strong> (Notes, Habits, Calendar, Calculator, Life Tracker, Settings &amp; Onboarding)</p>
+
+<div class="meta">
+  <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <span><strong>Submitted by:</strong> SAI CHANDAN KS (23MIS0115)</span>
+    <span><strong>Tools:</strong> Flutter 3.22+ &middot; Dart 3.7+ &middot; Provider &middot; SQLite</span>
+  </div>
+</div>
+
+<!-- ===== 1. AIM ===== -->
+<h2>1. Aim</h2>
+<p>To identify user requirements for a multi-feature personal application, design interaction prototypes for each module, and implement them with consistent placement, wording, and colour so the user can build an accurate mental model across all six modules &mdash; demonstrated through <strong>Personal App</strong>, a local-first Flutter application featuring rich-text notes, habit tracking, a calendar with events, a scientific calculator, a life tracker, and customizable settings with onboarding.</p>
+
+<!-- ===== 2. OBJECTIVES ===== -->
+<h2>2. Objectives</h2>
+<ol>
+  <li>Understand the principles of interaction design and functional layout across multi-module applications.</li>
+  <li>Translate user requirements into working design prototypes for each of the six modules (Activity 1).</li>
+  <li>Apply consistency rules &mdash; button placement, label wording, colour scheme &mdash; across every screen in every module (Activity 2).</li>
+  <li>Evaluate whether the resulting cross-module interface supports an accurate, predictable mental model.</li>
+</ol>
+
+<!-- ===== 3. THEORY ===== -->
+<h2>3. Theory</h2>
+
+<h3>3.1 Interaction Design Across Modules</h3>
+<p>Interaction design (IxD) focuses on the sequence of screens and states a user moves through to complete a task. In a multi-module app, IxD must ensure that each module has a clear entry point, predictable transitions, and consistent feedback. The Notes module uses a list-to-editor flow, Habits uses a dashboard-to-detail flow, Calendar uses a grid-to-event flow, Calculator uses a display-to-history flow, and Life Tracker uses an empty-to-dashboard flow.</p>
+
+<h3>3.2 Functional Layout</h3>
+<p>Each module arranges its elements to support its primary task: the Notes FAB creates notes, the Habits FAB adds habits, the Calendar FAB creates events, and the Calculator places digits and operators in a standard grid. The bottom navigation bar or navigation rail persists across all modules with the active tab highlighted.</p>
+
+<h3>3.3 Consistency Principles</h3>
+<p>Four concrete rules are applied across all six modules:</p>
+<ul>
+  <li><strong>Placement consistency</strong> &mdash; FABs are always bottom-right. Search bars are top-left. Delete/destructive actions are always accessed via menus or confirmation dialogs.</li>
+  <li><strong>Wording consistency</strong> &mdash; &ldquo;Save&rdquo;, &ldquo;Cancel&rdquo;, &ldquo;Delete&rdquo;, &ldquo;Discard&rdquo;, &ldquo;Retry&rdquo; use identical labels across modules.</li>
+  <li><strong>Colour consistency</strong> &mdash; Blue = primary action, red = destructive, amber = warning, green = success. These meanings are preserved in all modules.</li>
+  <li><strong>Icon consistency</strong> &mdash; The same icon set and symbol meanings are used throughout (trash = delete, + = create, search = find, etc.).</li>
+</ul>
+
+<h3>3.4 Cross-Module Mental Model</h3>
+<p>When placement, wording, colour, and icons stay consistent across modules, a user who learns the interface in Notes can correctly predict how Habits, Calendar, Calculator, Life Tracker, and Settings will behave. This reduces the learning curve from six independent modules to one transferable pattern.</p>
+
+<!-- ===== 4. SOFTWARE / TOOLS ===== -->
+<h2>4. Software / Tools Used</h2>
+
+<table>
+  <thead>
+    <tr><th style="width:28%;">Tool</th><th>Purpose</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Flutter 3.22+</td><td>Cross-platform UI framework (Material 3 design system)</td></tr>
+    <tr><td>Dart 3.7+</td><td>Programming language with sound null safety</td></tr>
+    <tr><td>Provider</td><td>State management (ChangeNotifier-based, 6 providers)</td></tr>
+    <tr><td>SQLite (sqflite)</td><td>Local relational database (notes, habits, events, history, settings)</td></tr>
+    <tr><td>flutter_quill</td><td>Rich text editor for notes (bold, italic, lists, headers, links, images)</td></tr>
+    <tr><td>flutter_local_notifications + timezone</td><td>Push notification scheduling (habits, notes, events)</td></tr>
+    <tr><td>shared_preferences</td><td>Key-value storage for preferences</td></tr>
+    <tr><td>share_plus / file_picker</td><td>Export/import data via JSON files</td></tr>
+    <tr><td>intl</td><td>Date/time formatting across modules</td></tr>
+    <tr><td>package_info_plus</td><td>App version display in Settings</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<!-- ===== 5. ACTIVITY 1 ===== -->
+<h2>5. Activity 1 &mdash; Design and Prototype the Interaction</h2>
+<p class="subtitle" style="margin-bottom:16px;">Case study: <strong>Personal App &mdash; All Six Modules</strong>.</p>
+
+<!-- ===== 5.1 NOTES MODULE ===== -->
+<h4><span class="module-tag">Module 1</span> Notes</h4>
+
+<h3>5.1.1 User requirements &mdash; Notes</h3>
+<table>
+  <thead>
+    <tr><th style="width:4%;">#</th><th style="width:42%;">User requirement</th><th>Screen / interaction</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>Create and organize rich-text notes with formatting.</td><td>Notes Editor &mdash; Quill rich text</td></tr>
+    <tr><td>2</td><td>Visually distinguish notes by colour.</td><td>Color Picker &mdash; 14 presets + custom HSV/Hex</td></tr>
+    <tr><td>3</td><td>Set priority levels on notes.</td><td>Priority Picker &mdash; None/Low/Medium/High</td></tr>
+    <tr><td>4</td><td>Find notes quickly without scrolling.</td><td>Search bar &mdash; real-time title/content filter</td></tr>
+    <tr><td>5</td><td>Bulk-delete or bulk-move notes to trash.</td><td>Selection Mode &mdash; long-press, select-all, bulk delete</td></tr>
+    <tr><td>6</td><td>Recover accidentally deleted notes.</td><td>Trash bottom sheet &mdash; restore or permanent delete</td></tr>
+    <tr><td>7</td><td>Pin or favourite important notes.</td><td>Note card &mdash; pin icon + favourite star</td></tr>
+    <tr><td>8</td><td>Set reminders on notes.</td><td>Editor &mdash; reminder time picker + notification</td></tr>
+    <tr><td>9</td><td>See when a note was last updated.</td><td>Note card &mdash; relative timestamp</td></tr>
+    <tr><td>10</td><td>Confirm before losing unsaved changes.</td><td>Discard Changes dialog</td></tr>
+    <tr><td>11</td><td>Feedback when notes cannot be loaded.</td><td>Loading spinner + Error state with Retry</td></tr>
+    <tr><td>12</td><td>Clear empty state when no notes exist.</td><td>Empty state with illustration + CTA</td></tr>
+  </tbody>
+</table>
+
+<h3>5.1.2 Screen flow &mdash; Notes</h3>
+<div class="flow-box">
+  <span class="flow-screen">Notes List</span>
+  <span class="flow-arrow">⇄</span>
+  <span class="flow-screen">Notes Editor</span>
+  <span class="flow-arrow">⇢</span>
+  <span class="flow-screen">Color Picker / Priority / Reminder</span>
+</div>
+<div class="flow-box">
+  <span class="flow-screen">Notes List</span>
+  <span class="flow-arrow">⇢</span>
+  <span class="flow-screen">Trash Sheet</span>
+  <span class="flow-arrow">⇢</span>
+  <span class="flow-screen">Restore / Permanent Delete</span>
+</div>
+<div class="flow-box">
+  <span class="flow-screen">Notes List</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Selection Mode</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Bulk Delete</span>
+</div>
+
+<h3>5.1.3 Views &mdash; Notes</h3>
+<p><strong>12 views:</strong> Loading, Error, Empty, List (data), Search (results), Search (no results), Selection Mode, Editor, Color Picker, Priority Picker, Trash (items), Trash (empty), Discard dialog.</p>
+
+<!-- ===== 5.2 HABITS MODULE ===== -->
+<h4><span class="module-tag">Module 2</span> Habits</h4>
+
+<h3>5.2.1 User requirements &mdash; Habits</h3>
+<table>
+  <thead>
+    <tr><th style="width:4%;">#</th><th style="width:42%;">User requirement</th><th>Screen / interaction</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>Create habits with a name, icon, and colour.</td><td>Add Habit bottom sheet &mdash; icon picker (55 icons), color picker (12 presets)</td></tr>
+    <tr><td>2</td><td>Choose a tracking type for each habit.</td><td>Type selector &mdash; Yes/No, Count+Target, Free Count</td></tr>
+    <tr><td>3</td><td>Log daily progress with a single tap.</td><td>Weekly checklist &mdash; tap to toggle, +/- buttons for count types</td></tr>
+    <tr><td>4</td><td>View weekly progress at a glance.</td><td>Weekly checklist row &mdash; 7-day horizontal scroll with nav</td></tr>
+    <tr><td>5</td><td>View monthly completion in a calendar grid.</td><td>Monthly log calendar &mdash; color-coded cells by completion</td></tr>
+    <tr><td>6</td><td>Track habit streaks.</td><td>Stats card &mdash; current streak + best streak</td></tr>
+    <tr><td>7</td><td>Search habits by name.</td><td>Search bar &mdash; real-time filtering</td></tr>
+    <tr><td>8</td><td>Reorder habits by dragging.</td><td>Horizontal scrollable cards &mdash; drag to reorder</td></tr>
+    <tr><td>9</td><td>Set a daily reminder for habits.</td><td>Add/Edit habit &mdash; time picker + repeating notification</td></tr>
+    <tr><td>10</td><td>Bulk delete habits via multi-select.</td><td>Selection Mode &mdash; long-press, select-all, delete</td></tr>
+    <tr><td>11</td><td>See today&rsquo;s overall progress.</td><td>Today Progress Card &mdash; X of Y done with progress bar</td></tr>
+    <tr><td>12</td><td>Get quick suggestions for common habits.</td><td>ActionChips &mdash; Read, Meditate, Walk, Drink Water</td></tr>
+  </tbody>
+</table>
+
+<h3>5.2.2 Screen flow &mdash; Habits</h3>
+<div class="flow-box">
+  <span class="flow-screen">Habits Dashboard</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Add Habit Sheet</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Icon Picker / Color Picker / Type Selector</span>
+</div>
+<div class="flow-box">
+  <span class="flow-screen">Habits Dashboard</span>
+  <span class="flow-arrow">⇢</span>
+  <span class="flow-screen">Weekly Checklist</span>
+  <span class="flow-arrow">⇢</span>
+  <span class="flow-screen">Daily Log (tap to toggle)</span>
+</div>
+<div class="flow-box">
+  <span class="flow-screen">Habits Dashboard</span>
+  <span class="flow-arrow">⇢</span>
+  <span class="flow-screen">Monthly Calendar</span>
+  <span class="flow-arrow">⇢</span>
+  <span class="flow-screen">Stats Card</span>
+</div>
+<div class="flow-box">
+  <span class="flow-screen">Habits Dashboard</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Selection Mode</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Bulk Delete</span>
+</div>
+
+<h3>5.2.3 Views &mdash; Habits</h3>
+<p><strong>13 views:</strong> Dashboard, Today Progress Card, Weekly Checklist, Monthly Calendar, Stats Card, Add Habit sheet, Edit Habit sheet, Icon Picker (9 categories), Color Picker, Type Selector, Search (results), Search (no results), Selection Mode, Delete dialog.</p>
+
+<!-- ===== 5.3 CALENDAR MODULE ===== -->
+<h4><span class="module-tag">Module 3</span> Calendar</h4>
+
+<h3>5.3.1 User requirements &mdash; Calendar</h3>
+<table>
+  <thead>
+    <tr><th style="width:4%;">#</th><th style="width:42%;">User requirement</th><th>Screen / interaction</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>View a monthly calendar with navigation.</td><td>Main Calendar &mdash; swipe/arrows for prev/next month</td></tr>
+    <tr><td>2</td><td>Create events with title, date, time, and category.</td><td>Event Editor bottom sheet &mdash; form fields + category dropdown</td></tr>
+    <tr><td>3</td><td>See event indicators on calendar days.</td><td>Month grid &mdash; colored dots on days with events</td></tr>
+    <tr><td>4</td><td>Filter events by category.</td><td>Filter chip row &mdash; General, Work, Personal, Urgent, All</td></tr>
+    <tr><td>5</td><td>Search events by title or notes.</td><td>Search bar &mdash; real-time filtering</td></tr>
+    <tr><td>6</td><td>Set event recurrence.</td><td>Recurrence dropdown &mdash; None/Daily/Weekly/Monthly + end date</td></tr>
+    <tr><td>7</td><td>Receive event notifications.</td><td>Auto-scheduled notification at event time</td></tr>
+    <tr><td>8</td><td>Edit or delete events from the day view.</td><td>Day details bottom sheet &mdash; Edit/Delete buttons</td></tr>
+    <tr><td>9</td><td>Today is always highlighted.</td><td>Month grid &mdash; circle highlight on current date</td></tr>
+    <tr><td>10</td><td>Confirm before losing unsaved event changes.</td><td>Discard Changes dialog</td></tr>
+  </tbody>
+</table>
+
+<h3>5.3.2 Screen flow &mdash; Calendar</h3>
+<div class="flow-box">
+  <span class="flow-screen">Month View</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Day Tap</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Day Details Sheet</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Event Editor</span>
+</div>
+<div class="flow-box">
+  <span class="flow-screen">Month View</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">FAB (+)</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Event Editor</span>
+</div>
+
+<h3>5.3.3 Views &mdash; Calendar</h3>
+<p><strong>8 views:</strong> Month Grid (with events), Month Grid (no events), Day Details sheet (with events), Day Details sheet (empty), Event Editor (create), Event Editor (edit), Search (results), Search (no results), Discard dialog.</p>
+
+<!-- ===== 5.4 CALCULATOR MODULE ===== -->
+<h4><span class="module-tag">Module 4</span> Calculator</h4>
+
+<h3>5.4.1 User requirements &mdash; Calculator</h3>
+<table>
+  <thead>
+    <tr><th style="width:4%;">#</th><th style="width:42%;">User requirement</th><th>Screen / interaction</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>Perform basic arithmetic operations.</td><td>Button grid &mdash; +, &minus;, &times;, &divide;</td></tr>
+    <tr><td>2</td><td>Use parentheses for expression grouping.</td><td>Button grid &mdash; ( and ) buttons</td></tr>
+    <tr><td>3</td><td>Toggle scientific functions when needed.</td><td>SCI toggle &mdash; adds sin, cos, tan, log, ln, sqrt, &pi;, e</td></tr>
+    <tr><td>4</td><td>Store and recall values with memory.</td><td>Memory row &mdash; MC, MR, M+, M- with indicator</td></tr>
+    <tr><td>5</td><td>View and reuse past calculations.</td><td>History bottom sheet &mdash; last 50 entries, tap to reload</td></tr>
+    <tr><td>6</td><td>Clear or backspace entries.</td><td>Clear (C) and backspace buttons</td></tr>
+    <tr><td>7</td><td>Copy result to clipboard.</td><td>Optional copy-on-tap setting</td></tr>
+    <tr><td>8</td><td>See clear error messages on invalid input.</td><td>Display shows &ldquo;Error&rdquo; for invalid expressions</td></tr>
+    <tr><td>9</td><td>Smart number formatting for readability.</td><td>Auto-integer, trims trailing zeros, exponential for &gt;15 chars</td></tr>
+  </tbody>
+</table>
+
+<h3>5.4.2 Screen flow &mdash; Calculator</h3>
+<div class="flow-box">
+  <span class="flow-screen">Calculator Main</span>
+  <span class="flow-arrow">⇄</span>
+  <span class="flow-screen">Scientific Mode (toggle)</span>
+</div>
+<div class="flow-box">
+  <span class="flow-screen">Calculator Main</span>
+  <span class="flow-arrow">⇢</span>
+  <span class="flow-screen">History Sheet</span>
+  <span class="flow-arrow">⇢</span>
+  <span class="flow-screen">Tap entry → reload expression</span>
+</div>
+
+<h3>5.4.3 Views &mdash; Calculator</h3>
+<p><strong>5 views:</strong> Basic Mode, Scientific Mode, History Sheet (with entries), History Sheet (empty), Error state (display shows &ldquo;Error&rdquo;).</p>
+
+<!-- ===== 5.5 LIFE TRACKER ===== -->
+<h4><span class="module-tag">Module 5</span> Life Tracker</h4>
+
+<h3>5.5.1 User requirements &mdash; Life Tracker</h3>
+<table>
+  <thead>
+    <tr><th style="width:4%;">#</th><th style="width:42%;">User requirement</th><th>Screen / interaction</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>Set date of birth to begin tracking.</td><td>DOB picker dialog &mdash; date selector with save</td></tr>
+    <tr><td>2</td><td>Set life expectancy (default 80 years).</td><td>Life expectancy dialog &mdash; number input 1&ndash;120</td></tr>
+    <tr><td>3</td><td>View elapsed time since birth in years/months/days.</td><td>Dashboard &mdash; elapsed stat block</td></tr>
+    <tr><td>4</td><td>View life progress as a percentage with colour coding.</td><td>Progress bar &mdash; &lt;50% blue, &lt;80% amber, &ge;80% deep orange</td></tr>
+    <tr><td>5</td><td>View expected remaining time.</td><td>Dashboard &mdash; remaining stat block</td></tr>
+    <tr><td>6</td><td>See real-time metrics (days, weeks, hours, minutes, seconds).</td><td>Metric cards &mdash; auto-updating every second</td></tr>
+    <tr><td>7</td><td>Reset life tracker data.</td><td>Reset confirmation dialog</td></tr>
+    <tr><td>8</td><td>Clear guidance when no DOB is set.</td><td>Empty state &mdash; illustration + &ldquo;Set your date of birth&rdquo; CTA</td></tr>
+  </tbody>
+</table>
+
+<h3>5.5.2 Screen flow &mdash; Life Tracker</h3>
+<div class="flow-box">
+  <span class="flow-screen">Life Tracker (empty)</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Set DOB Dialog</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Live Dashboard</span>
+</div>
+<div class="flow-box">
+  <span class="flow-screen">Live Dashboard</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Life Expectancy Dialog</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Update / Reset</span>
+</div>
+
+<h3>5.5.3 Views &mdash; Life Tracker</h3>
+<p><strong>6 views:</strong> Empty State (no DOB), Live Dashboard, DOB Picker dialog, Life Expectancy dialog, Reset confirmation dialog, Error state (DB failure).</p>
+
+<!-- ===== 5.6 SETTINGS MODULE ===== -->
+<h4><span class="module-tag">Module 6</span> Settings</h4>
+
+<h3>5.6.1 User requirements &mdash; Settings</h3>
+<table>
+  <thead>
+    <tr><th style="width:4%;">#</th><th style="width:42%;">User requirement</th><th>Screen / interaction</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>Switch between Light, Dark, and System theme.</td><td>Theme toggle &mdash; segmented button, persisted immediately</td></tr>
+    <tr><td>2</td><td>Customize accent colour.</td><td>Color picker &mdash; 16 presets + custom HSV/Hex with live preview</td></tr>
+    <tr><td>3</td><td>Choose week start day (Monday vs Sunday).</td><td>Toggle switch &mdash; affects Calendar module</td></tr>
+    <tr><td>4</td><td>Enable or disable all notifications.</td><td>Master toggle &mdash; requests runtime permission</td></tr>
+    <tr><td>5</td><td>Toggle habit reminders on/off.</td><td>Habit reminder toggle</td></tr>
+    <tr><td>6</td><td>Toggle event reminders on/off.</td><td>Event reminder toggle</td></tr>
+    <tr><td>7</td><td>Export all data to a JSON file.</td><td>Export button &mdash; generates JSON, opens system share sheet</td></tr>
+    <tr><td>8</td><td>Import data from a JSON backup.</td><td>Import button &mdash; file picker, validates + DB transaction</td></tr>
+    <tr><td>9</td><td>Clear all app data with confirmation.</td><td>Clear button &mdash; two-step confirmation, must type &ldquo;DELETE&rdquo;</td></tr>
+    <tr><td>10</td><td>View app version and open source licenses.</td><td>About section &mdash; version, GitHub link, licenses page</td></tr>
+    <tr><td>11</td><td>Replay the onboarding tutorial.</td><td>Onboarding replay link &mdash; resets SharedPreferences flag</td></tr>
+    <tr><td>12</td><td>Configure calculator preferences.</td><td>Calculator section &mdash; scientific mode toggle, copy-on-tap toggle, clear history</td></tr>
+  </tbody>
+</table>
+
+<h3>5.6.2 Screen flow &mdash; Settings</h3>
+<div class="flow-box">
+  <span class="flow-screen">Settings Main</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Appearance</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Theme / Color Picker / Week Start</span>
+</div>
+<div class="flow-box">
+  <span class="flow-screen">Settings Main</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Notifications</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Master Toggle / Habit / Event Toggles</span>
+</div>
+<div class="flow-box">
+  <span class="flow-screen">Settings Main</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Data Management</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Export / Import / Clear All</span>
+</div>
+<div class="flow-box">
+  <span class="flow-screen">Settings Main</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">About</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Version / Licenses / Replay Onboarding</span>
+</div>
+
+<h3>5.6.3 Views &mdash; Settings</h3>
+<p><strong>12 views:</strong> Main Settings (scrollable), Appearance section, Color Picker (16 presets), Custom Color (HSV/Hex dialog), Notifications section, Data Management section, Import (file picker), Import (loading), Import (success/error), Clear All (two-step confirmation), About section, Licenses page.</p>
+
+<!-- ===== 5.7 ONBOARDING ===== -->
+<h4><span class="module-tag">Supporting</span> Onboarding</h4>
+
+<h3>5.7.1 User requirements &mdash; Onboarding</h3>
+<table>
+  <thead>
+    <tr><th style="width:4%;">#</th><th style="width:42%;">User requirement</th><th>Screen / interaction</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>See a visual introduction to all app features.</td><td>5-page PageView &mdash; Notes, Habits, Calendar, Calculator, Life Tracker</td></tr>
+    <tr><td>2</td><td>Skip onboarding at any time.</td><td>Skip button &mdash; visible on pages 1&ndash;4</td></tr>
+    <tr><td>3</td><td>Navigate between pages with dot indicators.</td><td>Dot indicator row + Next button</td></tr>
+    <tr><td>4</td><td>Only see onboarding once.</td><td>SharedPreferences flag &mdash; checked in main.dart</td></tr>
+  </tbody>
+</table>
+
+<h3>5.7.2 Screen flow &mdash; Onboarding</h3>
+<div class="flow-box">
+  <span class="flow-screen">Page 1 (Notes)</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Page 2 (Habits)</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Page 3 (Calendar)</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Page 4 (Calculator)</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Page 5 (Life Tracker)</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-screen">Main App</span>
+</div>
+
+<h3>5.7.3 Views &mdash; Onboarding</h3>
+<p><strong>5 views:</strong> 5 onboarding pages + Skip/Get Started buttons.</p>
+
+<hr>
+
+<!-- ===== 6. ACTIVITY 2 ===== -->
+<h2 class="page-break-before">6. Activity 2 &mdash; Apply and Verify Consistency</h2>
+<p>Consistency rules were applied once at the app level (via Material 3 theme, shared widgets, and a common design system) and reused across all six modules rather than implemented independently per module.</p>
+
+<h3>6.1 Consistency rules applied</h3>
+
+<div class="rule-grid">
+  <div class="rule-card">
+    <h4>Button Placement</h4>
+    <p>FAB is always bottom-right across Notes, Habits, and Calendar. Delete actions are always accessed via confirmation dialogs. Save is always top-right. Cancel is always left, Confirm is always right in dialogs. Consistent across all 6 modules.</p>
+  </div>
+  <div class="rule-card">
+    <h4>Label Wording</h4>
+    <p>&lsquo;Save&rsquo;, &lsquo;Cancel&rsquo;, &lsquo;Delete&rsquo;, &lsquo;Discard&rsquo;, &lsquo;Retry&rsquo;, &lsquo;Apply&rsquo; never change across modules. Confirmation dialogs echo the verb: &lsquo;Delete habit?&rsquo;, &lsquo;Clear all data?&rsquo;. Consistent error messages use &lsquo;Something went wrong&rsquo; with Retry.</p>
+  </div>
+  <div class="rule-card">
+    <h4>Colour Scheme</h4>
+    <p>
+      <span class="color-swatch" style="background:#2563eb;"></span> <strong>Blue</strong> &mdash; primary action, FAB, active tab, save<br>
+      <span class="color-swatch" style="background:#ef4444;"></span> <strong>Red</strong> &mdash; destructive (delete, discard, high priority)<br>
+      <span class="color-swatch" style="background:#22c55e;"></span> <strong>Green</strong> &mdash; success, completion, low priority<br>
+      <span class="color-swatch" style="background:#f59e0b;"></span> <strong>Amber</strong> &mdash; warning, medium priority, caution<br>
+      No colour is reused for a different meaning across modules.
+    </p>
+  </div>
+  <div class="rule-card">
+    <h4>Icon &amp; Navigation Consistency</h4>
+    <p>Search is always the leftmost icon in app bars. The create FAB is always bottom-right. The bottom NavigationBar (or NavigationRail on wide screens) uses an IndexedStack to preserve state. Icons use the same symbol set throughout (trash, +, back, search, settings gear).</p>
+  </div>
+</div>
+
+<h3>6.2 How this builds a cross-module mental model</h3>
+<p>Because the same rules are reused across all six modules, the user needs to learn the interaction pattern only once. After using Notes, the user already knows:</p>
+<ul>
+  <li>The blue FAB creates new content (note, habit, event).</li>
+  <li>A red button means deletion (always confirmed via dialog).</li>
+  <li>Long-press opens selection mode for bulk actions.</li>
+  <li>Search always works the same way &mdash; real-time filtering at the top.</li>
+  <li>Theme and colour choices in Settings instantly apply to all modules.</li>
+  <li>The back arrow or swipe gesture always navigates to the previous screen.</li>
+</ul>
+
+<div class="consolidation-box">
+  <h4>Cross-Module Consistency Matrix</h4>
+  <table style="margin:0;font-size:12px;">
+    <tr><th style="width:22%;">Rule</th><th>Notes</th><th>Habits</th><th>Calendar</th><th>Calculator</th><th>Life Tracker</th><th>Settings</th></tr>
+    <tr><td>FAB bottom-right</td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td>N/A</td><td>N/A</td><td>N/A</td></tr>
+    <tr><td>Search top-left</td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td>N/A</td><td>N/A</td><td>N/A</td></tr>
+    <tr><td>Blue = primary action</td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+    <tr><td>Red = destructive</td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td>N/A</td><td><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+    <tr><td>Confirm before delete</td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td>N/A</td><td><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+    <tr><td>Same wording for actions</td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+    <tr><td>Error/Loading/Empty states</td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+    <tr><td>Shared theme applies</td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+  </table>
+</div>
+
+<hr>
+
+<!-- ===== 7. OUTPUT / RESULT ===== -->
+<h2>7. Output / Result</h2>
+<p>The completed Personal App prototype implements all six modules within a single Flutter application sharing a common Material 3 design system. The app opens with a 5-page onboarding flow (first launch only), then presents six tabs via IndexedStack: Notes (rich text with colour/priority/trash), Habits (three tracking types with streaks), Calendar (month grid with events and recurrence), Calculator (basic + scientific with memory), Life Tracker (real-time dashboard), and Settings (appearance, notifications, data management).</p>
+<p>The design system is configured once via Material 3&rsquo;s theme system with a user-selectable color scheme seed, and every screen inherits the same placement, wording, and colour rules automatically.</p>
+
+<h3>7.1 Self-evaluation checklist</h3>
+
+<ul class="checklist">
+  <li><span class="check">✓</span> <strong>Is the primary action in the same position across all modules?</strong><br>
+  <span class="tag">Yes</span> &mdash; FAB bottom-right in Notes, Habits, Calendar; Calculator uses display area consistently</li>
+
+  <li><span class="check">✓</span> <strong>Does the same action always use the same word?</strong><br>
+  <span class="tag">Yes</span> &mdash; Save / Cancel / Delete / Discard / Retry / Apply identical across all 6 modules</li>
+
+  <li><span class="check">✓</span> <strong>Is each colour assigned exactly one meaning?</strong><br>
+  <span class="tag">Yes</span> &mdash; Blue = action, Red = destructive, Green = success, Amber = warning &mdash; consistent in all modules</li>
+
+  <li><span class="check">✓</span> <strong>Can a user predict an unseen module from a seen one?</strong><br>
+  <span class="tag">Yes</span> &mdash; Habits reuses FAB + search + selection patterns from Notes; Settings reuses dialog patterns</li>
+
+  <li><span class="check">✓</span> <strong>Does every loading/error state provide feedback and recovery?</strong><br>
+  <span class="tag">Yes</span> &mdash; Loading spinner + Error state with Retry button in Notes, Habits, Calendar, Settings import</li>
+
+  <li><span class="check">✓</span> <strong>Is every destructive action protected by a confirmation dialog?</strong><br>
+  <span class="tag">Yes</span> &mdash; Delete, Discard, Clear All Data, Reset Life Tracker all require explicit confirmation</li>
+
+  <li><span class="check">✓</span> <strong>Are both empty and populated states handled everywhere?</strong><br>
+  <span class="tag">Yes</span> &mdash; Notes, Habits, Calendar, Life Tracker, Calculator history all have empty states with CTAs</li>
+
+  <li><span class="check">✓</span> <strong>Does the navigation persist across all modules?</strong><br>
+  <span class="tag">Yes</span> &mdash; IndexedStack preserves all 6 tabs; NavigationRail on wide screens, NavigationBar on narrow</li>
+</ul>
+
+<hr>
+
+<!-- ===== 8. ANNEXURE A ===== -->
+<h2 class="page-break-before">Annexure A &mdash; Selected UI/UX Ideas Integrated</h2>
+<p>Seven ideas from the reference design-thinking framework were integrated across the Personal App modules:</p>
+
+<div class="annexure-item">
+  <h4>1. Progressive Onboarding with Skip</h4>
+  <p><strong>Module:</strong> Onboarding &nbsp;|&nbsp; 5-page PageView introducing all features. Skip button visible on pages 1&ndash;4. Only shows on first launch via SharedPreferences flag. The Notes page introduces rich text editing before the user even opens the app.</p>
+</div>
+<div class="annexure-item">
+  <h4>2. Colour + Priority Visual Encoding</h4>
+  <p><strong>Module:</strong> Notes + Habits &nbsp;|&nbsp; Both modules use colour to convey meaning. Notes uses 14 colour presets + custom for visual distinction and 4 priority levels. Habits uses 12 colour presets per habit. Both use a shared custom HSV/Hex picker component.</p>
+</div>
+<div class="annexure-item">
+  <h4>3. Search with Real-Time Feedback</h4>
+  <p><strong>Modules:</strong> Notes, Habits, Calendar &nbsp;|&nbsp; All three modules implement the same search pattern: debounced text input at the top of the screen, real-time filtering, and both hit and no-result states with clear messaging.</p>
+</div>
+<div class="annexure-item">
+  <h4>4. Trash with Restore Safety Net</h4>
+  <p><strong>Module:</strong> Notes &nbsp;|&nbsp; Soft delete model with a dedicated Trash bottom sheet. Users restore individual items or permanently delete. Clear timestamps show deletion date. &ldquo;Empty Trash&rdquo; bulk action available.</p>
+</div>
+<div class="annexure-item">
+  <h4>5. Streak Tracking for Habit Motivation</h4>
+  <p><strong>Module:</strong> Habits &nbsp;|&nbsp; Current streak and best streak calculated from consecutive daily completions. Displayed in the Stats Card alongside the monthly completion percentage and progress bar. Drives daily engagement through the &ldquo;don&rsquo;t break the chain&rdquo; effect.</p>
+</div>
+<div class="annexure-item">
+  <h4>6. Live Real-Time Counter</h4>
+  <p><strong>Module:</strong> Life Tracker &nbsp;|&nbsp; Uses a Stream.periodic timer to update elapsed time every second. All metrics (years, months, days, hours, minutes, seconds) update in real time on the dashboard, creating a compelling &ldquo;clock&rdquo; effect that encourages user return.</p>
+</div>
+<div class="annexure-item">
+  <h4>7. Live Theme Preview with Custom Color Picker</h4>
+  <p><strong>Module:</strong> Settings &nbsp;|&nbsp; The color seed picker shows a live SV gradient area with a hue slider and Hex input. The selected colour applies instantly to the Material 3 theme via colorSchemeSeed. Users see their changes in real time before committing.</p>
+</div>
+
+<hr>
+
+<!-- ===== 9. ANNEXURE B ===== -->
+<h2 class="page-break-before">Annexure B &mdash; Screen Wireframes (Complete Application)</h2>
+<p>Eleven representative screens from all six modules plus onboarding, showing the full application user journey.</p>
+
+<div class="wfa">
+  <div style="display:flex;flex-wrap:wrap;gap:20px;justify-content:center;">
+
+    <!-- 01: Onboarding -->
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen-meta">01: Onboarding (Page 1 &mdash; Notes)</div>
+      <div class="screen-content" style="text-align:center;padding:14px 8px;gap:6px;">
+        <div><span style="color:var(--primary);font-size:12px;">●</span> ○ ○ ○ ○</div>
+        <div style="font-size:30px;">📝</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:2px;">Rich Text Notes</div>
+          <p style="color:var(--text-muted);font-size:10px;margin:0;">Create notes with colors,<br>priorities, and formatting.</p>
+        </div>
+        <div style="font-size:8px;color:var(--text-muted);">Swipe to see Habits, Calendar, Calculator, Life Tracker</div>
+        <div style="display:flex;justify-content:space-between;width:100%;margin-top:2px;">
+          <span class="pbtn-outline">Skip</span>
+          <span class="pbtn">Next &rarr;</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 02: Main Navigation -->
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen-meta">02: Main Navigation (Notes active)</div>
+      <div class="screen-content">
+        <div class="app-bar"><span>🔍</span> <span>Personal App</span> <span></span></div>
+        <div class="pc-card" style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:10px;min-height:100px;">
+          Content Area<br>(6-tab IndexedStack)
+        </div>
+        <div class="bottom-nav">
+          <div class="nav-item active">📝<br>Notes</div>
+          <div class="nav-item">✅<br>Habits</div>
+          <div class="nav-item">📅<br>Cal</div>
+          <div class="nav-item">🔢<br>Calc</div>
+          <div class="nav-item">⏱<br>Life</div>
+          <div class="nav-item">⚙️<br>Settings</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03: Notes List -->
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen-meta">03: Notes List</div>
+      <div class="screen-content">
+        <div class="pc-card" style="padding:4px 6px;font-size:9px;">🔍 Search title &amp; content...</div>
+        <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--text-muted);">
+          <span>Sort: Updated ▼</span> <span>⊡ List/Grid ⊟</span>
+        </div>
+        <div class="pc-card" style="border-left:3px solid #dbeafe;padding:5px;">
+          <div style="display:flex;justify-content:space-between;">
+            <span><strong style="font-size:9px;">Meeting Notes</strong> ★</span>
+            <span class="pbadge" style="background:#fee2e2;">High</span>
+          </div>
+          <div style="color:var(--text-muted);font-size:8px;">Discussed Q3 roadmap...</div>
+          <div style="font-size:7px;color:var(--text-muted);">2h ago</div>
+        </div>
+        <div class="pc-card" style="border-left:3px solid #dcfce7;padding:5px;">
+          <div style="display:flex;justify-content:space-between;">
+            <span><strong style="font-size:9px;">Grocery List</strong></span>
+            <span class="pbadge" style="background:#dcfce7;">Low</span>
+          </div>
+          <div style="color:var(--text-muted);font-size:8px;">Milk, eggs, bread...</div>
+          <div style="font-size:7px;color:var(--text-muted);">Yesterday</div>
+        </div>
+        <div class="pc-card" style="border-left:3px solid #fef9c3;padding:5px;">
+          <div style="display:flex;justify-content:space-between;">
+            <span><strong style="font-size:9px;">App Ideas</strong> 🎨</span>
+            <span class="pbadge" style="background:#f3e8ff;">Medium</span>
+          </div>
+          <div style="color:var(--text-muted);font-size:8px;">Dark mode toggle...</div>
+          <div style="font-size:7px;color:var(--text-muted);">3d ago</div>
+        </div>
+        <div style="margin-top:auto;display:flex;justify-content:flex-end;">
+          <span class="pbtn" style="border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;">+</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 04: Note Editor -->
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen-meta">04: Note Editor</div>
+      <div class="screen-content">
+        <div class="app-bar"><span>&larr; Back</span> <span>★ 🎨 ⏰ 💾</span></div>
+        <div class="pc-card" style="padding:4px;font-weight:600;font-size:9px;">Title: Meeting Notes</div>
+        <div class="pc-card" style="padding:3px;text-align:center;font-size:8px;background:#e2e8f0;">
+          [Quill Toolbar: B I U H1 H2 List Quote]
+        </div>
+        <div class="pc-card" style="flex:1;font-size:9px;padding:5px;">
+          Discussed Q3 roadmap:<br>&bull; Launch v2.0 by Oct<br>&bull; Hire 2 engineers<br>&bull; Budget approved ✅
+        </div>
+      </div>
+    </div>
+
+    <!-- 05: Habits Dashboard -->
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen-meta">05: Habits Dashboard</div>
+      <div class="screen-content">
+        <div class="pc-card" style="padding:4px 6px;font-size:9px;">🔍 Search habits...</div>
+        <div class="pc-card" style="background:#e0f2fe;padding:6px;text-align:center;font-size:9px;">
+          Today: <strong>3 of 5</strong> habits done
+          <div style="background:#bae6fd;border-radius:4px;height:6px;margin-top:3px;"><div style="background:#2563eb;width:60%;height:6px;border-radius:4px;"></div></div>
+        </div>
+        <div class="pc-card" style="display:flex;gap:4px;padding:5px;">
+          <div style="background:#dcfce7;padding:6px 4px;border-radius:5px;flex:1;text-align:center;font-size:8px;">🏃 Run<br><span style="color:var(--text-muted);">✅ Done</span></div>
+          <div style="background:#fef9c3;padding:6px 4px;border-radius:5px;flex:1;text-align:center;font-size:8px;">📖 Read<br><span style="color:var(--text-muted);">2/5</span></div>
+          <div style="background:#f3e8ff;padding:6px 4px;border-radius:5px;flex:1;text-align:center;font-size:8px;">💧 Water<br><span style="color:var(--text-muted);">4/8</span></div>
+        </div>
+        <div style="font-size:8px;font-weight:600;color:var(--text-muted);">This Week</div>
+        <div class="pc-card" style="padding:4px;display:flex;justify-content:space-around;font-size:7px;">
+          <span>Mon ✅</span> <span>Tue ✅</span> <span>Wed 2/5</span> <span>Thu 0</span> <span>Fri</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 06: Add Habit -->
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen-meta">06: Habits &mdash; Add Habit Sheet</div>
+      <div class="screen-content" style="padding:0;">
+        <div style="padding:10px;color:var(--text-muted);font-size:8px;text-align:center;">[Dashboard dimmed behind sheet]</div>
+        <div class="bottom-sheet" style="padding:6px 8px;">
+          <div class="sheet-handle"></div>
+          <div style="font-weight:700;font-size:10px;margin-bottom:4px;">New Habit</div>
+          <div class="pc-card" style="padding:4px;font-size:9px;">📖 Read for 30 min</div>
+          <div style="display:flex;gap:4px;margin:3px 0;">
+            <span class="pbtn-outline" style="font-size:7px;padding:2px 6px;">🎨 Color</span>
+            <span class="pbtn-outline" style="font-size:7px;padding:2px 6px;">🏷 Icon</span>
+            <span class="pbtn-outline" style="font-size:7px;padding:2px 6px;">⏰ Reminder</span>
+          </div>
+          <div style="font-size:8px;color:var(--text-muted);margin:2px 0;">Type:</div>
+          <div style="display:flex;gap:4px;">
+            <span class="pbtn" style="font-size:7px;padding:2px 6px;">Yes/No</span>
+            <span class="pbtn-outline" style="font-size:7px;padding:2px 6px;">Count+Target</span>
+            <span class="pbtn-outline" style="font-size:7px;padding:2px 6px;">Free Count</span>
+          </div>
+          <div class="pbtn" style="width:100%;font-size:9px;margin-top:4px;">Save Habit</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 07: Calendar Month -->
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen-meta">07: Calendar &mdash; Month View</div>
+      <div class="screen-content">
+        <div class="app-bar"><span>&larr; Jul 2026</span> <span>🔍</span></div>
+        <div style="display:flex;gap:4px;font-size:7px;justify-content:space-around;color:var(--text-muted);font-weight:600;">
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;font-size:8px;text-align:center;">
+          <span></span><span></span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+          <span>6</span><span style="color:var(--primary);font-weight:700;">7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span>
+          <span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span>
+          <span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span>
+          <span>27</span><span>28</span><span>29</span><span>30</span><span>31</span>
+        </div>
+        <div style="display:flex;gap:2px;justify-content:center;">
+          <span class="pbadge" style="background:#dbeafe;">General</span>
+          <span class="pbadge" style="background:#fee2e2;">Work</span>
+          <span class="pbadge" style="background:#dcfce7;">Personal</span>
+          <span class="pbadge" style="background:#fef9c3;">Urgent</span>
+          <span style="font-size:7px;color:var(--text-muted);">All</span>
+        </div>
+        <div class="pc-card" style="padding:4px;font-size:8px;">
+          <strong>Today&rsquo;s Events (2)</strong><br>
+          <span>🔴 10:00 Team standup</span><br>
+          <span>🟢 14:30 Dentist</span>
+        </div>
+        <div style="margin-top:auto;display:flex;justify-content:flex-end;">
+          <span class="pbtn" style="border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;">+</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 08: Calculator -->
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen-meta">08: Calculator &mdash; Scientific Mode</div>
+      <div class="screen-content" style="padding:6px;gap:3px;">
+        <div style="display:flex;justify-content:space-between;font-size:7px;color:var(--text-muted);">
+          <span>SCI</span> <span>M: 42</span> <span>📋</span>
+        </div>
+        <div class="calc-display" style="min-height:28px;font-size:12px;">25 + 18</div>
+        <div class="calc-display" style="min-height:20px;font-size:10px;background:#2563eb;color:white;border:none;">= 43</div>
+        <div class="calc-row"><span class="calc-btn">(</span><span class="calc-btn">)</span><span class="calc-btn op">C</span><span class="calc-btn op">⌫</span><span class="calc-btn op">÷</span></div>
+        <div class="calc-row"><span class="calc-btn">sin</span><span class="calc-btn">cos</span><span class="calc-btn">tan</span><span class="calc-btn">log</span><span class="calc-btn">ln</span></div>
+        <div class="calc-row"><span class="calc-btn">√</span><span class="calc-btn">x²</span><span class="calc-btn">π</span><span class="calc-btn">e</span><span class="calc-btn op">×</span></div>
+        <div class="calc-row"><span class="calc-btn">7</span><span class="calc-btn">8</span><span class="calc-btn">9</span><span class="calc-btn op">−</span></div>
+        <div class="calc-row"><span class="calc-btn">4</span><span class="calc-btn">5</span><span class="calc-btn">6</span><span class="calc-btn op">+</span></div>
+        <div class="calc-row"><span class="calc-btn">1</span><span class="calc-btn">2</span><span class="calc-btn">3</span><span class="calc-btn eq">=</span></div>
+        <div class="calc-row"><span class="calc-btn">±</span><span class="calc-btn">0</span><span class="calc-btn">.</span><span class="calc-btn">%</span></div>
+      </div>
+    </div>
+
+    <!-- 09: Life Tracker Empty -->
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen-meta">09: Life Tracker &mdash; Empty State</div>
+      <div class="screen-content" style="text-align:center;padding:16px 8px;">
+        <div style="font-size:32px;">⏳</div>
+        <div style="font-size:12px;font-weight:700;margin:4px 0;">Your Life Dashboard</div>
+        <p style="color:var(--text-muted);font-size:9px;margin:0 0 8px 0;">Set your date of birth to start tracking your life journey in real time.</p>
+        <span class="pbtn">Set Date of Birth</span>
+      </div>
+    </div>
+
+    <!-- 10: Life Tracker Dashboard -->
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen-meta">10: Life Tracker &mdash; Dashboard</div>
+      <div class="screen-content" style="padding:6px;">
+        <div class="app-bar"><span>&larr;</span> <span>⏳ Life Tracker</span> <span>⚙️</span></div>
+        <div class="life-card">
+          <div class="life-number">28</div>
+          <div class="life-label">years lived</div>
+          <div style="font-size:10px;color:var(--text-muted);">10 months, 15 days</div>
+        </div>
+        <div style="background:#e2e8f0;border-radius:6px;height:8px;margin:4px 0;">
+          <div style="background:#2563eb;width:35%;height:8px;border-radius:6px;"></div>
+        </div>
+        <div style="font-size:8px;color:var(--text-muted);text-align:center;">35% of 80 years lived</div>
+        <div style="display:flex;gap:3px;">
+          <div class="life-card" style="flex:1;">
+            <div class="life-number" style="font-size:14px;">52</div>
+            <div class="life-label">years left</div>
+          </div>
+          <div class="life-card" style="flex:1;">
+            <div class="life-number" style="font-size:14px;">10,520</div>
+            <div class="life-label">days lived</div>
+          </div>
+          <div class="life-card" style="flex:1;">
+            <div class="life-number" style="font-size:14px;">252K</div>
+            <div class="life-label">hours</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:3px;">
+          <div class="life-card" style="flex:1;">
+            <div class="life-number" style="font-size:12px;">15.1M</div>
+            <div class="life-label">minutes</div>
+          </div>
+          <div class="life-card" style="flex:1;">
+            <div class="life-number" style="font-size:12px;">909M</div>
+            <div class="life-label">seconds</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 11: Settings -->
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen-meta">11: Settings &mdash; Main Screen</div>
+      <div class="screen-content" style="padding:6px;">
+        <div class="app-bar"><span>Personal App</span> <span></span></div>
+
+        <div style="font-size:8px;font-weight:600;color:#1e40af;margin-top:2px;">APPEARANCE</div>
+        <div class="pc-card" style="padding:4px;font-size:8px;">
+          <div>Theme: <strong>System</strong>  &middot;  Accent: <span class="color-dot" style="width:10px;height:10px;"></span></div>
+          <div style="color:var(--text-muted);">Week starts: Monday</div>
+        </div>
+
+        <div style="font-size:8px;font-weight:600;color:#1e40af;">NOTIFICATIONS</div>
+        <div class="pc-card" style="padding:4px;font-size:8px;">
+          <div>All notifications: ON</div>
+          <div style="color:var(--text-muted);">Habit reminders: ON  &middot;  Event reminders: ON</div>
+        </div>
+
+        <div style="font-size:8px;font-weight:600;color:#1e40af;">DATA</div>
+        <div class="pc-card" style="padding:4px;font-size:8px;">
+          <div>📤 Export All Data  &middot;  📥 Import Data</div>
+          <div style="color:#dc2626;">🗑 Clear All Data</div>
+        </div>
+
+        <div style="font-size:8px;font-weight:600;color:#1e40af;">ABOUT</div>
+        <div class="pc-card" style="padding:4px;font-size:8px;">
+          <div>v1.0.0+1  &middot;  📄 Licenses</div>
+          <div style="color:var(--text-muted);">📺 Replay Onboarding</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div>
+</body>
+</html>

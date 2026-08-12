@@ -2284,7 +2284,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                               ),
                             ),
                             const SizedBox(width: 12),
-                             Expanded(
+                            Expanded(
                               child: FilledButton(
                                 onPressed: titleCtrl.text.trim().isNotEmpty
                                     ? () {
@@ -2339,40 +2339,71 @@ class _TodayProgressCard extends StatelessWidget {
     final total = provider.todayTotalCount;
     final progress = provider.todayProgress;
 
+    String motivationalText;
+    if (progress == 0) {
+      motivationalText = "Let's build momentum today!";
+    } else if (progress < 0.5) {
+      motivationalText = "Off to a great start, keep going!";
+    } else if (progress < 1.0) {
+      motivationalText = "Over halfway there! Finish strong!";
+    } else {
+      motivationalText = "Flawless execution! All habits done! 🎉";
+    }
+
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [
             theme.colorScheme.primaryContainer,
-            theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+            theme.colorScheme.surfaceContainerHigh,
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child:
+          SizedBox(
+            width: 50,
+            height: 50,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.0, end: progress),
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, val, _) => CircularProgressIndicator(
+                    value: val,
+                    strokeWidth: 4.5,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      progress == 1.0 ? Colors.amber : theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+                Icon(
                   progress == 1.0
-                      ? const Icon(
-                        Icons.celebration_rounded,
-                        color: Colors.amber,
-                        size: 24,
-                      )
-                      : Icon(
-                        Icons.today_rounded,
-                        color: theme.colorScheme.primary,
-                        size: 24,
-                      ),
+                      ? Icons.emoji_events_rounded
+                      : Icons.local_fire_department_rounded,
+                  color: progress == 1.0 ? Colors.amber : theme.colorScheme.primary,
+                  size: 24,
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 14),
@@ -2380,36 +2411,47 @@ class _TodayProgressCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '$completed of $total habits done today',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '$completed of $total Habits Done',
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14.5,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ),
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: progress * 100),
+                      duration: const Duration(milliseconds: 600),
+                      builder: (context, val, _) => Text(
+                        '${val.toInt()}%',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14.5,
+                          color: progress == 1.0
+                              ? Colors.amber.shade700
+                              : theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 6,
-                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                     valueColor: AlwaysStoppedAnimation<Color>(
-                       progress == 1.0
-                           ? theme.colorScheme.tertiary
-                           : theme.colorScheme.primary,
-                     ),
+                const SizedBox(height: 4),
+                Text(
+                  motivationalText,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-           Text(
-             '${(progress * 100).toInt()}%',
-             style: theme.textTheme.titleMedium?.copyWith(
-               color: progress == 1.0 ? theme.colorScheme.tertiary : theme.colorScheme.primary,
-             ),
-           ),
         ],
       ),
     );

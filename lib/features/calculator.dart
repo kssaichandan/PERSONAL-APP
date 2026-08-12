@@ -21,6 +21,30 @@ class CalculatorProvider extends ChangeNotifier {
   double get memory => _memory;
   bool get loading => _loading;
 
+  String get formattedMemory {
+    if (_memory == 0.0) return '0';
+    return formatDisplayNumber(
+      _memory == _memory.toInt()
+          ? _memory.toInt().toString()
+          : _memory.toString(),
+    );
+  }
+
+  static String formatDisplayNumber(String input) {
+    if (input.isEmpty || input == 'Error' || input == 'Cannot divide by zero') {
+      return input;
+    }
+    return input.replaceAllMapped(RegExp(r'(\d+)(\.\d+)?'), (match) {
+      final intPart = match.group(1)!;
+      final decPart = match.group(2) ?? '';
+      final formattedInt = intPart.replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (m) => '${m[1]},',
+      );
+      return '$formattedInt$decPart';
+    });
+  }
+
   CalculatorProvider() {
     Future.microtask(() => loadHistory());
   }
@@ -39,6 +63,7 @@ class CalculatorProvider extends ChangeNotifier {
           maps
               .map(
                 (m) => {
+                  'id': m['id']?.toString() ?? '',
                   'expression': m['expression'] as String,
                   'result': m['result'] as String,
                 },
@@ -59,20 +84,22 @@ class CalculatorProvider extends ChangeNotifier {
 
   void memoryAdd() {
     HapticFeedback.lightImpact();
-    final parsed = double.tryParse(_result);
+    final cleanResult = _result.replaceAll(',', '');
+    final parsed = double.tryParse(cleanResult);
     if (parsed != null) _memory += parsed;
     notifyListeners();
   }
 
   void memorySubtract() {
     HapticFeedback.lightImpact();
-    final parsed = double.tryParse(_result);
+    final cleanResult = _result.replaceAll(',', '');
+    final parsed = double.tryParse(cleanResult);
     if (parsed != null) _memory -= parsed;
     notifyListeners();
   }
 
   void memoryRecall() {
-    HapticFeedback.lightImpact();
+    HapticFeedback.selectionClick();
     final memStr =
         _memory == _memory.toInt()
             ? _memory.toInt().toString()
@@ -97,7 +124,7 @@ class CalculatorProvider extends ChangeNotifier {
   }
 
   void memoryClear() {
-    HapticFeedback.lightImpact();
+    HapticFeedback.mediumImpact();
     _memory = 0.0;
     notifyListeners();
   }
@@ -112,16 +139,39 @@ class CalculatorProvider extends ChangeNotifier {
     await loadHistory();
   }
 
+  Future<void> deleteHistoryAt(int index) async {
+    if (index < 0 || index >= _history.length) return;
+    final item = _history[index];
+    _history.removeAt(index);
+    notifyListeners();
+    try {
+      final db = await AppDatabase.instance.database;
+      await db.delete(
+        'calculator_history',
+        where: 'expression = ? AND result = ?',
+        whereArgs: [item['expression'], item['result']],
+      );
+    } catch (e) {
+      debugLog('Failed to delete history item: $e');
+    }
+  }
+
   void input(String value) {
-    HapticFeedback.lightImpact();
-    if (_result == 'Error') {
+    if (value == '=') {
+      HapticFeedback.mediumImpact();
+    } else if (value == 'C' || value == 'CE' || value == '⌫') {
+      HapticFeedback.mediumImpact();
+    } else if (RegExp(r'^[0-9]$').hasMatch(value)) {
+      HapticFeedback.selectionClick();
+    } else {
+      HapticFeedback.lightImpact();
+    }
+
+    if (_result == 'Error' || _result == 'Cannot divide by zero') {
       _expression = '';
       _result = '';
     }
-    if (value == 'C') {
-      _expression = '';
-      _result = '';
-    } else if (value == 'CE') {
+    if (value == 'C' || value == 'CE') {
       _expression = '';
       _result = '';
     } else if (value == '⌫') {
@@ -191,6 +241,12 @@ class CalculatorProvider extends ChangeNotifier {
 
   void square() {
     HapticFeedback.lightImpact();
+    if (_result == 'Error' || _result == 'Cannot divide by zero') {
+      _expression = '';
+      _result = '';
+      notifyListeners();
+      return;
+    }
     if (_expression.isNotEmpty) {
       _expression = '($_expression)^2';
       notifyListeners();
@@ -201,7 +257,7 @@ class CalculatorProvider extends ChangeNotifier {
   String _input = '';
 
   String _preprocess(String input) {
-    var s = input.replaceAll(' ', '');
+    var s = input.replaceAll(' ', '').replaceAll(',', '');
     final percentRegex = RegExp(r'(-?\d+\.?\d*)%');
     while (percentRegex.hasMatch(s)) {
       s = s.replaceAllMapped(percentRegex, (m) {
@@ -339,9 +395,17 @@ class CalculatorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
+    final isLandscape =
+        MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
     return Scaffold(
-      appBar: AppBar(title: const Text('Calculator'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text(
+          'Calculator',
+          style: TextStyle(fontWeight: FontWeight.w600, letterSpacing: -0.2),
+        ),
+        centerTitle: true,
+        scrolledUnderElevation: 0,
+      ),
       body: SafeArea(
         bottom: false,
         child: Consumer2<CalculatorProvider, SettingsProvider>(
@@ -434,14 +498,30 @@ class _DisplayArea extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSci = settings.scientificMode;
-    final hasError = calc.result == 'Error' || calc.result == 'Cannot divide by zero';
-    final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
+    final hasError =
+        calc.result == 'Error' || calc.result == 'Cannot divide by zero';
+    final isLandscape =
+        MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
+    final formattedExpr = CalculatorProvider.formatDisplayNumber(
+      calc.expression.isEmpty ? '0' : calc.expression,
+    );
+    final formattedRes = CalculatorProvider.formatDisplayNumber(calc.result);
+
     return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       padding: EdgeInsets.fromLTRB(
         isLandscape ? 12 : 20,
-        isSci ? 4 : 8,
+        isSci ? 6 : 12,
         isLandscape ? 12 : 20,
-        isSci ? 4 : 12,
+        isSci ? 6 : 12,
+      ),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+          width: 1,
+        ),
       ),
       alignment: Alignment.bottomRight,
       child: SingleChildScrollView(
@@ -453,33 +533,83 @@ class _DisplayArea extends StatelessWidget {
             Row(
               children: [
                 if (calc.memory != 0.0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      'M',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.onPrimaryContainer,
+                  Tooltip(
+                    message: 'Memory: ${calc.formattedMemory}',
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.15,
+                            ),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'M',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            calc.formattedMemory,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 const Spacer(),
                 if (isSci)
-                  Chip(
-                    avatar: Icon(Icons.science_outlined, size: 14),
-                    label: Text('SCI', style: TextStyle(fontSize: 10)),
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    labelPadding: EdgeInsets.only(right: 4),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.secondaryContainer.withValues(
+                        alpha: 0.8,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.science_outlined,
+                          size: 12,
+                          color: theme.colorScheme.onSecondaryContainer,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'SCI',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                            color: theme.colorScheme.onSecondaryContainer,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
               ],
             ),
@@ -488,25 +618,34 @@ class _DisplayArea extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               reverse: true,
               child: Text(
-                calc.expression.isEmpty ? '0' : calc.expression,
+                formattedExpr,
                 style: (isSci
                         ? theme.textTheme.titleSmall
                         : theme.textTheme.titleMedium)
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    ?.copyWith(
+                      color:
+                          calc.expression.isEmpty
+                              ? theme.colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.5,
+                              )
+                              : theme.colorScheme.onSurfaceVariant,
+                      letterSpacing: 0.5,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
                 maxLines: 1,
               ),
             ),
-            SizedBox(height: isSci ? 2 : 4),
+            SizedBox(height: isSci ? 2 : 6),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (hasError)
                   Padding(
-                    padding: const EdgeInsets.only(right: 4),
+                    padding: const EdgeInsets.only(right: 6),
                     child: Icon(
-                      Icons.error_outline,
-                      size: 16,
+                      Icons.error_outline_rounded,
+                      size: 20,
                       color: theme.colorScheme.error,
                     ),
                   ),
@@ -515,21 +654,36 @@ class _DisplayArea extends StatelessWidget {
                     scrollDirection: Axis.horizontal,
                     reverse: true,
                     child: GestureDetector(
-                      onTap: settings.copyOnTap && calc.result.isNotEmpty && !hasError
-                          ? () {
-                              Clipboard.setData(ClipboardData(text: calc.result));
-                              showSuccessSnackBar(context, 'Result copied');
-                            }
-                          : null,
+                      onTap:
+                          settings.copyOnTap &&
+                                  calc.result.isNotEmpty &&
+                                  !hasError
+                              ? () {
+                                HapticFeedback.mediumImpact();
+                                Clipboard.setData(
+                                  ClipboardData(text: calc.result),
+                                );
+                                showSuccessSnackBar(
+                                  context,
+                                  'Result copied to clipboard',
+                                );
+                              }
+                              : null,
                       child: Text(
-                        calc.result.isEmpty ? '' : calc.result,
+                        formattedRes.isEmpty ? '' : formattedRes,
                         style: (isSci
                                 ? theme.textTheme.headlineMedium
                                 : theme.textTheme.headlineLarge)
                             ?.copyWith(
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.5,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
                               color:
-                                  hasError ? theme.colorScheme.error : null,
+                                  hasError
+                                      ? theme.colorScheme.error
+                                      : theme.colorScheme.onSurface,
                             ),
                         maxLines: 1,
                       ),
@@ -538,11 +692,11 @@ class _DisplayArea extends StatelessWidget {
                 ),
               ],
             ),
-             SizedBox(height: isSci ? 4 : 8),
-           ],
-         ),
-       ),
-     );
+            SizedBox(height: isSci ? 4 : 8),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -561,14 +715,17 @@ class _MemoryRow extends StatelessWidget {
     final memButtons = ['MC', 'MR', 'M+', 'M-'];
     final hasMemory = calc.memory != 0.0;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       child: Row(
         children:
             memButtons.map((label) {
               final disabled = (label == 'MC' || label == 'MR') && !hasMemory;
+              final isRecallOrClear = label == 'MC' || label == 'MR';
+              final highlight = isRecallOrClear && hasMemory;
+
               return Expanded(
                 child: Padding(
-                  padding: EdgeInsets.all(scientific ? 1 : 2),
+                  padding: EdgeInsets.all(scientific ? 1.5 : 2),
                   child: TextButton(
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.symmetric(
@@ -579,13 +736,27 @@ class _MemoryRow extends StatelessWidget {
                               ? theme.colorScheme.onSurface.withValues(
                                 alpha: 0.38,
                               )
+                              : highlight
+                              ? theme.colorScheme.onPrimaryContainer
                               : theme.colorScheme.onSurfaceVariant,
-                      backgroundColor: theme.colorScheme.surfaceContainerHighest
-                          .withValues(alpha: 0.5),
+                      backgroundColor:
+                          highlight
+                              ? theme.colorScheme.primaryContainer
+                              : theme.colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: disabled ? 0.25 : 0.6),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(10),
+                        side:
+                            highlight
+                                ? BorderSide(
+                                  color: theme.colorScheme.primary.withValues(
+                                    alpha: 0.4,
+                                  ),
+                                  width: 1,
+                                )
+                                : BorderSide.none,
                       ),
-                      minimumSize: const Size(44, 44),
+                      minimumSize: const Size(40, 38),
                     ),
                     onPressed:
                         disabled
@@ -604,9 +775,10 @@ class _MemoryRow extends StatelessWidget {
                             },
                     child: Text(
                       label,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        fontWeight: FontWeight.w600,
+                        fontWeight:
+                            highlight ? FontWeight.bold : FontWeight.w600,
                       ),
                     ),
                   ),
@@ -626,47 +798,148 @@ class _ScientificToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSci = settings.scientificMode;
+    final theme = Theme.of(context);
+    final historyCount = calc.history.length;
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: isSci ? 2 : 4),
-      child: Row(
-        children: [
-          TextButton.icon(
-            icon: Icon(
-              isSci ? Icons.science : Icons.science_outlined,
-              size: 16,
-            ),
-            label: Text(
-              isSci ? 'Scientific ON' : 'Scientific OFF',
-              style: const TextStyle(fontSize: 11),
-            ),
-            onPressed:
-                () => settings.setScientificMode(!settings.scientificMode),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              backgroundColor:
-                  isSci ? Theme.of(context).colorScheme.primaryContainer : null,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              minimumSize: const Size(44, 36),
-            ),
+      child: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.4,
           ),
-          const Spacer(),
-          TextButton.icon(
-            icon: const Icon(Icons.history_rounded, size: 16),
-            label: const Text('History', style: TextStyle(fontSize: 11)),
-            onPressed: () => _showHistoryBottomSheet(context, calc),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+          children: [
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(9),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  settings.setScientificMode(!settings.scientificMode);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color:
+                        isSci
+                            ? theme.colorScheme.surface
+                            : Colors.transparent,
+                    borderRadius: BorderRadius.circular(9),
+                    boxShadow:
+                        isSci
+                            ? [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.06),
+                                blurRadius: 4,
+                                offset: const Offset(0, 1),
+                              ),
+                            ]
+                            : null,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isSci
+                            ? Icons.science_rounded
+                            : Icons.science_outlined,
+                        size: 15,
+                        color:
+                            isSci
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        isSci ? 'Scientific ON' : 'Scientific OFF',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight:
+                              isSci ? FontWeight.w600 : FontWeight.w500,
+                          color:
+                              isSci
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              minimumSize: const Size(44, 36),
             ),
-          ),
-        ],
+            const SizedBox(width: 4),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(9),
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  _showHistoryBottomSheet(context, calc);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.history_rounded,
+                        size: 15,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        'History',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      if (historyCount > 0) ...[
+                        const SizedBox(width: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '$historyCount',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-    );
+    ),
+  );
   }
 }
 
@@ -675,127 +948,222 @@ void _showHistoryBottomSheet(BuildContext context, CalculatorProvider calc) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
+    backgroundColor: theme.colorScheme.surface,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
     builder: (context) {
       return Consumer<CalculatorProvider>(
         builder: (context, provider, _) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
+          return Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.75,
             ),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Calculation History',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 32,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.4,
+                      ),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.history_rounded,
+                          size: 20,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Calculation History',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (provider.history.isNotEmpty)
+                      TextButton.icon(
+                        icon: const Icon(
+                          Icons.delete_sweep_outlined,
+                          size: 16,
+                        ),
+                        label: const Text(
+                          'Clear All',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        onPressed:
+                            () => _confirmClearHistory(context, provider),
+                        style: TextButton.styleFrom(
+                          foregroundColor: theme.colorScheme.error,
                         ),
                       ),
-                      if (provider.history.isNotEmpty)
-                        TextButton.icon(
-                          icon: const Icon(
-                            Icons.delete_sweep_outlined,
-                            size: 16,
-                          ),
-                          label: const Text(
-                            'Clear All',
-                            style: TextStyle(fontSize: 12),
-                          ),
-                          onPressed: () => _confirmClearHistory(context, provider),
-                          style: TextButton.styleFrom(
-                            foregroundColor: theme.colorScheme.error,
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  if (provider.history.isEmpty)
-                    SizedBox(
-                      height: 180,
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (provider.history.isEmpty)
+                  SizedBox(
+                    height: 200,
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: 0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
                               Icons.calculate_outlined,
-                              size: 48,
+                              size: 40,
                               color: theme.colorScheme.outline,
                             ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'No calculations yet',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No calculations yet',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.onSurface,
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Your calculation history will appear here',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: theme.colorScheme.outline,
-                              ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Your completed equations will appear here',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: theme.colorScheme.outline,
                             ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else
-                    SizedBox(
-                      height: 300,
-                      child: ListView.builder(
-                        itemCount: provider.history.length,
-                        itemBuilder: (context, index) {
-                          final h = provider.history[index];
-                          return ListTile(
-                            leading: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                Icons.functions,
-                                size: 18,
-                                color: theme.colorScheme.onPrimaryContainer,
-                              ),
-                            ),
-                            title: Text(
-                              h['expression'] ?? '',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            subtitle: Text(
-                              '= ${h['result'] ?? ''}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.primary,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            trailing: const Icon(Icons.keyboard_arrow_right),
-                            onTap: () {
-                              provider.loadExpression(h['expression'] ?? '');
-                              Navigator.pop(context);
-                            },
-                          );
-                        },
+                          ),
+                        ],
                       ),
                     ),
-                  const SizedBox(height: 16),
-                ],
-              ),
+                  )
+                else
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: provider.history.length,
+                      separatorBuilder:
+                          (context, index) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final h = provider.history[index];
+                        final rawExpr = h['expression'] ?? '';
+                        final rawRes = h['result'] ?? '';
+                        final formattedExpr =
+                            CalculatorProvider.formatDisplayNumber(rawExpr);
+                        final formattedRes =
+                            CalculatorProvider.formatDisplayNumber(rawRes);
+
+                        return Dismissible(
+                          key: ValueKey('hist_${index}_$rawExpr'),
+                          direction: DismissDirection.endToStart,
+                          onDismissed: (_) {
+                            HapticFeedback.mediumImpact();
+                            provider.deleteHistoryAt(index);
+                          },
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 16),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.errorContainer,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.delete_outline_rounded,
+                              color: theme.colorScheme.onErrorContainer,
+                            ),
+                          ),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerLow,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: theme.colorScheme.outlineVariant
+                                    .withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 2,
+                              ),
+                              leading: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primaryContainer,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  Icons.functions_rounded,
+                                  size: 18,
+                                  color: theme.colorScheme.onPrimaryContainer,
+                                ),
+                              ),
+                              title: Text(
+                                formattedExpr,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontFeatures: [FontFeature.tabularFigures()],
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              subtitle: Text(
+                                '= $formattedRes',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.primary,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures(),
+                                  ],
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              trailing: Icon(
+                                Icons.chevron_right_rounded,
+                                color: theme.colorScheme.outline,
+                              ),
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                provider.loadExpression(rawExpr);
+                                Navigator.pop(context);
+                              },
+                              onLongPress: () {
+                                HapticFeedback.mediumImpact();
+                                Clipboard.setData(
+                                  ClipboardData(text: rawRes),
+                                );
+                                showSuccessSnackBar(
+                                  context,
+                                  'Result copied to clipboard',
+                                );
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
             ),
           );
         },
@@ -809,6 +1177,10 @@ void _confirmClearHistory(BuildContext context, CalculatorProvider provider) {
     context: context,
     builder:
         (ctx) => AlertDialog(
+          icon: Icon(
+            Icons.delete_sweep_rounded,
+            color: Theme.of(ctx).colorScheme.error,
+          ),
           title: const Text('Clear History'),
           content: const Text(
             'Are you sure you want to clear all calculation history? This cannot be undone.',
@@ -818,16 +1190,17 @@ void _confirmClearHistory(BuildContext context, CalculatorProvider provider) {
               onPressed: () => Navigator.pop(ctx),
               child: const Text('Cancel'),
             ),
-            TextButton(
+            FilledButton(
               onPressed: () {
                 Navigator.pop(ctx);
                 provider.clearHistory();
                 Navigator.pop(context);
               },
-              style: TextButton.styleFrom(
-                foregroundColor: Theme.of(ctx).colorScheme.error,
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error,
+                foregroundColor: Theme.of(ctx).colorScheme.onError,
               ),
-              child: const Text('Clear'),
+              child: const Text('Clear All'),
             ),
           ],
         ),
@@ -846,7 +1219,8 @@ class _ButtonGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
+    final isLandscape =
+        MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
     final sciRows = [
       ['sin', 'cos', 'tan', '√'],
       ['log', 'ln', '(', ')'],
@@ -911,16 +1285,17 @@ class _ButtonGrid extends StatelessWidget {
                             Color? fg;
                             if (isNumber) {
                               bg = theme.colorScheme.surfaceContainerHighest;
-                            } else if (isOp) {
-                              bg = theme.colorScheme.primaryContainer;
-                              fg = theme.colorScheme.onPrimaryContainer;
+                              fg = theme.colorScheme.onSurface;
                             } else if (isEquals) {
                               bg = theme.colorScheme.primary;
                               fg = theme.colorScheme.onPrimary;
-                            } else if (isClear) {
+                            } else if (isOp) {
+                              bg = theme.colorScheme.primaryContainer;
+                              fg = theme.colorScheme.onPrimaryContainer;
+                            } else if (label == 'C') {
                               bg = theme.colorScheme.errorContainer;
                               fg = theme.colorScheme.onErrorContainer;
-                            } else if (isFn) {
+                            } else if (isClear || isFn) {
                               bg = theme.colorScheme.secondaryContainer;
                               fg = theme.colorScheme.onSecondaryContainer;
                             }
@@ -928,14 +1303,25 @@ class _ButtonGrid extends StatelessWidget {
                             return Expanded(
                               flex: isZero ? 2 : 1,
                               child: Padding(
-                                padding: EdgeInsets.all(isLandscape ? 1 : (scientific ? 1 : 2)),
+                                padding: EdgeInsets.all(
+                                  isLandscape ? 1 : (scientific ? 1 : 2),
+                                ),
                                 child: SizedBox(
-                                  height: isLandscape ? 32 : (scientific ? 48 : 56),
+                                  height:
+                                      isLandscape
+                                          ? 32
+                                          : (scientific ? 48 : 56),
                                   child: ElevatedButton(
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: bg,
                                       foregroundColor: fg,
                                       padding: EdgeInsets.zero,
+                                      elevation: isEquals ? 2 : 0,
+                                      shadowColor:
+                                          isEquals
+                                              ? theme.colorScheme.primary
+                                                  .withValues(alpha: 0.35)
+                                              : null,
                                       shape:
                                           isNumber
                                               ? RoundedRectangleBorder(
@@ -945,15 +1331,17 @@ class _ButtonGrid extends StatelessWidget {
                                                   color:
                                                       theme
                                                           .colorScheme
-                                                          .outlineVariant,
-                                                  width: 0.5,
+                                                          .outlineVariant
+                                                          .withValues(
+                                                            alpha: 0.4,
+                                                          ),
+                                                  width: 0.8,
                                                 ),
                                               )
                                               : RoundedRectangleBorder(
                                                 borderRadius:
                                                     BorderRadius.circular(12),
                                               ),
-                                      elevation: 0,
                                       minimumSize: const Size(44, 44),
                                     ),
                                     onPressed:
@@ -982,8 +1370,11 @@ class _ButtonGrid extends StatelessWidget {
                                                           : (isFn ? 14 : 15)),
                                               fontWeight:
                                                   isOp || isEquals
-                                                      ? FontWeight.w600
-                                                      : FontWeight.normal,
+                                                      ? FontWeight.bold
+                                                      : FontWeight.w500,
+                                              fontFeatures: const [
+                                                FontFeature.tabularFigures(),
+                                              ],
                                             ),
                                           ),
                                         ),
@@ -1028,7 +1419,6 @@ class _ButtonGrid extends StatelessWidget {
   }
 
   void _handlePress(CalculatorProvider calc, String label) {
-    HapticFeedback.lightImpact();
     if (label == 'x²') {
       calc.square();
     } else {

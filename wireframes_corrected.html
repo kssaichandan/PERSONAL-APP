@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Product UI/UX Wireframe Specification - 18 Screens (Corrected)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg-page: #f1f5f9;
+    --phone-bg: #ffffff;
+    --phone-border: #1e293b;
+    --primary: #2563eb;
+    --primary-light: #eff6ff;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border-color: #cbd5e1;
+    --card-bg: #f8fafc;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+
+  body {
+    background-color: var(--bg-page);
+    color: var(--text-main);
+    padding: 20px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .document-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+  }
+
+  .document-header h1 { font-size: 28px; color: var(--text-main); margin-bottom: 6px; }
+  .document-header p { font-size: 14px; color: var(--text-muted); }
+
+  .group-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 40px 0 20px 0;
+    padding-bottom: 8px;
+    border-bottom: 3px solid var(--primary);
+    color: var(--text-main);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 30px;
+    margin-bottom: 40px;
+  }
+
+  .phone-frame {
+    width: 340px;
+    height: 700px;
+    background: var(--phone-bg);
+    border: 10px solid var(--phone-border);
+    border-radius: 36px;
+    margin: 0 auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+  }
+
+  .notch {
+    width: 120px;
+    height: 18px;
+    background: var(--phone-border);
+    margin: 0 auto;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+  }
+
+  .screen-meta {
+    padding: 6px 12px;
+    background: #e2e8f0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+    text-align: center;
+  }
+
+  .screen-content {
+    flex: 1;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    font-size: 12px;
+  }
+
+  .app-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 12px;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+  }
+
+  .button {
+    background: var(--primary);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 11px;
+  }
+
+  .button-outline {
+    border: 1px solid var(--border-color);
+    background: white;
+    color: var(--text-main);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+  }
+
+  .bottom-sheet {
+    margin-top: auto;
+    background: #ffffff;
+    border: 2px solid var(--primary);
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    padding: 12px;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+  }
+
+  .sheet-handle {
+    width: 32px;
+    height: 4px;
+    background: #cbd5e1;
+    border-radius: 2px;
+    margin: 0 auto 10px auto;
+  }
+
+  .bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 4px;
+    background: #ffffff;
+    border-top: 1px solid var(--border-color);
+    margin-top: auto;
+    flex-shrink: 0;
+  }
+
+  .nav-item {
+    text-align: center;
+    font-size: 9px;
+    color: var(--text-muted);
+  }
+
+  .nav-item.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .grid-7 { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 600;
+  }
+
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 9px;
+    border: 1px solid var(--border-color);
+    margin: 2px;
+  }
+
+  .color-dot {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid #cbd5e1;
+  }
+
+  @media print {
+    body { background: white; padding: 0; }
+    .page-break { page-break-after: always; break-after: page; }
+    .phone-frame { box-shadow: none; border: 2px solid #000; }
+  }
+</style>
+</head>
+<body>
+
+<div class="document-header">
+  <h1>Mobile Application Suite — Wireframe Specification (Corrected)</h1>
+  <p>18 Screens | 3 Groups of 6 | Aligned to Actual App Implementation</p>
+  <p style="color: #dc2626; font-size: 12px; margin-top: 4px;">Corrections applied based on real codebase analysis</p>
+</div>
+
+<!-- ================= GROUP 1 ================= -->
+<div class="group-title">
+  <span>Group 1 — Person A: Onboarding → Navigation → Notes</span>
+  <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">Screens 01–06</span>
+</div>
+
+<div class="grid-container">
+
+  <!-- Screen 1: Onboarding (correct) -->
+  <div class="phone-frame">
+    <div class="notch"></div>
+    <div class="screen-meta">Screen 01: Onboarding (Page 1 of 5)</div>
+    <div class="screen-content" style="justify-content: space-between; text-align: center; padding: 20px 12px;">
+      <div style="display: flex; justify-content: center; gap: 6px;">
+        <span style="color: var(--primary);">●</span> ○ ○ ○ ○
+      </div>
+      <div style="font-size: 48px; margin-top: 40px;">📝</div>
+      <div>
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 4px;">Rich Text Notes</h3>
+        <p style="color: var(--text-muted); font-size: 11px;">Rich text notes with colors,<br>tags, pin favorites.</p>
+      </div>
+      <div style="margin-bottom: 20px;">
+        <p style="font-size: 10px; color: var(--text-muted);">Other pages: Habits, Calendar, Calculator, Life Tracker</p>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <span class="button-outline">Skip</span>
+        <span class="button">Next →</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: Main Navigation (correct) -->
+  <div class="phone-frame">
+    <div class="notch"></div>
+    <div class="screen-meta">Screen 02: Main Navigation</div>
+    <div class="screen-content">
+      <div class="app-bar"><span>🔍</span> <span>Personal App</span> <span></span></div>
+      <div class="card" style="flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
+        Main Content Area<br>(current tab's screen)
+      </div>
+      <div class="bottom-nav">
+        <div class="nav-item active">📝<br>Notes</div>
+        <div class="nav-item">✅<br>Habits</div>
+        <div class="nav-item">📅<br>Cal</div>
+        <div class="nav-item">🔢<br>Calc</div>
+        <div class="nav-item">⏱<br>Life</div>
+        <div class="nav-item">⚙️<br>Settings</div>
+      </div>
+      <div style="font-size: 9px; color: var(--text-muted); text-align: center;">IndexedStack preserves tab state. FAB per tab.</div>
+    </div>
+  </div>
+
+  <!-- Screen 3: Notes List (corrected layout) -->
+  <div class="phone-frame">
+    <div class="notch"></div>
+    <div class="screen-meta">Screen 03: Notes List View</div>
+    <div class="screen-content">
+      <div class="card" style="padding: 6px;">🔍 Search title & content...</div>
+      <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted);">
+        <span>Sort: Updated ▼</span>
+        <span>⊡ List/Grid ⊟</span>
+      </div>
+      <div class="card" style="border-left: 4px solid #dbeafe;">
+        <div style="display: flex; justify-content: space-between;">
+          <span><strong>📌 Meeting Notes</strong> <span style="font-size: 10px;">★</span></span>
+          <span class="badge" style="background: #fee2e2;">High</span>
+        </div>
+        <div style="color: var(--text-muted); font-size: 11px; margin: 4px 0;">Discussed Q3 roadmap...</div>
+        <div style="font-size: 10px; color: var(--text-muted);">2h ago</div>
+      </div>
+      <div class="card" style="border-left: 4px solid #dcfce7;">
+        <div style="display: flex; justify-content: space-between;">
+          <span><strong>Grocery List</strong></span>
+          <span class="badge" style="background: #dcfce7;">Low</span>
+        </div>
+        <div style="color: var(--text-muted); font-size: 11px; margin: 4px 0;">Milk, eggs, bread...</div>
+        <div style="font-size: 10px; color: var(--text-muted);">Yesterday</div>
+      </div>
+      <div class="card" style="border-left: 4px solid #fef9c3;">
+        <div style="display: flex; justify-content: space-between;">
+          <span><strong>💡 App Ideas</strong> <span style="font-size: 10px;">🎨</span></span>
+          <span class="badge" style="background: #f3e8ff;">Medium</span>
+        </div>
+        <div style="color: var(--text-muted); font-size: 11px; margin: 4px 0;">Dark mode toggle, new...</div>
+        <div style="font-size: 10px; color: var(--text-muted);">3d ago</div>
+      </div>
+      <div style="margin-top: auto; display: flex; justify-content: flex-end;">
+        <span class="button" style="border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 18px;">+</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4: Note Editor (correct) -->
+  <div class="phone-frame">
+    <div class="notch"></div>
+    <div class="screen-meta">Screen 04: Note Editor</div>
+    <div class="screen-content">
+      <div class="app-bar"><span>← Back</span> <span>★ 🎨 ⏰ 📎 ↻ 💾</span></div>
+      <div class="card" style="padding: 8px; font-weight: 600;">Title: Meeting Notes</div>
+      <div class="card" style="padding: 6px; text-align: center; font-size: 10px; background: #e2e8f0;">
+        [Quill Toolbar: B I U H1 H2 List Quote Code Link Image]
+      </div>
+      <div class="card" style="flex: 1; font-size: 11px; line-height: 1.6;">
+        Discussed Q3 roadmap:<br>
+        • Launch v2.0 by October<br>
+        • Hire 2 engineers<br>
+        • Budget approved ✅<br><br>
+        Action items:<br>
+        1. Send recap to team<br>
+        2. Schedule follow-up
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 5: Trash Sheet (corrected: DraggableScrollableSheet) -->
+  <div class="phone-frame">
+    <div class="notch"></div>
+    <div class="screen-meta">Screen 05: Trash Bottom Sheet</div>
+    <div class="screen-content" style="padding: 0;">
+      <div style="padding: 20px; color: var(--text-muted); font-size: 11px; text-align: center;">
+        [Notes List Background —<br>dimmed behind sheet]
+      </div>
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div style="display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 8px;">
+          <span>🗑 Trash (3 items)</span>
+          <span style="color: #dc2626; font-size: 11px; font-weight: normal;">Empty Trash</span>
+        </div>
+        <div class="card" style="margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <strong>Old Note</strong><br>
+            <span style="font-size: 9px; color: var(--text-muted);">Deleted 5d ago</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <span class="button-outline" style="padding: 4px 8px;">↩ Restore</span>
+            <span class="button-outline" style="padding: 4px 8px; color: #dc2626;">🗑 Delete</span>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <strong>Draft ideas</strong><br>
+            <span style="font-size: 9px; color: var(--text-muted);">Deleted 2d ago</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <span class="button-outline" style="padding: 4px 8px;">↩ Restore</span>
+            <span class="button-outline" style="padding: 4px 8px; color: #dc2626;">🗑 Delete</span>
+          </div>
+        </div>
+        <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <strong>Temp note</strong><br>
+            <span style="font-size: 9px; color: var(--text-muted);">Deleted 1h ago</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <span class="button-outline" style="padding: 4px 8px;">↩ Restore</span>
+            <span class="button-outline" style="padding: 4px 8px; color: #dc2626;">🗑 Delete</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 6: Color Picker (corrected: 14 presets + custom) -->
+  <div class="phone-frame">
+    <div class="notch"></div>
+    <div class="screen-meta">Screen 06: Color Picker Sheet</div>
+    <div class="screen-content" style="padding: 0;">
+      <div style="padding: 20px; color: var(--text-muted); font-size: 11px; text-align: center;">[Editor Background — dimmed]</div>
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div style="font-weight: 700; margin-bottom: 8px;">Note Color</div>
+        <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">14 presets + custom</div>
+        <div>
+          <span class="color-dot" style="background: #ffffff; border: 2px solid #333;"></span>
+          <span class="color-dot" style="background: #ef4444;"></span>
+          <span class="color-dot" style="background: #ec4899;"></span>
+          <span class="color-dot" style="background: #a855f7;"></span>
+          <span class="color-dot" style="background: #6366f1;"></span>
+          <span class="color-dot" style="background: #3b82f6;"></span>
+          <span class="color-dot" style="background: #06b6d4;"></span>
+        </div>
+        <div style="margin: 6px 0;">
+          <span class="color-dot" style="background: #14b8a6;"></span>
+          <span class="color-dot" style="background: #22c55e;"></span>
+          <span class="color-dot" style="background: #84cc16;"></span>
+          <span class="color-dot" style="background: #eab308;"></span>
+          <span class="color-dot" style="background: #f97316;"></span>
+          <span class="color-dot" style="background: #78716c;"></span>
+          <span class="color-dot" style="background: #1e293b;"></span>
+        </div>
+        <div class="button-outline" style="text-align: center; margin: 8px 0; font-size: 10px;">
+          + Custom Color (HSV picker / Hex input)
+        </div>
+        <div class="button" style="width: 100%;">Apply</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="page-break"></div>
+
+<!-- ================= GROUP 2 ================= -->
+<div class="group-title">
+  <span>Group 2 — Person B: Habits + Calendar</span>
+  <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">Screens 07–12</span>
+</div>
+
+<div class="grid-container">
+
+  <!-- Screen 7: Habits Main (corrected: added monthly view) -->
+  <div class="phone-frame">
+    <div class="notch"></div>
+    <div class="screen-meta">Screen 07: Habits Main Screen</div>
+    <div class="screen-content">
+      <div class="app-bar"><span>Habits</span> <span>🔍 ✚</span></div>
+      <div class="card" style="background: var(--primary-light); border-color: #bfdbfe;">
+        <strong>✅ 5 of 8 habits done</strong>
+        <div style="background: #cbd5e1; height: 6px; border-radius: 3px; margin: 6px 0;">
+          <div style="background: var(--primary); width: 62%; height: 100%; border-radius: 3px;"></div>
+        </div>
+        <span style="font-size: 10px; color: var(--primary);">🎉 Keep going! (62%)</span>
+      </div>
+      <div style="font-size: 10px; color: var(--text-muted);">← drag to reorder</div>
+      <div class="grid-4" style="text-align: center;">
+        <div class="card" style="border: 2px solid #dbeafe;">💊<br>Medi<br>🔥12</div>
+        <div class="card">📖<br>Read<br>🔥5</div>
+        <div class="card">🏃<br>Run<br>🔥3</div>
+        <div class="card">🧘<br>Mind<br>🔥8</div>
+      </div>
+      <div class="card">
+        <strong>This Week</strong>
+        <div class="grid-7" style="margin-top: 6px; font-size: 9px;">
+          <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+          <span style="color: #22c55e;">●</span><span style="color: #22c55e;">●</span><span style="color: #22c55e;">●</span><span style="color: #cbd5e1;">○</span><span style="color: #cbd5e1;">○</span><span style="color: #cbd5e1;">○</span><span style="color: #cbd5e1;">○</span>
+        </div>
+      </div>
+      <div class="card">
+        <strong>June 2026</strong>
+        <div class="grid-7" style="margin-top: 4px; font-size: 8px; color: var(--text-muted);">
+          <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+          <span>1■</span><span>2■</span><span>3▣</span><span>4□</span><span>5□</span><span>6■</span><span>7■</span>
+          <span>8■</span><span>9□</span><span>10□</span><span>11■</span><span>12▣</span><span>13■</span><span>14■</span>
+          <span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span>
+          <span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span>
+          <span>29</span><span>30</span>
+        </div>
+        <div style="font-size: 9px; margin-top: 4px;">Completed: 12 | Streak: 3🔥 | Best: 7🏆</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 8: Add Habit Sheet (corrected: added color + reminder) -->
+  <div class="phone-frame">
+    <div class="notch"></div>
+    <div class="screen-meta">Screen 08: Add/Edit Habit Sheet</div>
+    <div class="screen-content" style="padding: 0;">
+      <div style="padding: 20px; color: var(--text-muted); font-size: 11px; text-align: center;">[Habits List Background]</div>
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div style="font-weight: 700; margin-bottom: 8px;">🌙 New Habit</div>
+        <div style="margin-bottom: 6px;">
+          <span style="font-size: 10px;">Name:</span>
+          <div class="card" style="padding: 6px; margin-top: 2px;">Morning Meditation</div>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="font-size: 10px;">Icon: ☀️</span>
+          <span class="button-outline" style="font-size: 10px;">Choose (55 options)</span>
+        </div>
+        <div style="margin-bottom: 6px;">
+          <span style="font-size: 10px;">Color:</span>
+          <div style="margin-top: 2px;">
+            <span class="color-dot" style="background: #3b82f6;"></span>
+            <span class="color-dot" style="background: #ef4444;"></span>
+            <span class="color-dot" style="background: #22c55e;"></span>
+            <span class="color-dot" style="background: #eab308;"></span>
+            <span class="color-dot" style="background: #a855f7;"></span>
+            <span class="color-dot" style="background: #ec4899;"></span>
+            <span class="color-dot" style="background: #f97316;"></span>
+            <span class="color-dot" style="background: #06b6d4;"></span>
+            <span class="color-dot" style="background: #14b8a6;"></span>
+            <span class="color-dot" style="background: #6366f1;"></span>
+            <span class="color-dot" style="background: #78716c;"></span>
+            <span class="color-dot" style="background: #1e293b;"></span>
+            <span style="font-size: 10px;">+ custom</span>
+          </div>
+        </div>
+        <div style="margin-bottom: 6px;">
+          <span style="font-size: 10px;">Type:</span>
+          <div class="grid-3" style="margin-top: 4px;">
+            <span class="button" style="font-size: 10px;">Yes/No</span>
+            <span class="button-outline" style="font-size: 10px; text-align: center;">Count+Target</span>
+            <span class="button-outline" style="font-size: 10px; text-align: center;">Free Count</span>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+          <span style="font-size: 10px;">⏰ Reminder: 7:00 AM</span>
+          <span style="font-size: 10px;">[Clear]</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <span class="button-outline" style="flex: 1; text-align: center;">Cancel</span>
+          <span class="button" style="flex: 1;">Create Habit</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 9: Icon Picker (corrected: shows 9 categories) -->
+  <div class="phone-frame">
+    <div class="notch"></div>
+    <div class="screen-meta">Screen 09: Icon Picker</div>
+    <div class="screen-content">
+      <div class="app-bar"><span>Choose Icon</span> <span style="color: var(--primary);">Done</span></div>
+      <div style="display: flex; gap: 4px; overflow-x: auto; font-size: 9px; padding: 4px 0;">
+        <span class="pill" style="background: var(--primary); color: white; border: none;">All</span>
+        <span class="pill">Health</span>
+        <span class="pill">Mind</span>
+        <span class="pill">Self-Care</span>
+        <span class="pill">Play</span>
+        <span class="pill">Finance</span>
+        <span class="pill">Social</span>
+        <span class="pill">Home</span>
+        <span class="pill">Goals</span>
+      </div>
+      <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">55 icons across 9 categories</div>
+      <div class="grid-5" style="text-align: center; font-size: 22px; gap: 6px;">
+        <div class="card" style="padding: 8px;">💊</div>
+        <div class="card" style="padding: 8px;">🏃</div>
+        <div class="card" style="padding: 8px; border: 2px solid var(--primary);">☀️</div>
+        <div class="card" style="padding: 8px;">🧘</div>
+        <div class="card" style="padding: 8px;">💧</div>
+        <div class="card" style="padding: 8px;">📖</div>
+        <div class="card" style="padding: 8px;">✍️</div>
+        <div class="card" style="padding: 8px;">🎯</div>
+        <div class="card" style="padding: 8px;">🧠</div>
+        <div class="card" style="padding: 8px;">😴</div>
+        <div class="card" style="padding: 8px;">💰</div>
+        <div class="card" style="padding: 8px;">🏠</div>
+        <div class="card" style="padding: 8px;">🎨</div>
+        <div class="card" style="padding: 8px;">🎵</div>
+        <div class="card" style="padding: 8px;">🥗</div>
+      </div>
+      <div style="margin-top: auto; text-align: center; font-size: 11px; color: var(--text-muted);">
+        Selected: ☀️ Morning Meditation
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 10: Monthly Heatmap (corrected: full month) -->
+  <div class="phone-frame">
+    <div class="notch"></div>
+    <div class="screen-meta">Screen 10: Monthly Heatmap View</div>
+    <div class="screen-content">
+      <div class="app-bar"><span>📅 June 2026</span> <span>&lt; Today &gt;</span></div>
+      <div class="card">
+        <div class="grid-7" style="font-weight: 600; font-size: 9px; color: var(--text-muted);">
+          <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+        </div>
+        <div class="grid-7" style="gap: 4px; font-size: 10px; margin-top: 4px;">
+          <div></div><div>1<br>■</div><div>2<br>■</div><div>3<br>▣</div><div>4<br>□</div><div>5<br>□</div><div>6<br>■</div>
+          <div>7<br>■</div><div>8<br>■</div><div>9<br>□</div><div>10<br>□</div><div>11<br>■</div><div>12<br>▣</div><div>13<br>■</div>
+          <div>14<br>■</div><div>15<br>□</div><div>16<br>□</div><div>17<br>□</div><div>18<br>■</div><div>19<br>■</div><div>20<br>□</div>
+          <div>21<br>□</div><div>22<br>□</div><div>23<br>□</div><div>24<br>■</div><div>25<br>■</div><div>26<br>□</div><div>27<br>□</div>
+          <div>28<br>□</div><div>29<br>□</div><div>30<br>▣</div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display: flex; justify-content: space-around; text-align: center;">
+          <div><strong>12</strong><br><span style="font-size: 9px; color: var(--text-muted);">Completed</span></div>
+          <div><strong>3🔥</strong><br><span style="font-size: 9px; color: var(--text-muted);">Current Streak</span></div>
+          <div><strong>7🏆</strong><br><span style="font-size: 9px; color: var(--text-muted);">Best Streak</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 11: Calendar Grid (corrected: day detail = sheet, not inline) -->
+  <div class="phone-frame">
+    <div class="notch"></div>
+    <div class="screen-meta">Screen 11: Calendar Grid</div>
+    <div class="screen-content" style="padding: 0;">
+      <div style="padding: 12px;">
+        <div class="app-bar"><span>← June 2026 →</span> <span>🔍 ✚</span></div>
+        <div class="grid-7" style="font-size: 9px; font-weight: 600; margin: 8px 0 4px; color: var(--text-muted);">
+          <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+        </div>
+        <div class="grid-7" style="gap: 4px; font-size: 10px; text-align: center;">
+          <div></div><div></div><div>1<br>●</div><div>2<br>●</div><div>3</div><div>4</div><div>5</div>
+          <div>6</div><div>7</div><div>8</div><div>9</div><div>10<br>●</div><div>11<br>●</div><div>12</div>
+          <div>13</div><div>14</div><div>15</div><div>16</div><div>17</div><div>18</div><div>19</div>
+          <div>20</div><div>21</div><div>22</div><div>23</div><div>24</div><div>25</div><div>26</div>
+          <div>27</div><div>28</div><div>29</div><div>30</div>
+        </div>
+        <div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">
+          <span>Filter: [All ▼]</span>
+        </div>
+      </div>
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div style="font-weight: 700; font-size: 11px;">📅 Wednesday, June 3</div>
+        <div class="card" style="margin-top: 6px; display: flex; justify-content: space-between;">
+          <div><span class="badge" style="background: #f97316;">Work</span> 10:00 Dentist appt</div>
+          <div style="font-size: 10px;">✏️ 🗑</div>
+        </div>
+        <div class="card" style="margin-top: 4px; display: flex; justify-content: space-between;">
+          <div><span class="badge" style="background: #3b82f6;">General</span> 14:00 Team standup</div>
+          <div style="font-size: 10px;">✏️ 🗑</div>
+        </div>
+        <div class="button-outline" style="text-align: center; margin-top: 8px; font-size: 10px;">+ Add Event</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 12: Event Editor (corrected: added recurrence) -->
+  <div class="phone-frame">
+    <div class="notch"></div>
+    <div class="screen-meta">Screen 12: Event Editor Sheet</div>
+    <div class="screen-content" style="padding: 0;">
+      <div style="padding: 20px; color: var(--text-muted); font-size: 11px; text-align: center;">[Calendar Background]</div>
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div style="font-weight: 700; margin-bottom: 8px;">New Event</div>
+        <div class="card" style="padding: 8px; margin-bottom: 6px;">Title: Dentist Appointment</div>
+        <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 6px;">
+          <span class="button-outline" style="font-size: 10px;">📅 June 15, 2026</span>
+          <span class="button-outline" style="font-size: 10px;">⏰ 10:00 AM</span>
+        </div>
+        <div style="margin-bottom: 6px;">
+          <span style="font-size: 10px;">Category:</span>
+          <div style="display: flex; gap: 4px; margin-top: 2px; font-size: 10px;">
+            <span class="button-outline">General</span>
+            <span class="button-outline">Work</span>
+            <span class="button" style="font-size: 10px;">Personal</span>
+            <span class="button-outline">Urgent</span>
+          </div>
+        </div>
+        <div class="card" style="padding: 8px; font-size: 10px; margin-bottom: 6px;">
+          <span style="color: var(--text-muted);">Notes:</span> Remember to ask about the X-ray
+        </div>
+        <div style="margin-bottom: 6px;">
+          <span style="font-size: 10px;">Repeats: <strong>Weekly</strong></span>
+          <span style="font-size: 10px; color: var(--text-muted); margin-left: 8px;">Until: 📅 Dec 31, 2026</span>
+        </div>
+        <div style="font-size: 9px; color: var(--text-muted); margin-bottom: 8px;">
+          Options: None | Daily | Weekly | Monthly | Yearly
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <span class="button-outline" style="flex: 1; text-align: center; color: #dc2626;">Delete</span>
+          <span class="button" style="flex: 1;">Save</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="page-break"></div>
+
+<!-- ================= GROUP 3 ================= -->
+<div class="group-title">
+  <span>Group 3 — Person C: Calculator + Life Tracker + Settings</span>
+  <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">Screens 13–18</span>
+</div>
+
+<div class="grid-container">
+
+  <!-- Screen 13: Calculator Basic (correct) -->
+  <div class="phone-frame">
+    <div class="notch"></div>
+    <div class="screen-meta">Screen 13: Calculator — Basic Mode</div>
+    <div class="screen-content">
+      <div class="app-bar"><span>Calculator</span> <span>SCI ON 📋</span></div>
+      <div class="card" style="text-align: right; font-size: 16px; font-weight: 700; min-height: 60px;">
+        <span style="font-size: 10px; color: var(--text-muted); font-weight: normal;">23 + 45</span><br>= 68
+      </div>
+      <div style="font-size: 9px; color: var(--text-muted); text-align: right;">50 char limit • Error: shows "Error"</div>
+      <div class="grid-4" style="gap: 6px; text-align: center; font-weight: 600; margin-top: auto;">
+        <div class="card" style="background: #f1f5f9;">C</div>
+        <div class="card" style="background: #f1f5f9;">±</div>
+        <div class="card" style="background: #f1f5f9;">%</div>
+        <div class="card" style="background: #ffe4e6; color: #dc2626;">÷</div>
+        <div class="card">7</div>
+        <div class="card">8</div>
+        <div class="card">9</div>
+        <div class="card" style="background: #ffe4e6; color: #dc2626;">×</div>
+        <div class="card">4</div>
+        <div class="card">5</div>
+        <div class="card">6</div>
+        <div class="card" style="background: #ffe4e6; color: #dc2626;">−</div>
+        <div class="card">1</div>
+        <div class="card">2</div>
+        <div class="card">3</div>
+        <div class="card" style="background: #ffe4e6; color: #dc2626;">+</div>
+        <div class="card" style="grid-column: span 2;">0</div>
+        <div class="card">.</div>
+        <div class="button" style="background: #2563eb;">=</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 14: Calculator Scientific (correct) -->
+  <div class="phone-frame">
+    <div class="notch"></div>
+    <div class="screen-meta">Screen 14: Calculator — Scientific Mode</div>
+    <div class="screen-content">
+      <div class="app-bar"><span>Calculator <span class="badge" style="background: #2563eb; color: white;">SCI</span></span> <span>BASIC 📋</span></div>
+      <div class="card" style="text-align: right; font-size: 14px; font-weight: 700; min-height: 60px;">
+        <span style="font-size: 10px; color: var(--text-muted); font-weight: normal;">sin(45)</span><br>= 0.707
+      </div>
+      <div class="grid-4" style="gap: 4px; text-align: center; font-size: 10px;">
+        <div class="card" style="background: #f0fdf4;">sin</div>
+        <div class="card" style="background: #f0fdf4;">cos</div>
+        <div class="card" style="background: #f0fdf4;">tan</div>
+        <div class="card" style="background: #f0fdf4;">log</div>
+        <div class="card" style="background: #f0fdf4;">ln</div>
+        <div class="card" style="background: #f0fdf4;">√</div>
+        <div class="card" style="background: #f0fdf4;">x²</div>
+        <div class="card" style="background: #f0fdf4;">^</div>
+        <div class="card" style="background: #f0fdf4;">π</div>
+        <div class="card" style="background: #f0fdf4;">e</div>
+        <div class="card" style="background: #f0fdf4;">(</div>
+        <div class="card" style="background: #f0fdf4;">)</div>
+      </div>
+      <div style="font-size: 9px; color: var(--text-muted); text-align: center;">— Memory —</div>
+      <div class="grid-4" style="gap: 4px; text-align: center; font-size: 10px;">
+        <div class="card" style="background: #fef3c7;">MC</div>
+        <div class="card" style="background: #fef3c7;">MR</div>
+        <div class="card" style="background: #fef3c7;">M+</div>
+        <div class="card" style="background: #fef3c7;">M−</div>
+      </div>
+      <div class="grid-4" style="gap: 4px; text-align: center; font-weight: 600; font-size: 11px;">
+        <div class="card" style="background: #f1f5f9;">C</div>
+        <div class="card" style="background: #f1f5f9;">±</div>
+        <div class="card" style="background: #f1f5f9;">%</div>
+        <div class="card" style="background: #ffe4e6; color: #dc2626;">÷</div>
+        <div class="card">7</div> <div class="card">8</div> <div class="card">9</div>
+        <div class="card" style="background: #ffe4e6; color: #dc2626;">×</div>
+        <div class="card">4</div> <div class="card">5</div> <div class="card">6</div>
+        <div class="card" style="background: #ffe4e6; color: #dc2626;">−</div>
+        <div class="card">1</div> <div class="card">2</div> <div class="card">3</div>
+        <div class="card" style="background: #ffe4e6; color: #dc2626;">+</div>
+        <div class="card" style="grid-column: span 2;">0</div>
+        <div class="card">.</div>
+        <div class="button" style="background: #2563eb;">=</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 15: Calculator History (correct) -->
+  <div class="phone-frame">
+    <div class="notch"></div>
+    <div class="screen-meta">Screen 15: Calculator History Sheet</div>
+    <div class="screen-content" style="padding: 0;">
+      <div style="padding: 20px; color: var(--text-muted); font-size: 11px; text-align: center;">
+        [Calculator Keypad Background<br>— dimmed behind sheet]
+      </div>
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div style="display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 8px;">
+          <span>📋 History</span>
+          <span style="color: #dc2626; font-size: 10px;">Clear All</span>
+        </div>
+        <div class="card" style="margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+          <div><strong>23 + 45 = 68</strong><br><span style="font-size: 9px; color: var(--text-muted);">Just now</span></div>
+          <span style="font-size: 10px;">↩</span>
+        </div>
+        <div class="card" style="margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+          <div><strong>100 × 3.14 = 314</strong><br><span style="font-size: 9px; color: var(--text-muted);">5 min ago</span></div>
+          <span style="font-size: 10px;">↩</span>
+        </div>
+        <div class="card" style="margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+          <div><strong>sin(30) = 0.5</strong><br><span style="font-size: 9px; color: var(--text-muted);">1h ago</span></div>
+          <span style="font-size: 10px;">↩</span>
+        </div>
+        <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+          <div><strong>252 ÷ 12 = 21</strong><br><span style="font-size: 9px; color: var(--text-muted);">Yesterday</span></div>
+          <span style="font-size: 10px;">↩</span>
+        </div>
+        <div style="font-size: 9px; color: var(--text-muted); text-align: center; margin-top: 6px;">Last 50 entries • Tap to reload</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 16: Life Tracker Empty (correct) -->
+  <div class="phone-frame">
+    <div class="notch"></div>
+    <div class="screen-meta">Screen 16: Life Tracker — No DOB Set</div>
+    <div class="screen-content" style="justify-content: center; text-align: center; gap: 16px;">
+      <div style="font-size: 56px;">⌛</div>
+      <div>
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 6px;">Track Your Journey</h3>
+        <p style="font-size: 11px; color: var(--text-muted); line-height: 1.5; max-width: 260px; margin: 0 auto;">
+          Enter your date of birth to see how much life you've lived and how much remains.
+        </p>
+      </div>
+      <div class="button" style="margin: 0 30px;">📅 Enter Date of Birth</div>
+    </div>
+  </div>
+
+  <!-- Screen 17: Life Tracker Main (corrected: 5 metrics) -->
+  <div class="phone-frame">
+    <div class="notch"></div>
+    <div class="screen-meta">Screen 17: Life Tracker — With Data</div>
+    <div class="screen-content">
+      <div class="app-bar"><span>Life Tracker</span> <span>⚙️ Change DOB 🔄</span></div>
+      <div class="card" style="text-align: center; background: var(--primary-light);">
+        <span style="font-size: 10px; color: var(--text-muted);">Born: Jun 15, 2000</span><br>
+        <strong style="font-size: 18px; color: var(--primary);">25 yrs, 3 mos, 14 days</strong><br>
+        <span style="font-size: 9px; color: var(--text-muted);">updates every 1 second</span>
+      </div>
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; font-size: 11px;">
+          <span>Life Progress:</span> <strong>31.4%</strong>
+        </div>
+        <div style="background: #cbd5e1; height: 8px; border-radius: 4px; margin: 6px 0;">
+          <div style="background: var(--primary); width: 31.4%; height: 100%; border-radius: 4px;"></div>
+        </div>
+        <span style="font-size: 9px; color: var(--text-muted);">Expected remaining: 54 yrs, 8 mos, 16 days</span>
+      </div>
+      <div style="font-size: 10px; color: var(--text-muted); text-align: center;">Life expectancy: 80 years</div>
+      <div class="grid-5" style="text-align: center; gap: 4px;">
+        <div class="card" style="padding: 6px;"><strong>9,273</strong><br><span style="font-size: 8px;">Days</span></div>
+        <div class="card" style="padding: 6px;"><strong>1,325</strong><br><span style="font-size: 8px;">Weeks</span></div>
+        <div class="card" style="padding: 6px;"><strong>222.5k</strong><br><span style="font-size: 8px;">Hours</span></div>
+        <div class="card" style="padding: 6px;"><strong>13.3M</strong><br><span style="font-size: 8px;">Mins</span></div>
+        <div class="card" style="padding: 6px;"><strong>800M</strong><br><span style="font-size: 8px;">Secs</span></div>
+      </div>
+      <div style="font-size: 9px; color: var(--text-muted); text-align: center;">
+        Color: 🔵 &lt;50% &nbsp; 🟡 50-80% &nbsp; 🔴 &gt;80%
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 18: Settings (corrected: full sections) -->
+  <div class="phone-frame">
+    <div class="notch"></div>
+    <div class="screen-meta">Screen 18: Settings — Full Screen</div>
+    <div class="screen-content" style="gap: 4px;">
+      <div class="app-bar"><span>Settings</span></div>
+
+      <div style="font-weight: 700; font-size: 11px; color: var(--primary); margin-top: 4px;">APPEARANCE</div>
+      <div style="display: flex; justify-content: space-between; font-size: 10px;">
+        <span>Theme</span> <span class="button-outline" style="font-size: 10px;">Light ▼</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 10px;">
+        <span>Color seed</span>
+        <span>🔵 🟢 🟡 🟠 🔴 🩷 🟣 + custom</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 10px;">
+        <span>Week starts Monday</span> <span>[ON]</span>
+      </div>
+
+      <div style="font-weight: 700; font-size: 11px; color: var(--primary); margin-top: 4px;">NOTIFICATIONS</div>
+      <div style="display: flex; justify-content: space-between; font-size: 10px;">
+        <span>Enable notifications</span> <span>[ON]</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 10px; padding-left: 16px;">
+        <span>Habit reminders</span> <span>[ON]</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 10px; padding-left: 16px;">
+        <span>Event reminders</span> <span>[ON]</span>
+      </div>
+
+      <div style="font-weight: 700; font-size: 11px; color: var(--primary); margin-top: 4px;">DATA MANAGEMENT</div>
+      <div class="grid-3" style="gap: 4px;">
+        <span class="button-outline" style="text-align: center; font-size: 9px;">📤 Export JSON</span>
+        <span class="button-outline" style="text-align: center; font-size: 9px;">📥 Import JSON</span>
+        <span class="button-outline" style="text-align: center; font-size: 9px; color: #dc2626;">🗑 Clear All</span>
+      </div>
+
+      <div style="font-weight: 700; font-size: 11px; color: var(--primary); margin-top: 4px;">LIFE TRACKER</div>
+      <div style="font-size: 10px;">DOB: Jun 15, 2000 [Change]</div>
+      <div style="font-size: 10px;">Life expectancy: 80 yrs [Edit]</div>
+      <div style="font-size: 10px;">[Reset Life Tracker]</div>
+
+      <div style="font-weight: 700; font-size: 11px; color: var(--primary); margin-top: 4px;">CALCULATOR</div>
+      <div style="display: flex; justify-content: space-between; font-size: 10px;">
+        <span>Scientific mode</span> <span>[OFF]</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 10px;">
+        <span>Copy result on tap</span> <span>[ON]</span>
+      </div>
+      <div style="font-size: 10px;">[Clear History]</div>
+
+      <div style="font-weight: 700; font-size: 11px; color: var(--primary); margin-top: 4px;">ABOUT</div>
+      <div style="font-size: 10px;">Version: 1.0.0+1</div>
+      <div style="font-size: 10px;">[Source Code] [Licenses] [Show Tutorial]</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
