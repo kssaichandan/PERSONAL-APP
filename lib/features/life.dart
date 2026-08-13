@@ -338,7 +338,7 @@ class _LifeScreenContentState extends State<_LifeScreenContent>
         top: false,
         child: StreamBuilder<DateTime>(
         stream: Stream.periodic(
-          const Duration(seconds: 60),
+          const Duration(seconds: 1),
           (_) => DateTime.now(),
         ),
         initialData: DateTime.now(),
@@ -655,6 +655,21 @@ class _LifeScreenContentState extends State<_LifeScreenContent>
                                   ),
                                 ),
                               ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.tertiary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'Live Ticker: ${remainingDuration.inHours % 24}h : ${remainingDuration.inMinutes % 60}m : ${remainingDuration.inSeconds % 60}s remaining',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.tertiary,
                             ),
                           ),
                         ),

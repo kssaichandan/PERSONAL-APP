@@ -2392,7 +2392,7 @@ class _TodayProgressCard extends StatelessWidget {
                     strokeWidth: 4.5,
                     backgroundColor: theme.colorScheme.surfaceContainerHighest,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      progress == 1.0 ? Colors.amber : theme.colorScheme.primary,
+                      progress == 1.0 ? theme.colorScheme.tertiary : theme.colorScheme.primary,
                     ),
                   ),
                 ),
@@ -2400,7 +2400,7 @@ class _TodayProgressCard extends StatelessWidget {
                   progress == 1.0
                       ? Icons.emoji_events_rounded
                       : Icons.local_fire_department_rounded,
-                  color: progress == 1.0 ? Colors.amber : theme.colorScheme.primary,
+                  color: progress == 1.0 ? theme.colorScheme.tertiary : theme.colorScheme.primary,
                   size: 24,
                 ),
               ],
@@ -2434,7 +2434,7 @@ class _TodayProgressCard extends StatelessWidget {
                           fontWeight: FontWeight.w900,
                           fontSize: 14.5,
                           color: progress == 1.0
-                              ? Colors.amber.shade700
+                              ? theme.colorScheme.tertiary
                               : theme.colorScheme.primary,
                         ),
                       ),

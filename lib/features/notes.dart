@@ -677,10 +677,10 @@ class NotesScreen extends StatelessWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.star,
                                   size: 12,
-                                  color: Colors.amber,
+                                  color: Theme.of(context).colorScheme.tertiary,
                                 ),
                                 const SizedBox(width: 2),
                                 Text(
@@ -1123,10 +1123,10 @@ class _NoteCard extends StatelessWidget {
                             ),
                           ),
                         if (note.favorite)
-                          const Icon(
+                          Icon(
                             Icons.star_rounded,
                             size: 16,
-                            color: Colors.amber,
+                            color: theme.colorScheme.tertiary,
                           ),
                         if (note.reminderTime != null)
                           Icon(
@@ -1655,7 +1655,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
             IconButton(
               icon: Icon(
                 _editingNote?.favorite == true ? Icons.star : Icons.star_border,
-                color: _editingNote?.favorite == true ? Colors.amber : null,
+                color: _editingNote?.favorite == true ? theme.colorScheme.tertiary : null,
               ),
               tooltip: 'Favorite',
               onPressed:
