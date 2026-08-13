@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -282,18 +283,27 @@ class _LifeScreenContent extends StatefulWidget {
 class _LifeScreenContentState extends State<_LifeScreenContent>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pulseController;
+  late DateTime _now;
+  late final Timer _tickerTimer;
 
   @override
   void initState() {
     super.initState();
+    _now = DateTime.now();
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
+    _tickerTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        setState(() => _now = DateTime.now());
+      }
+    });
   }
 
   @override
   void dispose() {
+    _tickerTimer.cancel();
     _pulseController.dispose();
     super.dispose();
   }
@@ -301,6 +311,7 @@ class _LifeScreenContentState extends State<_LifeScreenContent>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final now = _now;
 
     return Scaffold(
       appBar: AppBar(
@@ -331,100 +342,96 @@ class _LifeScreenContentState extends State<_LifeScreenContent>
               _confirmReset(context, widget.provider);
             },
           ),
-
         ],
       ),
       body: SafeArea(
         top: false,
-        child: StreamBuilder<DateTime>(
-        stream: Stream.periodic(
-          const Duration(seconds: 1),
-          (_) => DateTime.now(),
-        ),
-        initialData: DateTime.now(),
-        builder: (context, snapshot) {
-          final now = snapshot.data!;
-          final difference = now.difference(widget.dob);
-          int years = now.year - widget.dob.year;
-          int months = now.month - widget.dob.month;
-          int days = now.day - widget.dob.day;
-          if (days < 0) {
-            months--;
-            final prevMonth = DateTime(now.year, now.month, 0);
-            days += prevMonth.day;
-          }
-          if (months < 0) {
-            years--;
-            months += 12;
-          }
+        child: Builder(
+          builder: (context) {
+            final difference = now.difference(widget.dob);
+            int years = now.year - widget.dob.year;
+            int months = now.month - widget.dob.month;
+            int days = now.day - widget.dob.day;
+            if (days < 0) {
+              months--;
+              final prevMonth = DateTime(now.year, now.month, 0);
+              days += prevMonth.day;
+            }
+            if (months < 0) {
+              years--;
+              months += 12;
+            }
 
-          final totalDays = difference.inDays;
-          final totalHours = difference.inHours;
-          final totalMinutes = difference.inMinutes;
-          final totalSeconds = difference.inSeconds;
-          final totalExpectedDays = widget.expectedYears * 365.25;
-          final lifePercentage = (totalDays / totalExpectedDays) * 100;
-          final formattedPercentage = lifePercentage.toStringAsFixed(2);
+            final totalDays = difference.inDays;
+            final totalHours = difference.inHours;
+            final totalMinutes = difference.inMinutes;
+            final totalSeconds = difference.inSeconds;
+            final totalExpectedDays = widget.expectedYears * 365.25;
+            final lifePercentage = (totalDays / totalExpectedDays) * 100;
+            final formattedPercentage = lifePercentage.toStringAsFixed(2);
 
-          final expectedDeathDate = DateTime(
-            widget.dob.year + widget.expectedYears,
-            widget.dob.month,
-            widget.dob.day,
-          );
-          final remainingDuration = expectedDeathDate.difference(now);
-          int remainingYears = expectedDeathDate.year - now.year;
-          int remainingMonths = expectedDeathDate.month - now.month;
-          int remainingDays = expectedDeathDate.day - now.day;
-          if (remainingDays < 0) {
-            remainingMonths--;
-            final prevMonth = DateTime(
-              expectedDeathDate.year,
-              expectedDeathDate.month,
-              0,
+            final expectedDeathDate = DateTime(
+              widget.dob.year + widget.expectedYears,
+              widget.dob.month,
+              widget.dob.day,
             );
-            remainingDays += prevMonth.day;
-          }
-          if (remainingMonths < 0) {
-            remainingYears--;
-            remainingMonths += 12;
-          }
-          if (remainingDuration.isNegative) {
-            remainingYears = 0;
-            remainingMonths = 0;
-            remainingDays = 0;
-          }
+            final remainingDuration = expectedDeathDate.difference(now);
+            int remainingYears = expectedDeathDate.year - now.year;
+            int remainingMonths = expectedDeathDate.month - now.month;
+            int remainingDays = expectedDeathDate.day - now.day;
+            if (remainingDays < 0) {
+              remainingMonths--;
+              final prevMonth = DateTime(
+                expectedDeathDate.year,
+                expectedDeathDate.month,
+                0,
+              );
+              remainingDays += prevMonth.day;
+            }
+            if (remainingMonths < 0) {
+              remainingYears--;
+              remainingMonths += 12;
+            }
+            if (remainingDuration.isNegative) {
+              remainingYears = 0;
+              remainingMonths = 0;
+              remainingDays = 0;
+            }
 
-          final progressColor =
-              lifePercentage < 50
-                  ? theme.colorScheme.primary
-                  : lifePercentage < 80
-                  ? theme.colorScheme.tertiary
-                  : theme.colorScheme.error;
+            final progressColor =
+                lifePercentage < 50
+                    ? theme.colorScheme.primary
+                    : lifePercentage < 80
+                    ? theme.colorScheme.tertiary
+                    : theme.colorScheme.error;
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Card(
-                  elevation: 0,
-                  color: theme.colorScheme.primaryContainer.withValues(
-                    alpha: 0.3,
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      children: [
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Row(
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Card(
+                    elevation: 0,
+                    color: theme.colorScheme.primaryContainer.withValues(
+                      alpha: 0.3,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(
-                                'TIME ELAPSED SINCE BIRTH',
-                                style: theme.textTheme.labelLarge?.copyWith(
-                                  letterSpacing: 1.5,
-                                  color: theme.colorScheme.primary,
+                              Flexible(
+                                child: Text(
+                                  'TIME ELAPSED SINCE BIRTH',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    letterSpacing: 1.2,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.primary,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -434,7 +441,6 @@ class _LifeScreenContentState extends State<_LifeScreenContent>
                               ),
                             ],
                           ),
-                        ),
                         const SizedBox(height: 16),
                         Semantics(
                           label:

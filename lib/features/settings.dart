@@ -207,44 +207,115 @@ class _AppearanceSection extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Accent Color Picker Tile
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: settings.colorSeed.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.color_lens_rounded, color: settings.colorSeed, size: 20),
-            ),
-            title: const Text('Accent Color', style: TextStyle(fontWeight: FontWeight.w600)),
-            subtitle: const Text('Customize your primary app accent'),
-            trailing: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: settings.colorSeed,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
-                  width: 2,
+          // Masterpiece Accent Color Picker Tile
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: settings.colorSeed.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.palette_rounded, color: settings.colorSeed, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Accent Color Theme', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            Text(
+                              'Universal primary app accent',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        _showColorPicker(context, settings);
+                      },
+                      icon: const Icon(Icons.tune_rounded, size: 16),
+                      label: const Text('More'),
+                    ),
+                  ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: settings.colorSeed.withValues(alpha: 0.4),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ],
               ),
-            ),
-            onTap: () {
-              HapticFeedback.selectionClick();
-              _showColorPicker(context, settings);
-            },
+              const SizedBox(height: 10),
+              // Horizontal Quick Color Palette Strip
+              SizedBox(
+                height: 48,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  children: [
+                    Colors.blue,
+                    Colors.indigo,
+                    Colors.teal,
+                    Colors.cyan,
+                    Colors.green,
+                    Colors.amber,
+                    Colors.orange,
+                    Colors.deepOrange,
+                    Colors.red,
+                    Colors.purple,
+                    Colors.pink,
+                  ].map((color) {
+                    final isSelected = settings.colorSeed.toARGB32() == color.toARGB32();
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 10),
+                      child: GestureDetector(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          settings.setColorSeed(color);
+                          showSuccessSnackBar(context, 'Accent theme updated');
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSelected ? theme.colorScheme.onSurface : Colors.transparent,
+                              width: isSelected ? 3 : 0,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: color.withValues(alpha: isSelected ? 0.5 : 0.2),
+                                blurRadius: isSelected ? 10 : 4,
+                                spreadRadius: isSelected ? 2 : 0,
+                              ),
+                            ],
+                          ),
+                          child: isSelected
+                              ? Icon(
+                                  Icons.check_rounded,
+                                  color: color.computeLuminance() > 0.5 ? Colors.black87 : Colors.white,
+                                  size: 20,
+                                )
+                              : null,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
           ),
-          const Divider(height: 16, indent: 4, endIndent: 4),
+          const Divider(height: 24, indent: 4, endIndent: 4),
           
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 4),

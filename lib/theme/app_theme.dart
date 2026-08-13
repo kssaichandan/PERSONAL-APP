@@ -50,35 +50,37 @@ class AppTheme {
         iconTheme: IconThemeData(color: colorScheme.onSurface),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 68,
+        height: 64,
         elevation: 0,
         backgroundColor: colorScheme.surfaceContainer,
         indicatorColor: colorScheme.primaryContainer,
         indicatorShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
         ),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return TextStyle(
-              fontSize: 10.5,
+              fontSize: 9.5,
               fontWeight: FontWeight.bold,
               color: colorScheme.primary,
-              letterSpacing: -0.1,
+              letterSpacing: -0.4,
+              overflow: TextOverflow.fade,
             );
           }
           return TextStyle(
-            fontSize: 10.5,
-            fontWeight: FontWeight.w500,
+            fontSize: 9.5,
+            fontWeight: FontWeight.w600,
             color: colorScheme.onSurfaceVariant,
-            letterSpacing: -0.1,
+            letterSpacing: -0.4,
+            overflow: TextOverflow.fade,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return IconThemeData(color: colorScheme.onPrimaryContainer, size: 22);
+            return IconThemeData(color: colorScheme.onPrimaryContainer, size: 20);
           }
-          return IconThemeData(color: colorScheme.onSurfaceVariant, size: 22);
+          return IconThemeData(color: colorScheme.onSurfaceVariant, size: 20);
         }),
       ),
       navigationRailTheme: NavigationRailThemeData(
@@ -224,35 +226,37 @@ class AppTheme {
         iconTheme: IconThemeData(color: colorScheme.onSurface),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 68,
+        height: 64,
         elevation: 0,
         backgroundColor: colorScheme.surfaceContainer,
         indicatorColor: colorScheme.primaryContainer,
         indicatorShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
         ),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return TextStyle(
-              fontSize: 10.5,
+              fontSize: 9.5,
               fontWeight: FontWeight.bold,
               color: colorScheme.primary,
-              letterSpacing: -0.1,
+              letterSpacing: -0.4,
+              overflow: TextOverflow.fade,
             );
           }
           return TextStyle(
-            fontSize: 10.5,
-            fontWeight: FontWeight.w500,
+            fontSize: 9.5,
+            fontWeight: FontWeight.w600,
             color: colorScheme.onSurfaceVariant,
-            letterSpacing: -0.1,
+            letterSpacing: -0.4,
+            overflow: TextOverflow.fade,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return IconThemeData(color: colorScheme.onPrimaryContainer, size: 22);
+            return IconThemeData(color: colorScheme.onPrimaryContainer, size: 20);
           }
-          return IconThemeData(color: colorScheme.onSurfaceVariant, size: 22);
+          return IconThemeData(color: colorScheme.onSurfaceVariant, size: 20);
         }),
       ),
       navigationRailTheme: NavigationRailThemeData(
