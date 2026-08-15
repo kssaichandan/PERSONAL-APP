@@ -64,24 +64,20 @@ class _SettingsSectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+    return Material(
+      color: theme.colorScheme.surface,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
+        side: BorderSide(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: theme.colorScheme.shadow.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
-      padding: const EdgeInsets.all(16),
-      child: child,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: child,
+      ),
     );
   }
 }
@@ -216,30 +212,34 @@ class _AppearanceSection extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: settings.colorSeed.withValues(alpha: 0.15),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(Icons.palette_rounded, color: settings.colorSeed, size: 20),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Accent Color Theme', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                            Text(
-                              'Universal primary app accent',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: settings.colorSeed.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
                             ),
-                          ],
-                        ),
-                      ],
+                            child: Icon(Icons.palette_rounded, color: settings.colorSeed, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Accent Color Theme', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                Text(
+                                  'Universal primary app accent',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     TextButton.icon(
                       onPressed: () {
@@ -315,7 +315,7 @@ class _AppearanceSection extends StatelessWidget {
               ),
             ],
           ),
-          const Divider(height: 24, indent: 4, endIndent: 4),
+          const Divider(height: 16, indent: 4, endIndent: 4),
           
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 4),
@@ -432,8 +432,8 @@ class _AppearanceSection extends StatelessWidget {
             maxHeight: MediaQuery.of(context).size.height * 0.7,
           ),
           padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
+            left: 16,
+            right: 16,
             top: 16,
             bottom: MediaQuery.of(context).viewInsets.bottom + 24,
           ),
@@ -628,8 +628,8 @@ class _ThemePreviewCard extends StatelessWidget {
     final isDarkMockup = mode == ThemeMode.dark ||
         (mode == ThemeMode.system && MediaQuery.of(context).platformBrightness == Brightness.dark);
 
-    final bgMockup = isDarkMockup ? const Color(0xFF1E1E2C) : const Color(0xFFF2F4F7);
-    final cardMockup = isDarkMockup ? const Color(0xFF2D2D42) : Colors.white;
+    final bgMockup = isDarkMockup ? theme.colorScheme.surfaceDim : theme.colorScheme.surfaceContainerLow;
+    final cardMockup = isDarkMockup ? theme.colorScheme.surfaceContainerLow : theme.colorScheme.surface;
 
     return Material(
       color: Colors.transparent,
@@ -1168,11 +1168,11 @@ class _DataSectionState extends State<_DataSection> {
             const SizedBox(height: 12),
 
             // Dedicated Destructive Action Warning Container
-            Container(
-              decoration: BoxDecoration(
-                color: theme.colorScheme.errorContainer.withValues(alpha: 0.25),
+            Material(
+              color: theme.colorScheme.errorContainer.withValues(alpha: 0.25),
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(
+                side: BorderSide(
                   color: theme.colorScheme.error.withValues(alpha: 0.3),
                 ),
               ),

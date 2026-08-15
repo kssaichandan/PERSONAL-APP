@@ -103,6 +103,15 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _tab = 0;
 
+  static const List<Widget> _screens = [
+    NotesScreen(key: ValueKey('NotesScreen')),
+    HabitsScreen(key: ValueKey('HabitsScreen')),
+    CalendarScreen(key: ValueKey('CalendarScreen')),
+    CalculatorScreen(key: ValueKey('CalculatorScreen')),
+    LifeScreen(key: ValueKey('LifeScreen')),
+    SettingsScreen(key: ValueKey('SettingsScreen')),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -120,25 +129,6 @@ class _MainScreenState extends State<MainScreen> {
     if (index != _tab) {
       HapticFeedback.selectionClick();
       setState(() => _tab = index);
-    }
-  }
-
-  Widget _buildCurrentScreen() {
-    switch (_tab) {
-      case 0:
-        return const NotesScreen(key: ValueKey('NotesScreen'));
-      case 1:
-        return const HabitsScreen(key: ValueKey('HabitsScreen'));
-      case 2:
-        return const CalendarScreen(key: ValueKey('CalendarScreen'));
-      case 3:
-        return const CalculatorScreen(key: ValueKey('CalculatorScreen'));
-      case 4:
-        return const LifeScreen(key: ValueKey('LifeScreen'));
-      case 5:
-        return const SettingsScreen(key: ValueKey('SettingsScreen'));
-      default:
-        return const NotesScreen(key: ValueKey('NotesScreen'));
     }
   }
 
@@ -167,8 +157,8 @@ class _MainScreenState extends State<MainScreen> {
       NavigationDestination(
         icon: Icon(Icons.calculate_outlined),
         selectedIcon: Icon(Icons.calculate_rounded),
-        label: 'Calculator',
-        tooltip: 'Calculator',
+        label: 'Calc',
+        tooltip: 'Calc',
       ),
       NavigationDestination(
         icon: Icon(Icons.hourglass_empty_rounded),
@@ -184,102 +174,100 @@ class _MainScreenState extends State<MainScreen> {
       ),
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 600;
-        return Scaffold(
-          body: SafeArea(
-            bottom: false,
-            child: Row(
-              children: [
-                if (isWide)
-                  NavigationRail(
-                    selectedIndex: _tab,
-                    onDestinationSelected: _selectTab,
-                    labelType: NavigationRailLabelType.all,
-                    backgroundColor: theme.colorScheme.surfaceContainer,
-                    leading: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              theme.colorScheme.primaryContainer,
-                              theme.colorScheme.primary.withValues(alpha: 0.8),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: theme.colorScheme.primary.withValues(alpha: 0.25),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.dashboard_rounded,
-                          color: theme.colorScheme.onPrimary,
-                          size: 24,
-                        ),
-                      ),
-                    ),
-                    destinations:
-                        destinations
-                            .map(
-                              (destination) => NavigationRailDestination(
-                                icon: destination.icon,
-                                selectedIcon: destination.selectedIcon,
-                                label: Text(destination.label),
-                              ),
-                            )
-                            .toList(),
-                  ),
-                Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    switchInCurve: Curves.fastOutSlowIn,
-                    switchOutCurve: Curves.easeInOutCubic,
-                    transitionBuilder: (child, animation) {
-                      return FadeTransition(
-                        opacity: animation,
-                        child: ScaleTransition(
-                          scale: Tween<double>(begin: 0.96, end: 1.0).animate(animation),
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: _buildCurrentScreen(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          bottomNavigationBar:
-              isWide
-                  ? null
-                  : Container(
-                      decoration: BoxDecoration(
-                        border: Border(
-                          top: BorderSide(
-                            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-                            width: 1,
-                          ),
-                        ),
-                      ),
-                      child: NavigationBar(
-                        selectedIndex: _tab,
-                        onDestinationSelected: _selectTab,
-                        labelBehavior:
-                            NavigationDestinationLabelBehavior.alwaysShow,
-                        destinations: destinations,
-                      ),
-                    ),
-        );
+    return PopScope(
+      canPop: _tab == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _tab != 0) {
+          HapticFeedback.selectionClick();
+          setState(() => _tab = 0);
+        }
       },
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= 600;
+          return Scaffold(
+            body: SafeArea(
+              bottom: false,
+              child: Row(
+                children: [
+                  if (isWide)
+                    NavigationRail(
+                      selectedIndex: _tab,
+                      onDestinationSelected: _selectTab,
+                      labelType: NavigationRailLabelType.all,
+                      backgroundColor: theme.colorScheme.surfaceContainer,
+                      leading: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                theme.colorScheme.primaryContainer,
+                                theme.colorScheme.primary.withValues(alpha: 0.8),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: theme.colorScheme.primary.withValues(alpha: 0.25),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.dashboard_rounded,
+                            color: theme.colorScheme.onPrimary,
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                      destinations:
+                          destinations
+                              .map(
+                                (destination) => NavigationRailDestination(
+                                  icon: destination.icon,
+                                  selectedIcon: destination.selectedIcon,
+                                  label: Text(destination.label),
+                                ),
+                              )
+                              .toList(),
+                    ),
+                  Expanded(
+                    child: IndexedStack(
+                      index: _tab,
+                      children: _screens,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            bottomNavigationBar:
+                isWide
+                    ? null
+                    : Container(
+                        decoration: BoxDecoration(
+                          border: Border(
+                            top: BorderSide(
+                              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        child: NavigationBar(
+                          selectedIndex: _tab,
+                          onDestinationSelected: _selectTab,
+                          labelBehavior:
+                              NavigationDestinationLabelBehavior.alwaysShow,
+                          destinations: destinations,
+                        ),
+                      ),
+          );
+        },
+      ),
     );
   }
 }

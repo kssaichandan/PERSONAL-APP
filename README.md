@@ -6,13 +6,15 @@
 
 ## ⚡ Quick Download
 
-Click the button below to download the latest compiled Android APK directly to your phone:
+Download the latest release directly to your Android device:
 
 <div align="center">
 
 [![Download APK](https://img.shields.io/badge/⚡_Direct_Download-Latest_Android_APK-2EA44F?style=for-the-badge&logo=android&logoColor=white)](https://github.com/kssaichandan/PERSONAL-APP/releases/latest/download/app-release.apk)
+[![All Releases](https://img.shields.io/badge/📦_GitHub-Releases_Page-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/kssaichandan/PERSONAL-APP/releases)
 
-**[Click Here to Download Latest APK (`app-release.apk`)](https://github.com/kssaichandan/PERSONAL-APP/releases/latest/download/app-release.apk)**
+**[📥 Click Here to Download Latest APK (`app-release.apk`)](https://github.com/kssaichandan/PERSONAL-APP/releases/latest/download/app-release.apk)**  
+*(Also view all changelogs & versions on the **[GitHub Releases Page](https://github.com/kssaichandan/PERSONAL-APP/releases)**)*
 
 *(Compatible with Android 8.0+ / API level 26+)*
 

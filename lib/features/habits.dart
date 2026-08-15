@@ -312,6 +312,7 @@ class Habit {
   bool get isYesNo => habitType == 'yes_no';
   bool get isCountWithTarget => habitType == 'count_target';
   bool get isFreeCount => habitType == 'free_count';
+  bool get isCount => habitType != 'yes_no';
 
   Map<String, dynamic> toMap() => {
     'id': id,
@@ -870,6 +871,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
   );
   DateTime _currentWeekStart = _getWeekStart(DateTime.now());
   bool _showSearch = false;
+  bool _isDetailView = false;
   final _searchController = TextEditingController();
 
   static DateTime _getWeekStart(DateTime date) {
@@ -1141,238 +1143,312 @@ class _HabitsScreenState extends State<HabitsScreen> {
 
                 // Today's progress card
                 _TodayProgressCard(provider: provider, theme: theme),
-                // Habit cards horizontal scroll
-                 SizedBox(
-                   height: 96,
-                   child: ReorderableListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    buildDefaultDragHandles: false,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    itemCount: displayHabits.length,
-                    onReorderItem: (Object oldItem, int newIndex) {
-                      final int oldIndex = displayHabits.indexOf(
-                        oldItem as Habit,
-                      );
-                      provider.reorderHabits(oldIndex, newIndex);
-                    },
-                    itemBuilder: (context, index) {
-                      final h = displayHabits[index];
-                      final isSel = h.id == _selectedHabit?.id;
-                      final streaks = provider.getStreaks(h.id!);
-                      final currentStreak = streaks['current'] ?? 0;
-                      final completedToday = provider.isCompleted(
-                        h.id!,
-                        DateTime.now(),
-                      );
 
-                       return ReorderableDragStartListener(
-                         key: ValueKey(h.id),
-                         index: index,
-                         child: GestureDetector(
-                           onTap:
-                               provider.isSelectionMode
-                                   ? () {
-                                     HapticFeedback.selectionClick();
-                                     provider.toggleHabitSelection(h.id!);
-                                   }
-                                   : () {
-                                     HapticFeedback.selectionClick();
-                                     setState(() => _selectedHabit = h);
-                                   },
-                           onLongPress:
-                               () {
-                                 HapticFeedback.mediumImpact();
-                                 provider.toggleHabitSelection(h.id!);
-                               },
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              top: provider.isSelectionMode ? 14 : 0,
+                // View Mode Switcher
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _isDetailView ? 'Habit Analytics' : "Today's Checklist",
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                setState(() => _isDetailView = false);
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: !_isDetailView ? theme.colorScheme.primary : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.checklist_rounded,
+                                      size: 16,
+                                      color: !_isDetailView ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Today',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: !_isDetailView ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                            child: Container(
-                              width: 90,
-                              margin: const EdgeInsets.only(right: 8),
-                              decoration: BoxDecoration(
-                                color:
-                                    isSel ||
-                                            provider.selectedHabits.contains(
-                                              h.id,
-                                            )
-                                        ? theme.colorScheme.primaryContainer
-                                        : theme
-                                            .colorScheme
-                                            .surfaceContainerHighest
-                                            .withValues(alpha: 0.5),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
+                            GestureDetector(
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                setState(() => _isDetailView = true);
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: _isDetailView ? theme.colorScheme.primary : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.insights_rounded,
+                                      size: 16,
+                                      color: _isDetailView ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Details',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: _isDetailView ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                if (!_isDetailView)
+                  _buildTodayChecklist(context, provider, theme, displayHabits)
+                else ...[
+                  // Habit cards horizontal scroll
+                  SizedBox(
+                    height: 96,
+                    child: ReorderableListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      buildDefaultDragHandles: false,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      itemCount: displayHabits.length,
+                      onReorderItem: (Object oldItem, int newIndex) {
+                        final int oldIndex = displayHabits.indexOf(
+                          oldItem as Habit,
+                        );
+                        provider.reorderHabits(oldIndex, newIndex);
+                      },
+                      itemBuilder: (context, index) {
+                        final h = displayHabits[index];
+                        final isSel = h.id == _selectedHabit?.id;
+                        final streaks = provider.getStreaks(h.id!);
+                        final currentStreak = streaks['current'] ?? 0;
+                        final completedToday = provider.isCompleted(
+                          h.id!,
+                          DateTime.now(),
+                        );
+
+                        return ReorderableDragStartListener(
+                          key: ValueKey(h.id),
+                          index: index,
+                          child: GestureDetector(
+                            onTap:
+                                provider.isSelectionMode
+                                    ? () {
+                                        HapticFeedback.selectionClick();
+                                        provider.toggleHabitSelection(h.id!);
+                                      }
+                                    : () {
+                                        HapticFeedback.selectionClick();
+                                        setState(() => _selectedHabit = h);
+                                      },
+                            onLongPress:
+                                () {
+                                  HapticFeedback.mediumImpact();
+                                  provider.toggleHabitSelection(h.id!);
+                                },
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                top: provider.isSelectionMode ? 14 : 0,
+                              ),
+                              child: Container(
+                                width: 90,
+                                margin: const EdgeInsets.only(right: 8),
+                                decoration: BoxDecoration(
                                   color:
                                       isSel ||
                                               provider.selectedHabits.contains(
                                                 h.id,
                                               )
-                                          ? h.color == _defaultHabitColor
-                                              ? theme.colorScheme.primary
-                                              : Color(h.color)
-                                          : Colors.transparent,
-                                  width: 2,
-                                ),
-                              ),
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Center(
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        const SizedBox(height: 4),
-                                        Stack(
-                                          clipBehavior: Clip.none,
-                                          children: [
-                                            Icon(
-                                              _getIconData(h.icon),
-                                              size: 24,
-                                              color:
-                                                  isSel ||
-                                                          provider
-                                                              .selectedHabits
-                                                              .contains(h.id)
-                                                      ? (h.color ==
-                                                              _defaultHabitColor
-                                                          ? theme
-                                                              .colorScheme
-                                                              .primary
-                                                          : Color(h.color))
-                                                      : theme
-                                                          .colorScheme
-                                                          .onSurfaceVariant,
-                                            ),
-                                             if (completedToday)
-                                               Positioned(
-                                                 right: -2,
-                                                 bottom: -2,
-                                                 child: Container(
-                                                   width: 10,
-                                                   height: 10,
-                                                   decoration: BoxDecoration(
-                                                     color: theme.colorScheme.primary,
-                                                     shape: BoxShape.circle,
-                                                     border: Border.all(
-                                                       color:
-                                                           theme
-                                                               .colorScheme
-                                                               .surface,
-                                                       width: 1.2,
-                                                     ),
-                                                   ),
-                                                   child: const Icon(
-                                                     Icons.check_rounded,
-                                                     size: 6.5,
-                                                     color: Colors.white,
-                                                   ),
-                                                 ),
-                                               ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Padding(
-                                          padding: EdgeInsets.only(
-                                            left: 4,
-                                            right:
-                                                provider.isSelectionMode
-                                                    ? 8
-                                                    : 4,
-                                          ),
-                                          child: Text(
-                                            h.name,
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight:
-                                                  isSel ||
-                                                          provider
-                                                              .selectedHabits
-                                                              .contains(h.id)
-                                                      ? FontWeight.bold
-                                                      : FontWeight.normal,
-                                              color:
-                                                  isSel ||
-                                                          provider
-                                                              .selectedHabits
-                                                              .contains(h.id)
-                                                      ? theme
-                                                          .colorScheme
-                                                          .onPrimaryContainer
-                                                      : theme
-                                                          .colorScheme
-                                                          .onSurfaceVariant,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                            textAlign: TextAlign.center,
-                                            maxLines: 2,
-                                          ),
-                                        ),
-                                          if (currentStreak > 0) ...[
-                                            const SizedBox(height: 2),
-                                            Semantics(
-                                              label: 'Current streak: $currentStreak days',
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  const Icon(
-                                                    Icons.local_fire_department,
-                                                    color: Colors.orange,
-                                                    size: 14,
-                                                  ),
-                                                  Text(
-                                                    '$currentStreak',
-                                                    style: const TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: Colors.orange,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        const SizedBox(height: 4),
-                                      ],
-                                    ),
-                                  ),
-                                  if (provider.isSelectionMode)
-                                    Positioned(
-                                      top: 2,
-                                      right: 2,
-                                      child: Semantics(
-                                        label:
-                                            provider.selectedHabits.contains(
+                                          ? theme.colorScheme.primaryContainer
+                                          : theme
+                                              .colorScheme
+                                              .surfaceContainerHighest
+                                              .withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color:
+                                        isSel ||
+                                                provider.selectedHabits.contains(
                                                   h.id,
                                                 )
-                                                ? 'Selected'
-                                                : 'Not selected',
-                                        button: true,
-                                        child: GestureDetector(
-                                          onTap:
-                                              () => provider
-                                                  .toggleHabitSelection(h.id!),
-                                          child: Container(
-                                            width: 24,
-                                            height: 24,
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  provider.selectedHabits
-                                                          .contains(h.id)
-                                                      ? theme
-                                                          .colorScheme
-                                                          .primary
-                                                      : theme
-                                                          .colorScheme
-                                                          .surfaceContainer,
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
+                                            ? h.color == _defaultHabitColor
+                                                ? theme.colorScheme.primary
+                                                : Color(h.color)
+                                            : Colors.transparent,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Center(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          const SizedBox(height: 4),
+                                          Stack(
+                                            clipBehavior: Clip.none,
+                                            children: [
+                                              Icon(
+                                                _getIconData(h.icon),
+                                                size: 24,
+                                                color:
+                                                    isSel ||
+                                                            provider
+                                                                .selectedHabits
+                                                                .contains(h.id)
+                                                        ? (h.color ==
+                                                                _defaultHabitColor
+                                                            ? theme
+                                                                .colorScheme
+                                                                .primary
+                                                            : Color(h.color))
+                                                        : theme
+                                                            .colorScheme
+                                                            .onSurfaceVariant,
+                                              ),
+                                              if (completedToday)
+                                                Positioned(
+                                                  right: -8,
+                                                  top: -6,
+                                                  child: Container(
+                                                    padding: const EdgeInsets.all(2),
+                                                    decoration: BoxDecoration(
+                                                      color: theme.colorScheme.primary,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.check_rounded,
+                                                      size: 10,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 4,
+                                            ),
+                                            child: Text(
+                                              h.name,
+                                              style: theme.textTheme.labelSmall
+                                                  ?.copyWith(
+                                                fontWeight:
+                                                    isSel ||
+                                                            provider
+                                                                .selectedHabits
+                                                                .contains(h.id)
+                                                        ? FontWeight.bold
+                                                        : FontWeight.normal,
+                                                color:
+                                                    isSel ||
+                                                            provider
+                                                                .selectedHabits
+                                                                .contains(h.id)
+                                                        ? theme
+                                                            .colorScheme
+                                                            .onPrimaryContainer
+                                                        : theme
+                                                            .colorScheme
+                                                            .onSurfaceVariant,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                              textAlign: TextAlign.center,
+                                              maxLines: 2,
+                                            ),
+                                          ),
+                                          if (currentStreak > 0) ...[
+                                            const SizedBox(height: 2),
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                const Icon(
+                                                  Icons.local_fire_department,
+                                                  color: Colors.orange,
+                                                  size: 12,
+                                                ),
+                                                Text(
+                                                  '$currentStreak',
+                                                  style: const TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.orange,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                          const SizedBox(height: 4),
+                                        ],
+                                      ),
+                                    ),
+                                    if (provider.isSelectionMode)
+                                      Positioned(
+                                        top: 2,
+                                        right: 2,
+                                        child: Semantics(
+                                          label:
+                                              provider.selectedHabits.contains(
+                                                    h.id,
+                                                  )
+                                                  ? 'Selected'
+                                                  : 'Not selected',
+                                          button: true,
+                                          child: GestureDetector(
+                                            onTap:
+                                                () => provider
+                                                    .toggleHabitSelection(h.id!),
+                                            child: Container(
+                                              width: 24,
+                                              height: 24,
+                                              decoration: BoxDecoration(
                                                 color:
                                                     provider.selectedHabits
                                                             .contains(h.id)
@@ -1381,168 +1457,179 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                                             .primary
                                                         : theme
                                                             .colorScheme
-                                                            .outline,
-                                                width: 2,
+                                                            .surfaceContainer,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color:
+                                                      provider.selectedHabits
+                                                              .contains(h.id)
+                                                          ? theme
+                                                              .colorScheme
+                                                              .primary
+                                                          : theme
+                                                              .colorScheme
+                                                              .outline,
+                                                  width: 2,
+                                                ),
                                               ),
+                                              child:
+                                                  provider.selectedHabits
+                                                          .contains(h.id)
+                                                      ? const Icon(
+                                                        Icons.check_rounded,
+                                                        size: 16,
+                                                        color: Colors.white,
+                                                      )
+                                                      : null,
                                             ),
-                                            child:
-                                                provider.selectedHabits
-                                                        .contains(h.id)
-                                                    ? const Icon(
-                                                      Icons.check_rounded,
-                                                      size: 16,
-                                                      color: Colors.white,
-                                                    )
-                                                    : null,
                                           ),
                                         ),
                                       ),
-                                    ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
-                ),
 
-                 if (!provider.isSelectionMode && displayHabits.isNotEmpty)
-                   Padding(
-                     padding: const EdgeInsets.symmetric(vertical: 4),
-                     child: Center(
-                       child: Text(
-                         'Long press to select habits',
-                         style: theme.textTheme.bodySmall?.copyWith(
-                           color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                           fontSize: 11,
-                         ),
-                       ),
-                     ),
-                   ),
-
-                 const Divider(height: 1),
-
-                 if (_selectedHabit != null) ...[
-                  // Selected habit header
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Color(
-                              _selectedHabit!.color,
-                            ).withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            _getIconData(_selectedHabit!.icon),
-                            color: Color(_selectedHabit!.color),
-                            size: 22,
+                  if (!provider.isSelectionMode && displayHabits.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Center(
+                        child: Text(
+                          'Long press to select habits',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                            fontSize: 11,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _selectedHabit!.name,
-                                style: theme.textTheme.titleMedium,
-                              ),
-                              Text(
-                                _selectedHabit!.reminderTime == null
-                                    ? 'No reminder set'
-                                    : 'Daily reminder at ${_selectedHabit!.reminderTime}',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+
+                  const Divider(height: 1),
+
+                  if (_selectedHabit != null) ...[
+                    // Selected habit header
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Color(
+                                _selectedHabit!.color,
+                              ).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              _getIconData(_selectedHabit!.icon),
+                              color: Color(_selectedHabit!.color),
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _selectedHabit!.name,
+                                  style: theme.textTheme.titleMedium,
                                 ),
+                                Text(
+                                  _selectedHabit!.reminderTime == null
+                                      ? 'No reminder set'
+                                      : 'Daily reminder at ${_selectedHabit!.reminderTime}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_rounded, size: 20),
+                                tooltip: 'Edit habit',
+                                onPressed:
+                                    () => _showEditHabitDialog(
+                                      context,
+                                      _selectedHabit!,
+                                      provider,
+                                    ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.alarm, size: 20),
+                                tooltip: 'Set reminder',
+                                onPressed:
+                                    () => _pickReminderTime(
+                                      context,
+                                      _selectedHabit!,
+                                      provider,
+                                    ),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 20,
+                                ),
+                                tooltip: 'Delete habit',
+                                onPressed:
+                                    () => _confirmDeleteHabit(
+                                      context,
+                                      _selectedHabit!,
+                                      provider,
+                                    ),
                               ),
                             ],
                           ),
-                        ),
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit_rounded, size: 20),
-                              tooltip: 'Edit habit',
-                              onPressed:
-                                  () => _showEditHabitDialog(
-                                    context,
-                                    _selectedHabit!,
-                                    provider,
-                                  ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.alarm, size: 20),
-                              tooltip: 'Set reminder',
-                              onPressed:
-                                  () => _pickReminderTime(
-                                    context,
-                                    _selectedHabit!,
-                                    provider,
-                                  ),
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.delete_outline_rounded,
-                                size: 20,
-                              ),
-                              tooltip: 'Delete habit',
-                              onPressed:
-                                  () => _confirmDeleteHabit(
-                                    context,
-                                    _selectedHabit!,
-                                    provider,
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
+                    const SizedBox(height: 8),
 
-                  // Weekly checklist with week navigation
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.chevron_left, size: 20),
-                          tooltip: 'Previous week',
-                          onPressed: () {
-                            setState(
-                              () =>
-                                  _currentWeekStart = _currentWeekStart
-                                      .subtract(const Duration(days: 7)),
-                            );
-                          },
-                        ),
-                        Text(
-                          'Week of ${DateFormat('MMM d').format(_currentWeekStart)}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
+                    // Weekly checklist with week navigation
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.chevron_left, size: 20),
+                            tooltip: 'Previous week',
+                            onPressed: () {
+                              setState(
+                                () =>
+                                    _currentWeekStart = _currentWeekStart
+                                        .subtract(const Duration(days: 7)),
+                              );
+                            },
                           ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.chevron_right, size: 20),
-                          tooltip: 'Next week',
-                          onPressed: () {
-                            setState(
-                              () =>
-                                  _currentWeekStart = _currentWeekStart.add(
-                                    const Duration(days: 7),
-                                  ),
-                            );
-                          },
-                        ),
-                        const Spacer(),
-                         if (_currentWeekStart != _getWeekStart(DateTime.now()))
+                          Text(
+                            'Week of ${DateFormat('MMM d').format(_currentWeekStart)}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.chevron_right, size: 20),
+                            tooltip: 'Next week',
+                            onPressed: () {
+                              setState(
+                                () =>
+                                    _currentWeekStart = _currentWeekStart.add(
+                                      const Duration(days: 7),
+                                    ),
+                              );
+                            },
+                          ),
+                          const Spacer(),
+                          if (_currentWeekStart != _getWeekStart(DateTime.now()))
                             Tooltip(
                               message: 'Go to current week',
                               child: FilledButton.tonalIcon(
@@ -1561,41 +1648,232 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                 },
                               ),
                             ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  _WeeklyChecklist(
-                    habit: _selectedHabit!,
-                    provider: provider,
-                    weekStart: _currentWeekStart,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Monthly section header
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'Monthly Overview',
-                      style: theme.textTheme.titleMedium,
+                    _WeeklyChecklist(
+                      habit: _selectedHabit!,
+                      provider: provider,
+                      weekStart: _currentWeekStart,
                     ),
-                  ),
-                  const SizedBox(height: 8),
+                    const SizedBox(height: 16),
 
-                  _MonthlyLogCalendar(
-                    habit: _selectedHabit!,
-                    provider: provider,
-                    currentMonth: _currentLogMonth,
-                    onMonthChanged: (newMonth) {
-                      setState(() => _currentLogMonth = newMonth);
-                    },
-                  ),
-                  const SizedBox(height: 24),
+                    // Monthly section header
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'Monthly Overview',
+                        style: theme.textTheme.titleMedium,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    _MonthlyLogCalendar(
+                      habit: _selectedHabit!,
+                      provider: provider,
+                      currentMonth: _currentLogMonth,
+                      onMonthChanged: (newMonth) {
+                        setState(() => _currentLogMonth = newMonth);
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                 ],
               ],
             ),
           );
         },
       ),
+    );
+  }
+
+  Widget _buildTodayChecklist(
+    BuildContext context,
+    HabitsProvider provider,
+    ThemeData theme,
+    List<Habit> displayHabits,
+  ) {
+    final today = DateTime.now();
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      itemCount: displayHabits.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final habit = displayHabits[index];
+        final isDone = provider.isCompleted(habit.id!, today);
+        final count = provider.getCount(habit.id!, today);
+        final streaks = provider.getStreaks(habit.id!);
+        final currentStreak = streaks['current'] ?? 0;
+        final habitColor = Color(habit.color);
+
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: isDone
+                  ? habitColor.withValues(alpha: 0.45)
+                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+              width: isDone ? 1.5 : 1,
+            ),
+          ),
+          color: isDone
+              ? habitColor.withValues(
+                  alpha: theme.brightness == Brightness.dark ? 0.15 : 0.08,
+                )
+              : theme.colorScheme.surface,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              setState(() {
+                _selectedHabit = habit;
+                _isDetailView = true;
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: habitColor.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      _getIconData(habit.icon),
+                      color: habitColor,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          habit.name,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            decoration: isDone ? TextDecoration.lineThrough : null,
+                            color: isDone
+                                ? theme.colorScheme.onSurface.withValues(alpha: 0.7)
+                                : theme.colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            if (currentStreak > 0) ...[
+                              const Icon(
+                                Icons.local_fire_department_rounded,
+                                color: Colors.orange,
+                                size: 14,
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                '$currentStreak day${currentStreak > 1 ? 's' : ''}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                            if (habit.isCount)
+                              Text(
+                                '$count / ${habit.targetCount} completed',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: isDone
+                                      ? habitColor
+                                      : theme.colorScheme.onSurfaceVariant,
+                                  fontWeight:
+                                      isDone ? FontWeight.bold : FontWeight.normal,
+                                ),
+                              )
+                            else
+                              Text(
+                                isDone ? 'Completed today' : 'Tap to complete',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: isDone
+                                      ? habitColor
+                                      : theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (habit.isCount) ...[
+                    IconButton.filledTonal(
+                      visualDensity: VisualDensity.compact,
+                      iconSize: 18,
+                      onPressed: count > 0
+                          ? () {
+                              HapticFeedback.selectionClick();
+                              provider.decrementLog(habit.id!, today);
+                            }
+                          : null,
+                      icon: const Icon(Icons.remove_rounded),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton.filled(
+                      visualDensity: VisualDensity.compact,
+                      iconSize: 18,
+                      style: IconButton.styleFrom(
+                        backgroundColor: habitColor,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () {
+                        HapticFeedback.mediumImpact();
+                        provider.incrementLog(habit.id!, today);
+                      },
+                      icon: const Icon(Icons.add_rounded),
+                    ),
+                  ] else ...[
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.mediumImpact();
+                        provider.toggleLog(habit.id!, today, context);
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: isDone ? habitColor : Colors.transparent,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isDone
+                                ? habitColor
+                                : theme.colorScheme.outlineVariant,
+                            width: 2,
+                          ),
+                        ),
+                        child: isDone
+                            ? const Icon(
+                                Icons.check_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              )
+                            : null,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

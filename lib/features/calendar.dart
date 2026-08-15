@@ -6,6 +6,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../database.dart';
+import '../utils/snackbar_utils.dart';
 import 'settings_provider.dart';
 import '../services/notification_service.dart';
 
@@ -369,8 +370,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final provider = context.watch<CalendarProvider>();
-    final isTodaySelected =
-        DateUtils.isSameDay(provider.selectedDate, DateTime.now());
+    final isTodaySelected = DateUtils.isSameDay(
+      provider.selectedDate,
+      DateTime.now(),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -387,7 +390,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   ),
                   onChanged: (v) => provider.setSearchQuery(v),
                 )
-                : const Text('Calendar', style: TextStyle(fontWeight: FontWeight.bold)),
+                : const Text(
+                  'Calendar',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
         actions: [
           if (!_showSearch && !isTodaySelected)
             Padding(
@@ -405,7 +411,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   fontWeight: FontWeight.w600,
                   color: theme.colorScheme.primary,
                 ),
-                backgroundColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+                backgroundColor: theme.colorScheme.primaryContainer.withValues(
+                  alpha: 0.4,
+                ),
                 side: BorderSide.none,
                 onPressed: () {
                   HapticFeedback.lightImpact();
@@ -469,7 +477,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               c == 'all' ? 'All Categories' : c,
                               style: TextStyle(
                                 fontWeight:
-                                    c == current ? FontWeight.bold : FontWeight.normal,
+                                    c == current
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
                               ),
                             ),
                           ],
@@ -498,7 +508,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   const SizedBox(height: 12),
                   Text(
                     provider.error!,
-                    style: TextStyle(color: theme.colorScheme.error, fontSize: 16),
+                    style: TextStyle(
+                      color: theme.colorScheme.error,
+                      fontSize: 16,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   FilledButton.tonalIcon(
@@ -521,7 +534,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 children: [
                   CircularProgressIndicator(strokeWidth: 3),
                   SizedBox(height: 16),
-                  Text('Loading calendar...', style: TextStyle(fontWeight: FontWeight.w500)),
+                  Text(
+                    'Loading calendar...',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
                 ],
               ),
             );
@@ -582,11 +598,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
               // Mode View Selector Pills
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
                 child: Container(
                   height: 40,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.5,
+                    ),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -641,7 +662,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     return FadeTransition(
                       opacity: animation,
                       child: ScaleTransition(
-                        scale: Tween<double>(begin: 0.98, end: 1.0).animate(animation),
+                        scale: Tween<double>(
+                          begin: 0.98,
+                          end: 1.0,
+                        ).animate(animation),
                         child: child,
                       ),
                     );
@@ -677,7 +701,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
         tooltip: 'Add new event',
         elevation: 4,
         icon: const Icon(Icons.add_rounded),
-        label: const Text('New Event', style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text(
+          'New Event',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         onPressed: () {
           HapticFeedback.mediumImpact();
           _showEventEditor(context, selectedDate: provider.selectedDate);
@@ -724,49 +751,50 @@ class _ViewSegmentTab extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           margin: const EdgeInsets.all(3),
           decoration: BoxDecoration(
-            color: isSelected
-                ? theme.colorScheme.primary
-                : Colors.transparent,
+            color: isSelected ? theme.colorScheme.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(17),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    )
-                  ]
-                : null,
+            boxShadow:
+                isSelected
+                    ? [
+                      BoxShadow(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                    : null,
           ),
           child: FittedBox(
             fit: BoxFit.scaleDown,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-              Icon(
-                icon,
-                size: 15,
-                color: isSelected
-                    ? theme.colorScheme.onPrimary
-                    : theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected
-                      ? theme.colorScheme.onPrimary
-                      : theme.colorScheme.onSurfaceVariant,
+                Icon(
+                  icon,
+                  size: 15,
+                  color:
+                      isSelected
+                          ? theme.colorScheme.onPrimary
+                          : theme.colorScheme.onSurfaceVariant,
                 ),
-              ),
-            ],
+                const SizedBox(width: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color:
+                        isSelected
+                            ? theme.colorScheme.onPrimary
+                            : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 }
 
@@ -782,16 +810,15 @@ class _MonthHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Text(
-                DateFormat('MMMM yyyy').format(provider.currentMonth),
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.5,
-                ),
+          Expanded(
+            child: Text(
+              DateFormat('MMMM yyyy').format(provider.currentMonth),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                letterSpacing: -0.5,
               ),
-            ],
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           Row(
             children: [
@@ -845,9 +872,10 @@ class _DayNamesHeader extends StatelessWidget {
                     d,
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: isWeekend
-                          ? theme.colorScheme.primary.withValues(alpha: 0.8)
-                          : theme.colorScheme.onSurfaceVariant,
+                      color:
+                          isWeekend
+                              ? theme.colorScheme.primary.withValues(alpha: 0.8)
+                              : theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -899,8 +927,10 @@ class _MonthGrid extends StatelessWidget {
     final theme = Theme.of(context);
     final currentMonth = provider.currentMonth;
     final first = DateTime(currentMonth.year, currentMonth.month, 1);
-    final daysInMonth = DateTime(currentMonth.year, currentMonth.month + 1, 0).day;
-    final prevMonthDays = DateTime(currentMonth.year, currentMonth.month, 0).day;
+    final daysInMonth =
+        DateTime(currentMonth.year, currentMonth.month + 1, 0).day;
+    final prevMonthDays =
+        DateTime(currentMonth.year, currentMonth.month, 0).day;
 
     final startWeekday =
         weekStartsMonday
@@ -917,20 +947,47 @@ class _MonthGrid extends StatelessWidget {
     for (int i = leadingDaysCount - 1; i >= 0; i--) {
       final dayNum = prevMonthDays - i;
       final date = DateTime(currentMonth.year, currentMonth.month - 1, dayNum);
-      cells.add(_buildDayCell(context, theme, date, dayNum, isCurrentMonth: false, today: today));
+      cells.add(
+        _buildDayCell(
+          context,
+          theme,
+          date,
+          dayNum,
+          isCurrentMonth: false,
+          today: today,
+        ),
+      );
     }
 
     // Days in current month
     for (int day = 1; day <= daysInMonth; day++) {
       final date = DateTime(currentMonth.year, currentMonth.month, day);
-      cells.add(_buildDayCell(context, theme, date, day, isCurrentMonth: true, today: today));
+      cells.add(
+        _buildDayCell(
+          context,
+          theme,
+          date,
+          day,
+          isCurrentMonth: true,
+          today: today,
+        ),
+      );
     }
 
     // Trailing days for next month
     final trailingDaysCount = totalCells - cells.length;
     for (int day = 1; day <= trailingDaysCount; day++) {
       final date = DateTime(currentMonth.year, currentMonth.month + 1, day);
-      cells.add(_buildDayCell(context, theme, date, day, isCurrentMonth: false, today: today));
+      cells.add(
+        _buildDayCell(
+          context,
+          theme,
+          date,
+          day,
+          isCurrentMonth: false,
+          today: today,
+        ),
+      );
     }
 
     return AspectRatio(
@@ -971,9 +1028,10 @@ class _MonthGrid extends StatelessWidget {
           margin: const EdgeInsets.all(2),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: isSelected
-                ? Border.all(color: theme.colorScheme.primary, width: 2)
-                : null,
+            border:
+                isSelected
+                    ? Border.all(color: theme.colorScheme.primary, width: 2)
+                    : null,
           ),
           child: Center(
             child: Column(
@@ -984,34 +1042,42 @@ class _MonthGrid extends StatelessWidget {
                   height: 32,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isToday
-                        ? theme.colorScheme.primary
-                        : (isSelected
-                            ? theme.colorScheme.primaryContainer
-                            : Colors.transparent),
-                    boxShadow: isToday
-                        ? [
-                            BoxShadow(
-                              color: theme.colorScheme.primary.withValues(alpha: 0.38),
-                              blurRadius: 8,
-                              spreadRadius: 1,
-                            )
-                          ]
-                        : null,
+                    color:
+                        isToday
+                            ? theme.colorScheme.primary
+                            : (isSelected
+                                ? theme.colorScheme.primaryContainer
+                                : Colors.transparent),
+                    boxShadow:
+                        isToday
+                            ? [
+                              BoxShadow(
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.38,
+                                ),
+                                blurRadius: 8,
+                                spreadRadius: 1,
+                              ),
+                            ]
+                            : null,
                   ),
                   child: Center(
                     child: Text(
                       '$day',
                       style: TextStyle(
                         fontSize: 14,
-                        fontWeight: (isToday || isSelected)
-                            ? FontWeight.bold
-                            : FontWeight.w500,
-                        color: isToday
-                            ? theme.colorScheme.onPrimary
-                            : (isCurrentMonth
-                                ? theme.colorScheme.onSurface
-                                : theme.colorScheme.outline.withValues(alpha: 0.5)),
+                        fontWeight:
+                            (isToday || isSelected)
+                                ? FontWeight.bold
+                                : FontWeight.w500,
+                        color:
+                            isToday
+                                ? theme.colorScheme.onPrimary
+                                : (isCurrentMonth
+                                    ? theme.colorScheme.onSurface
+                                    : theme.colorScheme.outline.withValues(
+                                      alpha: 0.5,
+                                    )),
                       ),
                     ),
                   ),
@@ -1019,37 +1085,49 @@ class _MonthGrid extends StatelessWidget {
                 const SizedBox(height: 2),
                 SizedBox(
                   height: 6,
-                  child: hasEvent
-                      ? Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ...events.take(3).map(
-                              (e) => Container(
-                                width: 5,
-                                height: 5,
-                                margin: const EdgeInsets.symmetric(horizontal: 1),
-                                decoration: BoxDecoration(
-                                  color: isCurrentMonth
-                                      ? _categoryColor(e.category, theme)
-                                      : _categoryColor(e.category, theme).withValues(alpha: 0.4),
-                                  shape: BoxShape.circle,
+                  child:
+                      hasEvent
+                          ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ...events
+                                  .take(3)
+                                  .map(
+                                    (e) => Container(
+                                      width: 5,
+                                      height: 5,
+                                      margin: const EdgeInsets.symmetric(
+                                        horizontal: 1,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            isCurrentMonth
+                                                ? _categoryColor(
+                                                  e.category,
+                                                  theme,
+                                                )
+                                                : _categoryColor(
+                                                  e.category,
+                                                  theme,
+                                                ).withValues(alpha: 0.4),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                              if (events.length > 3)
+                                Container(
+                                  width: 4,
+                                  height: 4,
+                                  margin: const EdgeInsets.only(left: 1),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary,
+                                    shape: BoxShape.circle,
+                                  ),
                                 ),
-                              ),
-                            ),
-                            if (events.length > 3)
-                              Container(
-                                width: 4,
-                                height: 4,
-                                margin: const EdgeInsets.only(left: 1),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                          ],
-                        )
-                      : const SizedBox(),
+                            ],
+                          )
+                          : const SizedBox(),
                 ),
               ],
             ),
@@ -1077,7 +1155,8 @@ class _WeekViewContent extends StatelessWidget {
 
     final startOfWeek = selected.subtract(
       Duration(
-        days: weekStartsMonday ? (selected.weekday - 1) : (selected.weekday % 7),
+        days:
+            weekStartsMonday ? (selected.weekday - 1) : (selected.weekday % 7),
       ),
     );
 
@@ -1095,69 +1174,75 @@ class _WeekViewContent extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
           color: theme.colorScheme.surfaceContainerLow,
           child: Row(
-            children: weekDays.map((date) {
-              final isSelected = DateUtils.isSameDay(date, selected);
-              final isToday = DateUtils.isSameDay(date, DateTime.now());
-              final hasEvents = provider.eventsForDay(date).isNotEmpty;
+            children:
+                weekDays.map((date) {
+                  final isSelected = DateUtils.isSameDay(date, selected);
+                  final isToday = DateUtils.isSameDay(date, DateTime.now());
+                  final hasEvents = provider.eventsForDay(date).isNotEmpty;
 
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    provider.setSelectedDate(date);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? theme.colorScheme.primary
-                          : (isToday
-                              ? theme.colorScheme.primaryContainer.withValues(alpha: 0.5)
-                              : Colors.transparent),
-                      borderRadius: BorderRadius.circular(16),
+                  return Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        provider.setSelectedDate(date);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color:
+                              isSelected
+                                  ? theme.colorScheme.primary
+                                  : (isToday
+                                      ? theme.colorScheme.primaryContainer
+                                          .withValues(alpha: 0.5)
+                                      : Colors.transparent),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              DateFormat('E').format(date),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color:
+                                    isSelected
+                                        ? theme.colorScheme.onPrimary
+                                        : theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${date.day}',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color:
+                                    isSelected
+                                        ? theme.colorScheme.onPrimary
+                                        : theme.colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              width: 4,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color:
+                                    hasEvents
+                                        ? (isSelected
+                                            ? theme.colorScheme.onPrimary
+                                            : theme.colorScheme.primary)
+                                        : Colors.transparent,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    child: Column(
-                      children: [
-                        Text(
-                          DateFormat('E').format(date),
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isSelected
-                                ? theme.colorScheme.onPrimary
-                                : theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${date.day}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isSelected
-                                ? theme.colorScheme.onPrimary
-                                : theme.colorScheme.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: hasEvents
-                                ? (isSelected
-                                    ? theme.colorScheme.onPrimary
-                                    : theme.colorScheme.primary)
-                                : Colors.transparent,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
+                  );
+                }).toList(),
           ),
         ),
         Expanded(
@@ -1190,12 +1275,20 @@ class _DayViewContent extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.event_rounded, color: theme.colorScheme.primary, size: 20),
+              Icon(
+                Icons.event_rounded,
+                color: theme.colorScheme.primary,
+                size: 20,
+              ),
               const SizedBox(width: 8),
-              Text(
-                DateFormat('EEEE, MMMM d, yyyy').format(day),
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+              Flexible(
+                child: Text(
+                  DateFormat('EEEE, MMMM d, yyyy').format(day),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ),
             ],
@@ -1206,13 +1299,13 @@ class _DayViewContent extends StatelessWidget {
             itemCount: 24,
             padding: const EdgeInsets.symmetric(vertical: 8),
             itemBuilder: (context, hour) {
-              final hourFormatted =
-                  '${hour.toString().padLeft(2, '0')}:00';
-              final hourEvents = events.where((e) {
-                if (e.time == null) return hour == 9;
-                final h = int.tryParse(e.time!.split(':')[0]);
-                return h == hour;
-              }).toList();
+              final hourFormatted = '${hour.toString().padLeft(2, '0')}:00';
+              final hourEvents =
+                  events.where((e) {
+                    if (e.time == null) return hour == 9;
+                    final h = int.tryParse(e.time!.split(':')[0]);
+                    return h == hour;
+                  }).toList();
 
               return Container(
                 constraints: const BoxConstraints(minHeight: 56),
@@ -1236,50 +1329,69 @@ class _DayViewContent extends StatelessWidget {
                         decoration: BoxDecoration(
                           border: Border(
                             top: BorderSide(
-                              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                              color: theme.colorScheme.outlineVariant
+                                  .withValues(alpha: 0.5),
                             ),
                           ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: hourEvents.map((e) {
-                            final catColor = _categoryColor(e.category, theme);
-                            return Card(
-                              elevation: 1,
-                              margin: const EdgeInsets.only(bottom: 6, right: 16, top: 4),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(color: catColor.withValues(alpha: 0.5)),
-                              ),
-                              color: catColor.withValues(alpha: 0.1),
-                              child: ListTile(
-                                dense: true,
-                                leading: Icon(_categoryIcon(e.category), color: catColor),
-                                title: Text(
-                                  e.title,
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                subtitle: Text(
-                                  [
-                                    if (e.time != null) e.time!,
-                                    e.category,
-                                  ].join(' · '),
-                                ),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.edit_rounded, size: 18),
-                                  onPressed: () {
-                                    HapticFeedback.selectionClick();
-                                    showModalBottomSheet(
-                                      context: context,
-                                      isScrollControlled: true,
-                                      backgroundColor: Colors.transparent,
-                                      builder: (_) => EventEditor(event: e),
-                                    );
-                                  },
-                                ),
-                              ),
-                            );
-                          }).toList(),
+                          children:
+                              hourEvents.map((e) {
+                                final catColor = _categoryColor(
+                                  e.category,
+                                  theme,
+                                );
+                                return Card(
+                                  elevation: 1,
+                                  margin: const EdgeInsets.only(
+                                    bottom: 6,
+                                    right: 16,
+                                    top: 4,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    side: BorderSide(
+                                      color: catColor.withValues(alpha: 0.5),
+                                    ),
+                                  ),
+                                  color: catColor.withValues(alpha: 0.1),
+                                  child: ListTile(
+                                    dense: true,
+                                    leading: Icon(
+                                      _categoryIcon(e.category),
+                                      color: catColor,
+                                    ),
+                                    title: Text(
+                                      e.title,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      [
+                                        if (e.time != null) e.time!,
+                                        e.category,
+                                      ].join(' · '),
+                                    ),
+                                    trailing: IconButton(
+                                      icon: const Icon(
+                                        Icons.edit_rounded,
+                                        size: 18,
+                                      ),
+                                      onPressed: () {
+                                        HapticFeedback.selectionClick();
+                                        showModalBottomSheet(
+                                          context: context,
+                                          isScrollControlled: true,
+                                          backgroundColor: Colors.transparent,
+                                          builder: (_) => EventEditor(event: e),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
                         ),
                       ),
                     ),
@@ -1325,7 +1437,8 @@ class _AgendaViewContent extends StatelessWidget {
         return _AgendaEventCard(
           event: e,
           provider: provider,
-          showDateHeader: index == 0 ||
+          showDateHeader:
+              index == 0 ||
               !DateUtils.isSameDay(allEvents[index - 1].date, e.date),
         );
       },
@@ -1396,7 +1509,7 @@ class _AgendaTimelineList extends StatelessWidget {
                             color: catColor.withValues(alpha: 0.4),
                             blurRadius: 4,
                             spreadRadius: 1,
-                          )
+                          ),
                         ],
                       ),
                     ),
@@ -1404,7 +1517,9 @@ class _AgendaTimelineList extends StatelessWidget {
                       Expanded(
                         child: Container(
                           width: 2,
-                          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+                          color: theme.colorScheme.outlineVariant.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                       ),
                   ],
@@ -1415,118 +1530,147 @@ class _AgendaTimelineList extends StatelessWidget {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: Material(
-                    color: theme.colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(16),
-                    elevation: 0,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          backgroundColor: Colors.transparent,
-                          builder: (_) => EventEditor(event: e),
+                  child: Dismissible(
+                    key: ValueKey('timeline_${e.id}'),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.errorContainer,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 16),
+                      child: Icon(
+                        Icons.delete_outline,
+                        color: theme.colorScheme.onErrorContainer,
+                      ),
+                    ),
+                    onDismissed: (_) {
+                      HapticFeedback.lightImpact();
+                      provider.delete(e.id!);
+                      if (context.mounted) {
+                        showActionSnackBar(
+                          context,
+                          'Event "${e.title}" deleted',
+                          actionLabel: 'Undo',
+                          onAction: () => provider.save(e),
                         );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                      }
+                    },
+                    child: Material(
+                      color: theme.colorScheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(16),
+                      elevation: 0,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => EventEditor(event: e),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: theme.colorScheme.outlineVariant.withValues(
+                                alpha: 0.4,
+                              ),
+                            ),
                           ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    e.title,
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      e.title,
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(fontWeight: FontWeight.bold),
                                     ),
                                   ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 3,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: catColor.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        _categoryIcon(e.category),
-                                        size: 12,
-                                        color: catColor,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        e.category,
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: catColor.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          _categoryIcon(e.category),
+                                          size: 12,
                                           color: catColor,
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          e.category,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: catColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.access_time_rounded,
-                                  size: 14,
-                                  color: theme.colorScheme.outline,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  e.time ?? 'All day',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: theme.colorScheme.outline,
-                                  ),
-                                ),
-                                if (e.recurrence != 'none') ...[
-                                  const SizedBox(width: 12),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
                                   Icon(
-                                    Icons.repeat_rounded,
+                                    Icons.access_time_rounded,
                                     size: 14,
                                     color: theme.colorScheme.outline,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    e.recurrence.capitalize(),
+                                    e.time ?? 'All day',
                                     style: theme.textTheme.bodySmall?.copyWith(
+                                      fontWeight: FontWeight.w600,
                                       color: theme.colorScheme.outline,
                                     ),
                                   ),
+                                  if (e.recurrence != 'none') ...[
+                                    const SizedBox(width: 12),
+                                    Icon(
+                                      Icons.repeat_rounded,
+                                      size: 14,
+                                      color: theme.colorScheme.outline,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      e.recurrence.capitalize(),
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.colorScheme.outline,
+                                      ),
+                                    ),
+                                  ],
                                 ],
-                              ],
-                            ),
-                            if (e.notes.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Text(
-                                e.notes,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
                               ),
+                              if (e.notes.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  e.notes,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                       ),
                     ),
@@ -1560,31 +1704,34 @@ class _AgendaEventCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (showDateHeader) ...[
+        if (showDateHeader)
           Padding(
-            padding: const EdgeInsets.only(top: 12, bottom: 8),
+            padding: const EdgeInsets.only(top: 16, bottom: 8),
             child: Text(
-              DateFormat('EEEE, MMM d, yyyy').format(event.date),
-              style: theme.textTheme.titleSmall?.copyWith(
+              DateFormat('EEEE, MMMM d, yyyy').format(event.date),
+              style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: theme.colorScheme.primary,
               ),
             ),
           ),
-        ],
         Card(
           elevation: 0,
           margin: const EdgeInsets.only(bottom: 8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
             ),
           ),
           child: ListTile(
             leading: CircleAvatar(
               backgroundColor: catColor.withValues(alpha: 0.2),
-              child: Icon(_categoryIcon(event.category), color: catColor, size: 20),
+              child: Icon(
+                _categoryIcon(event.category),
+                color: catColor,
+                size: 20,
+              ),
             ),
             title: Text(
               event.title,
@@ -1613,64 +1760,79 @@ class _AgendaEventCard extends StatelessWidget {
   void _showActionMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      builder: (ctx) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.edit_rounded),
-              title: const Text('Edit Event'),
-              onTap: () {
-                Navigator.pop(ctx);
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (_) => EventEditor(event: event),
-                );
-              },
+      builder:
+          (ctx) => SafeArea(
+            child: Wrap(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.edit_rounded),
+                  title: const Text('Edit Event'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => EventEditor(event: event),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.delete_rounded,
+                    color: Theme.of(ctx).colorScheme.error,
+                  ),
+                  title: Text(
+                    'Delete Event',
+                    style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _confirmDelete(context);
+                  },
+                ),
+              ],
             ),
-            ListTile(
-              leading: Icon(Icons.delete_rounded, color: Theme.of(ctx).colorScheme.error),
-              title: Text(
-                'Delete Event',
-                style: TextStyle(color: Theme.of(ctx).colorScheme.error),
-              ),
-              onTap: () {
-                Navigator.pop(ctx);
-                _confirmDelete(context);
-              },
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
   void _confirmDelete(BuildContext context) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete Event'),
-        content: Text('Are you sure you want to delete "${event.title}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              HapticFeedback.mediumImpact();
-              Navigator.pop(ctx);
-              provider.delete(event.id!);
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-            child: const Text('Delete'),
+            title: const Text('Delete Event'),
+            content: Text('Are you sure you want to delete "${event.title}"?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  Navigator.pop(ctx);
+                  provider.delete(event.id!);
+                  if (context.mounted) {
+                    showActionSnackBar(
+                      context,
+                      'Event "${event.title}" deleted',
+                      actionLabel: 'Undo',
+                      onAction: () => provider.save(event),
+                    );
+                  }
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(ctx).colorScheme.error,
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 }
@@ -1693,7 +1855,9 @@ class _EmptyAgendaView extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                color: theme.colorScheme.primaryContainer.withValues(
+                  alpha: 0.3,
+                ),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -1762,8 +1926,11 @@ class _EventEditorState extends State<EventEditor> {
     if (widget.event?.time != null) {
       final parts = widget.event!.time!.split(':');
       _time = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+    } else if (widget.event == null) {
+      _time = TimeOfDay(hour: (DateTime.now().hour + 1) % 24, minute: 0);
+      _isAllDay = false;
     } else {
-      _isAllDay = widget.event != null;
+      _isAllDay = true;
     }
 
     _titleCtrl.addListener(_onTitleChanged);
@@ -1898,7 +2065,9 @@ class _EventEditorState extends State<EventEditor> {
           context: context,
           builder:
               (context) => AlertDialog(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 title: const Text('Discard changes?'),
                 content: const Text(
                   'You have unsaved edits. Are you sure you want to discard them?',
@@ -1922,262 +2091,296 @@ class _EventEditorState extends State<EventEditor> {
           Navigator.pop(context);
         }
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
         ),
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-          left: 20,
-          right: 20,
-          top: 12,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Bottom sheet drag handle
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    widget.event == null ? 'New Event' : 'Edit Event',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+        child: Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            left: 20,
+            right: 20,
+            top: 12,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Bottom sheet drag handle
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.3,
+                      ),
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Title input
-              TextField(
-                controller: _titleCtrl,
-                autofocus: widget.event == null,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  labelText: 'Title *',
-                  hintText: 'Add title',
-                  prefixIcon: const Icon(Icons.title_rounded),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                  errorText: _titleError,
-                  counterText: '${_titleCtrl.text.length}/$_maxTitleLength',
                 ),
-                maxLength: _maxTitleLength,
-              ),
-              const SizedBox(height: 12),
 
-              // Date & Time pickers
-              Card(
-                elevation: 0,
-                color: theme.colorScheme.surfaceContainerLow,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              icon: const Icon(Icons.calendar_today_rounded, size: 18),
-                              label: Text(DateFormat('MMM d, yyyy').format(_date)),
-                              style: OutlinedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              onPressed: _pickDate,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              icon: const Icon(Icons.access_time_rounded, size: 18),
-                              label: Text(
-                                _isAllDay
-                                    ? 'All Day'
-                                    : (_time != null
-                                        ? _time!.format(context)
-                                        : 'Add time'),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              onPressed: _pickTime,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'All-day Event',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          Switch(
-                            value: _isAllDay,
-                            onChanged: (val) {
-                              HapticFeedback.selectionClick();
-                              setState(() {
-                                _isAllDay = val;
-                                if (val) _time = null;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Category Choice Chips
-              Text(
-                'Category',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: _calendarCategories.map((cat) {
-                  final isSelected = _category == cat;
-                  final color = _categoryColor(cat, theme);
-                  return ChoiceChip(
-                    selected: isSelected,
-                    avatar: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      widget.event == null ? 'New Event' : 'Edit Event',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    label: Text(cat),
-                    selectedColor: color.withValues(alpha: 0.2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(context),
                     ),
-                    onSelected: (selected) {
-                      if (selected) {
-                        HapticFeedback.selectionClick();
-                        setState(() => _category = cat);
-                      }
-                    },
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 16),
-
-              // Recurrence Choice Chips
-              Text(
-                'Recurrence',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary,
+                  ],
                 ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: _recurrenceOptions.asMap().entries.map((entry) {
-                  final key = entry.value;
-                  final label = _recurrenceLabels[entry.key];
-                  final isSelected = _recurrence == key;
-                  return ChoiceChip(
-                    selected: isSelected,
-                    label: Text(label),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    onSelected: (selected) {
-                      if (selected) {
-                        HapticFeedback.selectionClick();
-                        setState(() => _recurrence = key);
-                      }
-                    },
-                  );
-                }).toList(),
-              ),
+                const SizedBox(height: 16),
 
-              if (_recurrence != 'none') ...[
+                // Title input
+                TextField(
+                  controller: _titleCtrl,
+                  autofocus: widget.event == null,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    labelText: 'Title *',
+                    hintText: 'Add title',
+                    prefixIcon: const Icon(Icons.title_rounded),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    errorText: _titleError,
+                    counterText: '${_titleCtrl.text.length}/$_maxTitleLength',
+                  ),
+                  maxLength: _maxTitleLength,
+                ),
                 const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.event_repeat_rounded, size: 18),
-                  label: Text(
-                    _recurrenceEnd == null
-                        ? 'End Date (Optional)'
-                        : 'Until ${DateFormat('MMM d, yyyy').format(_recurrenceEnd!)}',
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: _pickRecurrenceEnd,
-                ),
-              ],
 
-              const SizedBox(height: 16),
-
-              // Notes input
-              TextField(
-                controller: _notesCtrl,
-                decoration: InputDecoration(
-                  labelText: 'Notes (optional)',
-                  hintText: 'Add description or notes...',
-                  prefixIcon: const Icon(Icons.notes_rounded),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                  counterText: '${_notesCtrl.text.length}/$_maxNotesLength',
-                ),
-                maxLines: 3,
-                maxLength: _maxNotesLength,
-              ),
-              const SizedBox(height: 20),
-
-              // Save button
-              FilledButton.icon(
-                icon: const Icon(Icons.check_rounded),
-                label: Text(
-                  widget.event == null ? 'Save Event' : 'Update Event',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                // Date & Time pickers
+                Card(
+                  elevation: 0,
+                  color: theme.colorScheme.surfaceContainerLow,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                icon: const Icon(
+                                  Icons.calendar_today_rounded,
+                                  size: 18,
+                                ),
+                                label: Text(
+                                  DateFormat('MMM d, yyyy').format(_date),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: _pickDate,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                icon: const Icon(
+                                  Icons.access_time_rounded,
+                                  size: 18,
+                                ),
+                                label: Text(
+                                  _isAllDay
+                                      ? 'All Day'
+                                      : (_time != null
+                                          ? _time!.format(context)
+                                          : 'Add time'),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: _pickTime,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'All-day Event',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            Switch(
+                              value: _isAllDay,
+                              onChanged: (val) {
+                                HapticFeedback.selectionClick();
+                                setState(() {
+                                  _isAllDay = val;
+                                  if (val) _time = null;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                onPressed: _save,
-              ),
-            ],
+                const SizedBox(height: 16),
+
+                // Category Choice Chips
+                Text(
+                  'Category',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children:
+                      _calendarCategories.map((cat) {
+                        final isSelected = _category == cat;
+                        final color = _categoryColor(cat, theme);
+                        return ChoiceChip(
+                          selected: isSelected,
+                          avatar: Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          label: Text(cat),
+                          selectedColor: color.withValues(alpha: 0.2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          onSelected: (selected) {
+                            if (selected) {
+                              HapticFeedback.selectionClick();
+                              setState(() => _category = cat);
+                            }
+                          },
+                        );
+                      }).toList(),
+                ),
+                const SizedBox(height: 16),
+
+                // Recurrence Choice Chips
+                Text(
+                  'Recurrence',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children:
+                      _recurrenceOptions.asMap().entries.map((entry) {
+                        final key = entry.value;
+                        final label = _recurrenceLabels[entry.key];
+                        final isSelected = _recurrence == key;
+                        return ChoiceChip(
+                          selected: isSelected,
+                          label: Text(label),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          onSelected: (selected) {
+                            if (selected) {
+                              HapticFeedback.selectionClick();
+                              setState(() => _recurrence = key);
+                            }
+                          },
+                        );
+                      }).toList(),
+                ),
+
+                if (_recurrence != 'none') ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.event_repeat_rounded, size: 18),
+                    label: Text(
+                      _recurrenceEnd == null
+                          ? 'End Date (Optional)'
+                          : 'Until ${DateFormat('MMM d, yyyy').format(_recurrenceEnd!)}',
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: _pickRecurrenceEnd,
+                  ),
+                ],
+
+                const SizedBox(height: 16),
+
+                // Notes input
+                TextField(
+                  controller: _notesCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Notes (optional)',
+                    hintText: 'Add description or notes...',
+                    prefixIcon: const Icon(Icons.notes_rounded),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    counterText: '${_notesCtrl.text.length}/$_maxNotesLength',
+                  ),
+                  maxLines: 3,
+                  maxLength: _maxNotesLength,
+                ),
+                const SizedBox(height: 20),
+
+                // Save button
+                FilledButton.icon(
+                  icon: const Icon(Icons.check_rounded),
+                  label: Text(
+                    widget.event == null ? 'Save Event' : 'Update Event',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  onPressed: _save,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -2191,4 +2394,3 @@ extension on String {
     return '${this[0].toUpperCase()}${substring(1)}';
   }
 }
-

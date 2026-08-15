@@ -283,27 +283,18 @@ class _LifeScreenContent extends StatefulWidget {
 class _LifeScreenContentState extends State<_LifeScreenContent>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pulseController;
-  late DateTime _now;
-  late final Timer _tickerTimer;
 
   @override
   void initState() {
     super.initState();
-    _now = DateTime.now();
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
-    _tickerTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) {
-        setState(() => _now = DateTime.now());
-      }
-    });
   }
 
   @override
   void dispose() {
-    _tickerTimer.cancel();
     _pulseController.dispose();
     super.dispose();
   }
@@ -311,7 +302,7 @@ class _LifeScreenContentState extends State<_LifeScreenContent>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final now = _now;
+    final now = DateTime.now();
 
     return Scaffold(
       appBar: AppBar(
@@ -403,7 +394,7 @@ class _LifeScreenContentState extends State<_LifeScreenContent>
                     ? theme.colorScheme.primary
                     : lifePercentage < 80
                     ? theme.colorScheme.tertiary
-                    : theme.colorScheme.error;
+                    : theme.colorScheme.secondary;
 
             return SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -416,7 +407,7 @@ class _LifeScreenContentState extends State<_LifeScreenContent>
                       alpha: 0.3,
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
                           Row(
@@ -513,7 +504,7 @@ class _LifeScreenContentState extends State<_LifeScreenContent>
                 Card(
                   elevation: 0,
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(20),
                     child: Column(
                       children: [
                         Row(
@@ -665,19 +656,9 @@ class _LifeScreenContentState extends State<_LifeScreenContent>
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.tertiary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'Live Ticker: ${remainingDuration.inHours % 24}h : ${remainingDuration.inMinutes % 60}m : ${remainingDuration.inSeconds % 60}s remaining',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.tertiary,
-                            ),
-                          ),
+                        _LiveRemainingDurationTicker(
+                          expectedDeathDate: expectedDeathDate,
+                          color: theme.colorScheme.tertiary,
                         ),
                       ],
                     ),
@@ -704,7 +685,7 @@ class _LifeScreenContentState extends State<_LifeScreenContent>
                       crossAxisCount: crossAxisCount,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      childAspectRatio: 1.5,
+                      childAspectRatio: 1.25,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
                       children: [
@@ -736,21 +717,23 @@ class _LifeScreenContentState extends State<_LifeScreenContent>
                           title: 'Total Seconds',
                           value: NumberFormat('#,###').format(totalSeconds),
                           icon: Icons.hourglass_full_rounded,
-                          color: theme.colorScheme.error,
+                          color: theme.colorScheme.tertiary,
                         ),
-                         ],
-                       );
-                     },
-                   ),
-                    const SizedBox(height: 16),
-                  ],
+                      ],
+                    );
+                  },
                 ),
-              );
-            },
-          ),
-        ),
-      );
-      }
+                const SizedBox(height: 16),
+                _LifeMilestonesCard(dob: widget.dob, theme: theme),
+                const SizedBox(height: 16),
+              ],
+            ),
+          );
+        },
+      ),
+    ),
+  );
+}
 
   Future<void> _pickDate(BuildContext context, LifeProvider provider) async {
     HapticFeedback.selectionClick();
@@ -959,7 +942,7 @@ class _LiveBadge extends StatelessWidget {
               Text(
                 'LIVE',
                 style: TextStyle(
-                  fontSize: 9,
+                  fontSize: 11,
                   fontWeight: FontWeight.bold,
                   color: color,
                   letterSpacing: 0.5,
@@ -1007,7 +990,7 @@ class _MetricCard extends StatelessWidget {
                       title,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
-                        fontSize: 10,
+                        fontSize: 11,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1030,6 +1013,258 @@ class _MetricCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LiveRemainingDurationTicker extends StatefulWidget {
+  final DateTime expectedDeathDate;
+  final Color color;
+
+  const _LiveRemainingDurationTicker({
+    required this.expectedDeathDate,
+    required this.color,
+  });
+
+  @override
+  State<_LiveRemainingDurationTicker> createState() =>
+      _LiveRemainingDurationTickerState();
+}
+
+class _LiveRemainingDurationTickerState
+    extends State<_LiveRemainingDurationTicker> {
+  late Timer _timer;
+  late Duration _remaining;
+
+  @override
+  void initState() {
+    super.initState();
+    _remaining = widget.expectedDeathDate.difference(DateTime.now());
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        setState(() {
+          _remaining = widget.expectedDeathDate.difference(DateTime.now());
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hours = _remaining.isNegative ? 0 : _remaining.inHours % 24;
+    final mins = _remaining.isNegative ? 0 : _remaining.inMinutes % 60;
+    final secs = _remaining.isNegative ? 0 : _remaining.inSeconds % 60;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: widget.color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          'Live Ticker: ${hours}h : ${mins}m : ${secs}s remaining',
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: widget.color,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LifeMilestonesCard extends StatelessWidget {
+  final DateTime dob;
+  final ThemeData theme;
+
+  const _LifeMilestonesCard({required this.dob, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    DateTime nextBirthday = DateTime(now.year, dob.month, dob.day);
+    if (nextBirthday.isBefore(now)) {
+      nextBirthday = DateTime(now.year + 1, dob.month, dob.day);
+    }
+    final daysToNextBirthday = nextBirthday.difference(now).inDays;
+    final turningAge = nextBirthday.year - dob.year;
+
+    final daysLived = now.difference(dob).inDays;
+    final nextMilestoneDay = ((daysLived ~/ 1000) + 1) * 1000;
+    final daysToMilestone = nextMilestoneDay - daysLived;
+    final nextMilestoneDate = dob.add(Duration(days: nextMilestoneDay));
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.flag_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Upcoming Milestones',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.4,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.cake_rounded,
+                      color: Colors.amber,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Turning $turningAge',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          daysToNextBirthday == 0
+                              ? 'Happy Birthday! 🎉'
+                              : '$daysToNextBirthday day${daysToNextBirthday > 1 ? 's' : ''} away (${DateFormat('MMM d').format(nextBirthday)})',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (daysToNextBirthday > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '$daysToNextBirthday d',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.4,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.tertiary.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.stars_rounded,
+                      color: theme.colorScheme.tertiary,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Day ${NumberFormat('#,###').format(nextMilestoneDay)} of Life',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          'In $daysToMilestone days on ${DateFormat('MMM d, yyyy').format(nextMilestoneDate)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.tertiaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '$daysToMilestone d',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onTertiaryContainer,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

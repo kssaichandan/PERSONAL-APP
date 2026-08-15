@@ -126,10 +126,26 @@ void main() {
       };
       await tester.pumpWidget(buildTestApp());
       await tester.pump();
-      await tester.tap(find.text(label));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text(label),
+        ),
+      );
       await tester.pump();
       FlutterError.onError = oldHandler;
-      expect(find.byType(expectedScreen), findsOneWidget);
+      final expectedIndex = switch (expectedScreen) {
+        const (NotesScreen) => 0,
+        const (HabitsScreen) => 1,
+        const (CalendarScreen) => 2,
+        const (CalculatorScreen) => 3,
+        const (LifeScreen) => 4,
+        _ => 5,
+      };
+      expect(
+        tester.widget<IndexedStack>(find.byType(IndexedStack)).index,
+        expectedIndex,
+      );
     }
 
     testWidgets('Shows bottom navigation with 6 tabs', (
@@ -141,12 +157,48 @@ void main() {
 
       expect(find.byType(NavigationBar), findsOneWidget);
       expect(find.byType(NavigationDestination), findsNWidgets(6));
-      expect(find.text('Notes'), findsWidgets);
-      expect(find.text('Habits'), findsOneWidget);
-      expect(find.text('Calendar'), findsOneWidget);
-      expect(find.text('Calculator'), findsOneWidget);
-      expect(find.text('Life'), findsOneWidget);
-      expect(find.text('Settings'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Notes'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Habits'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Calendar'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Calc'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Life'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Settings'),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('Defaults to Notes tab', (WidgetTester tester) async {
@@ -154,7 +206,7 @@ void main() {
       await tester.pumpWidget(buildTestApp());
       await tester.pump();
 
-      expect(find.byType(NotesScreen), findsOneWidget);
+      expect(tester.widget<IndexedStack>(find.byType(IndexedStack)).index, 0);
     });
 
     testWidgets('Uses a navigation rail on wide layouts', (
@@ -177,7 +229,7 @@ void main() {
     });
 
     testWidgets('Can navigate to Calculator tab', (WidgetTester tester) async {
-      await navigateToTab(tester, 'Calculator', CalculatorScreen);
+      await navigateToTab(tester, 'Calc', CalculatorScreen);
     });
 
     testWidgets('Can navigate to Life tab', (WidgetTester tester) async {

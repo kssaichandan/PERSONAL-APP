@@ -123,6 +123,49 @@ void showSuccessSnackBar(BuildContext context, String message) {
   );
 }
 
+void showActionSnackBar(
+  BuildContext context,
+  String message, {
+  required String actionLabel,
+  required VoidCallback onAction,
+  Duration duration = const Duration(seconds: 4),
+}) {
+  if (!context.mounted) return;
+  HapticFeedback.lightImpact();
+  final theme = Theme.of(context);
+
+  scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
+  scaffoldMessengerKey.currentState?.showSnackBar(
+    SnackBar(
+      content: Text(
+        message,
+        style: TextStyle(
+          color: theme.colorScheme.onSurface,
+          fontWeight: FontWeight.w500,
+          fontSize: 14,
+        ),
+      ),
+      backgroundColor: theme.colorScheme.surfaceContainerHighest,
+      behavior: SnackBarBehavior.floating,
+      duration: duration,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+          width: 1,
+        ),
+      ),
+      action: SnackBarAction(
+        label: actionLabel,
+        textColor: theme.colorScheme.primary,
+        onPressed: onAction,
+      ),
+    ),
+  );
+}
+
 void debugLog(String message) {
   if (kDebugMode) debugPrint(message);
 }

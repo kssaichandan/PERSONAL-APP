@@ -50,37 +50,37 @@ class AppTheme {
         iconTheme: IconThemeData(color: colorScheme.onSurface),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 64,
+        height: 80,
         elevation: 0,
         backgroundColor: colorScheme.surfaceContainer,
         indicatorColor: colorScheme.primaryContainer,
         indicatorShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
         ),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return TextStyle(
-              fontSize: 9.5,
+              fontSize: 11,
               fontWeight: FontWeight.bold,
               color: colorScheme.primary,
-              letterSpacing: -0.4,
-              overflow: TextOverflow.fade,
+              letterSpacing: 0.0,
+              overflow: TextOverflow.ellipsis,
             );
           }
           return TextStyle(
-            fontSize: 9.5,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
             color: colorScheme.onSurfaceVariant,
-            letterSpacing: -0.4,
-            overflow: TextOverflow.fade,
+            letterSpacing: 0.0,
+            overflow: TextOverflow.ellipsis,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return IconThemeData(color: colorScheme.onPrimaryContainer, size: 20);
+            return IconThemeData(color: colorScheme.onPrimaryContainer, size: 24);
           }
-          return IconThemeData(color: colorScheme.onSurfaceVariant, size: 20);
+          return IconThemeData(color: colorScheme.onSurfaceVariant, size: 24);
         }),
       ),
       navigationRailTheme: NavigationRailThemeData(
@@ -89,13 +89,13 @@ class AppTheme {
         selectedIconTheme: IconThemeData(color: colorScheme.onPrimaryContainer),
         unselectedIconTheme: IconThemeData(color: colorScheme.onSurfaceVariant),
         selectedLabelTextStyle: TextStyle(
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: FontWeight.w600,
           color: colorScheme.primary,
           letterSpacing: -0.1,
         ),
         unselectedLabelTextStyle: TextStyle(
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: FontWeight.w500,
           color: colorScheme.onSurfaceVariant,
           letterSpacing: -0.1,
@@ -207,7 +207,7 @@ class AppTheme {
             width: 1,
           ),
         ),
-        color: colorScheme.surfaceContainer,
+        color: colorScheme.surfaceContainerLow,
         margin: EdgeInsets.zero,
         clipBehavior: Clip.antiAlias,
       ),
@@ -226,37 +226,37 @@ class AppTheme {
         iconTheme: IconThemeData(color: colorScheme.onSurface),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 64,
+        height: 80,
         elevation: 0,
         backgroundColor: colorScheme.surfaceContainer,
         indicatorColor: colorScheme.primaryContainer,
         indicatorShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
         ),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return TextStyle(
-              fontSize: 9.5,
+              fontSize: 11,
               fontWeight: FontWeight.bold,
               color: colorScheme.primary,
-              letterSpacing: -0.4,
-              overflow: TextOverflow.fade,
+              letterSpacing: 0.0,
+              overflow: TextOverflow.ellipsis,
             );
           }
           return TextStyle(
-            fontSize: 9.5,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
             color: colorScheme.onSurfaceVariant,
-            letterSpacing: -0.4,
-            overflow: TextOverflow.fade,
+            letterSpacing: 0.0,
+            overflow: TextOverflow.ellipsis,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return IconThemeData(color: colorScheme.onPrimaryContainer, size: 20);
+            return IconThemeData(color: colorScheme.onPrimaryContainer, size: 24);
           }
-          return IconThemeData(color: colorScheme.onSurfaceVariant, size: 20);
+          return IconThemeData(color: colorScheme.onSurfaceVariant, size: 24);
         }),
       ),
       navigationRailTheme: NavigationRailThemeData(
@@ -265,13 +265,13 @@ class AppTheme {
         selectedIconTheme: IconThemeData(color: colorScheme.onPrimaryContainer),
         unselectedIconTheme: IconThemeData(color: colorScheme.onSurfaceVariant),
         selectedLabelTextStyle: TextStyle(
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: FontWeight.w600,
           color: colorScheme.primary,
           letterSpacing: -0.1,
         ),
         unselectedLabelTextStyle: TextStyle(
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: FontWeight.w500,
           color: colorScheme.onSurfaceVariant,
           letterSpacing: -0.1,
@@ -292,8 +292,8 @@ class AppTheme {
       ),
       bottomSheetTheme: BottomSheetThemeData(
         elevation: 8,
-        backgroundColor: colorScheme.surfaceContainer,
-        modalBackgroundColor: colorScheme.surfaceContainer,
+        backgroundColor: colorScheme.surfaceContainerLow,
+        modalBackgroundColor: colorScheme.surfaceContainerLow,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(sheetRadius)),
         ),
@@ -332,8 +332,8 @@ class AppTheme {
         hintStyle: TextStyle(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        elevation: 4,
-        highlightElevation: 8,
+        elevation: 3,
+        highlightElevation: 6,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(buttonRadius),
         ),
@@ -357,7 +357,7 @@ class AppTheme {
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(snackBarRadius)),
-        elevation: 6,
+        elevation: 4,
       ),
     );
   }

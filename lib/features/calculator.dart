@@ -148,8 +148,8 @@ class CalculatorProvider extends ChangeNotifier {
       final db = await AppDatabase.instance.database;
       await db.delete(
         'calculator_history',
-        where: 'expression = ? AND result = ?',
-        whereArgs: [item['expression'], item['result']],
+        where: 'id = ?',
+        whereArgs: [item['id']],
       );
     } catch (e) {
       debugLog('Failed to delete history item: $e');
@@ -189,7 +189,26 @@ class CalculatorProvider extends ChangeNotifier {
       } else {
         _expression = '-$_expression';
       }
+    } else if (value == '.') {
+      final segments = _expression.split(RegExp(r'[+\-×÷^()]'));
+      if (segments.isNotEmpty && segments.last.contains('.')) {
+        return;
+      }
+      if (_expression.isEmpty || RegExp(r'[+\-×÷^()]$').hasMatch(_expression)) {
+        _expression += '0.';
+      } else {
+        _expression += '.';
+      }
     } else {
+      const operators = ['+', '-', '×', '÷', '^'];
+      if (operators.contains(value) && _expression.isNotEmpty) {
+        final lastChar = _expression[_expression.length - 1];
+        if (operators.contains(lastChar)) {
+          _expression = _expression.substring(0, _expression.length - 1) + value;
+          notifyListeners();
+          return;
+        }
+      }
       if (_expression.length >= 50) {
         return;
       }
@@ -407,7 +426,7 @@ class CalculatorScreen extends StatelessWidget {
         scrolledUnderElevation: 0,
       ),
       body: SafeArea(
-        bottom: false,
+        bottom: true,
         child: Consumer2<CalculatorProvider, SettingsProvider>(
           builder: (context, calc, settings, _) {
             if (isLandscape) {
@@ -565,12 +584,17 @@ class _DisplayArea extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            calc.formattedMemory,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: theme.colorScheme.onPrimaryContainer,
+                          Flexible(
+                            child: Text(
+                              calc.formattedMemory,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.onPrimaryContainer,
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                              ),
                             ),
                           ),
                         ],
@@ -715,7 +739,7 @@ class _MemoryRow extends StatelessWidget {
     final memButtons = ['MC', 'MR', 'M+', 'M-'];
     final hasMemory = calc.memory != 0.0;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       child: Row(
         children:
             memButtons.map((label) {
@@ -980,21 +1004,26 @@ void _showHistoryBottomSheet(BuildContext context, CalculatorProvider calc) {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.history_rounded,
-                          size: 20,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Calculation History',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.history_rounded,
+                            size: 20,
+                            color: theme.colorScheme.primary,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Calculation History',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     if (provider.history.isNotEmpty)
                       TextButton.icon(
@@ -1237,7 +1266,7 @@ class _ButtonGrid extends StatelessWidget {
     final allRows = scientific ? [...sciRows, ...basicRows] : basicRows;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children:
