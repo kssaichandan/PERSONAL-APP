@@ -12,6 +12,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../database.dart';
 import '../utils/snackbar_utils.dart';
+import '../widgets/app_color_picker.dart';
 import '../features/settings_provider.dart';
 import '../features/onboarding.dart';
 import 'notes.dart';
@@ -228,7 +229,46 @@ class _AppearanceSection extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Accent Color Theme', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                Row(
+                                  children: [
+                                    const Text(
+                                      'Accent Color Theme',
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: settings.colorSeed.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: settings.colorSeed.withValues(alpha: 0.4)),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Container(
+                                            width: 8,
+                                            height: 8,
+                                            decoration: BoxDecoration(
+                                              color: settings.colorSeed,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '#${settings.colorSeed.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: settings.colorSeed,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
                                 Text(
                                   'Universal primary app accent',
                                   style: theme.textTheme.bodySmall?.copyWith(
@@ -279,7 +319,7 @@ class _AppearanceSection extends StatelessWidget {
                         onTap: () {
                           HapticFeedback.selectionClick();
                           settings.setColorSeed(color);
-                          showSuccessSnackBar(context, 'Accent theme updated');
+                          showSuccessSnackBar(context, 'Accent theme color saved');
                         },
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
@@ -398,212 +438,25 @@ class _AppearanceSection extends StatelessWidget {
     }
   }
 
-  void _showColorPicker(BuildContext context, SettingsProvider settings) {
-    final theme = Theme.of(context);
-    final colors = [
-      Colors.blue,
-      Colors.indigo,
-      Colors.teal,
-      Colors.cyan,
-      Colors.green,
-      Colors.lightGreen,
-      Colors.amber,
-      Colors.orange,
-      Colors.deepOrange,
-      Colors.red,
-      Colors.pink,
-      Colors.purple,
-      Colors.deepPurple,
-      Colors.brown,
-      Colors.blueGrey,
-      Colors.lightBlue,
-    ];
-
-    showModalBottomSheet(
+  void _showColorPicker(BuildContext context, SettingsProvider settings) async {
+    final chosen = await showAppColorPickerSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: theme.colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (sheetCtx) {
-        return Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.7,
-          ),
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Accent Color Palette',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(sheetCtx),
-                  ),
-                ],
-              ),
-              const Divider(),
-              const SizedBox(height: 8),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: Colors.blue,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
-                ),
-                title: const Text(
-                  'Default Accent Color',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                subtitle: const Text('Reset to standard Flutter blue'),
-                onTap: () async {
-                  HapticFeedback.selectionClick();
-                  await settings.setColorSeed(Colors.blue);
-                  if (sheetCtx.mounted) Navigator.pop(sheetCtx);
-                },
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'PRESET COLORS',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.outline,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.1,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Flexible(
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  itemCount: colors.length + 1,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                  ),
-                  itemBuilder: (gridCtx, index) {
-                    if (index == colors.length) {
-                      return GestureDetector(
-                        onTap: () async {
-                          HapticFeedback.selectionClick();
-                          final color = await showDialog<Color>(
-                            context: sheetCtx,
-                            builder: (dialogCtx) => _CustomColorPicker(
-                              initialColor: settings.colorSeed,
-                            ),
-                          );
-                          if (color != null && sheetCtx.mounted) {
-                            await settings.setColorSeed(color);
-                            if (sheetCtx.mounted) Navigator.pop(sheetCtx);
-                          }
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: const SweepGradient(
-                              colors: [
-                                Colors.red,
-                                Colors.yellow,
-                                Colors.green,
-                                Colors.cyan,
-                                Colors.blue,
-                                Colors.purple,
-                                Colors.red,
-                              ],
-                            ),
-                            border: Border.all(
-                              color: theme.colorScheme.surface,
-                              width: 2,
-                            ),
-                          ),
-                          child: Container(
-                            margin: const EdgeInsets.all(3),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surface,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.colorize_rounded,
-                              color: theme.colorScheme.onSurface,
-                              size: 18,
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-                    final color = colors[index];
-                    final isSelected = settings.colorSeed.toARGB32() == color.toARGB32();
-                    return GestureDetector(
-                      onTap: () async {
-                        HapticFeedback.selectionClick();
-                        await settings.setColorSeed(color);
-                        if (sheetCtx.mounted) Navigator.pop(sheetCtx);
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: color.withValues(alpha: 0.5),
-                                    blurRadius: 10,
-                                    spreadRadius: 2,
-                                  ),
-                                ]
-                              : null,
-                          border: Border.all(
-                            color: isSelected ? theme.colorScheme.onSurface : Colors.transparent,
-                            width: isSelected ? 3 : 0,
-                          ),
-                        ),
-                        child: isSelected
-                            ? Icon(
-                                Icons.check_rounded,
-                                color: color.computeLuminance() > 0.5 ? Colors.black87 : Colors.white,
-                                size: 20,
-                              )
-                            : null,
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
+      currentColor: settings.colorSeed,
+      title: 'Accent Color Palette',
+      resetLabel: 'Default Accent Color',
+      resetSubtitle: 'Reset to standard Flutter blue',
+      defaultResetColor: Colors.blue,
+      presets: appDefaultColorPresets,
     );
+    if (chosen != null && context.mounted) {
+      await settings.setColorSeed(chosen);
+      if (!context.mounted) return;
+      if (chosen.toARGB32() == Colors.blue.toARGB32()) {
+        showSuccessSnackBar(context, 'Reset to default accent color');
+      } else {
+        showSuccessSnackBar(context, 'Custom accent color applied');
+      }
+    }
   }
 }
 
@@ -727,292 +580,7 @@ class _ThemePreviewCard extends StatelessWidget {
   }
 }
 
-class _CustomColorPicker extends StatefulWidget {
-  final Color initialColor;
-  const _CustomColorPicker({required this.initialColor});
 
-  @override
-  State<_CustomColorPicker> createState() => _CustomColorPickerState();
-}
-
-class _CustomColorPickerState extends State<_CustomColorPicker> {
-  late HSVColor _hsv;
-  final _hexController = TextEditingController();
-  final GlobalKey _pickerBoxKey = GlobalKey();
-
-  @override
-  void initState() {
-    super.initState();
-    _hsv = HSVColor.fromColor(widget.initialColor);
-    _hexController.text = widget.initialColor
-        .toARGB32()
-        .toRadixString(16)
-        .substring(2)
-        .toUpperCase();
-  }
-
-  @override
-  void dispose() {
-    _hexController.dispose();
-    super.dispose();
-  }
-
-  void _updateFromHSV(HSVColor hsv) {
-    setState(() {
-      _hsv = hsv;
-      final hex = hsv
-          .toColor()
-          .toARGB32()
-          .toRadixString(16)
-          .substring(2)
-          .toUpperCase();
-      _hexController.text = hex;
-    });
-  }
-
-  void _updateFromHex(String hex) {
-    if (hex.length == 6) {
-      final value = int.tryParse(hex, radix: 16);
-      if (value != null) {
-        final color = Color(0xFF000000 | value);
-        setState(() {
-          _hsv = HSVColor.fromColor(color);
-        });
-      }
-    }
-  }
-
-  void _handleTouch(Offset globalPosition) {
-    final RenderBox? box = _pickerBoxKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null) return;
-    final localOffset = box.globalToLocal(globalPosition);
-    final dx = (localOffset.dx / box.size.width).clamp(0.0, 1.0);
-    final dy = (localOffset.dy / box.size.height).clamp(0.0, 1.0);
-    _updateFromHSV(_hsv.withSaturation(dx).withValue(1.0 - dy));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _hsv.toColor();
-    final theme = Theme.of(context);
-
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Custom Accent Color',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-
-            // Color Preview Banner
-            Container(
-              height: 50,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.35),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Text(
-                  '#${_hexController.text}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'monospace',
-                    letterSpacing: 1.5,
-                    color: color.computeLuminance() > 0.5 ? Colors.black87 : Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 2D Saturation & Value Selection Field
-            GestureDetector(
-              onPanStart: (details) => _handleTouch(details.globalPosition),
-              onPanUpdate: (details) => _handleTouch(details.globalPosition),
-              onTapDown: (details) => _handleTouch(details.globalPosition),
-              child: Container(
-                key: _pickerBoxKey,
-                height: 160,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: theme.colorScheme.outlineVariant),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Stack(
-                    children: [
-                      // Base hue color fill
-                      Container(
-                        color: HSVColor.fromAHSV(1, _hsv.hue, 1, 1).toColor(),
-                      ),
-                      // White saturation overlay (left to right)
-                      Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.white, Colors.transparent],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
-                        ),
-                      ),
-                      // Black value overlay (bottom to top)
-                      Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.black, Colors.transparent],
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                          ),
-                        ),
-                      ),
-                      // Interactive Thumb Handle
-                      Positioned(
-                        left: (_hsv.saturation * 100).clamp(0.0, 100.0) * 2.2, // dynamic calculation display
-                        top: ((1.0 - _hsv.value) * 100).clamp(0.0, 100.0) * 1.3,
-                        child: Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: color,
-                            border: Border.all(color: Colors.white, width: 2.5),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Colors.black38,
-                                blurRadius: 4,
-                                spreadRadius: 1,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Multi-stop Rainbow Gradient Hue Slider
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  height: 12,
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(6),
-                    gradient: const LinearGradient(
-                      colors: [
-                        Colors.red,
-                        Colors.yellow,
-                        Colors.green,
-                        Colors.cyan,
-                        Colors.blue,
-                        Colors.purple,
-                        Colors.red,
-                      ],
-                    ),
-                  ),
-                ),
-                SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    trackHeight: 0,
-                    thumbColor: color,
-                    overlayColor: color.withValues(alpha: 0.2),
-                  ),
-                  child: Slider(
-                    value: _hsv.hue,
-                    min: 0,
-                    max: 360,
-                    onChanged: (v) => _updateFromHSV(_hsv.withHue(v)),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            // HEX Input Row
-            Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: theme.colorScheme.outlineVariant),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _hexController,
-                    textCapitalization: TextCapitalization.characters,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9a-fA-F]')),
-                      LengthLimitingTextInputFormatter(6),
-                    ],
-                    decoration: InputDecoration(
-                      hintText: 'HEX CODE',
-                      prefixText: '# ',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                    ),
-                    style: const TextStyle(
-                      fontFamily: 'monospace',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                    onChanged: _updateFromHex,
-                    onSubmitted: (_) => Navigator.pop(context, color),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Action Buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: () => Navigator.pop(context, color),
-                  child: const Text('Select'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _NotificationsSection extends StatelessWidget {
   @override

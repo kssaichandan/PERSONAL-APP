@@ -1024,114 +1024,121 @@ class _MonthGrid extends StatelessWidget {
           provider.setSelectedDate(date);
         },
         behavior: HitTestBehavior.opaque,
-        child: Container(
-          margin: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border:
-                isSelected
-                    ? Border.all(color: theme.colorScheme.primary, width: 2)
-                    : null,
-          ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color:
-                        isToday
-                            ? theme.colorScheme.primary
-                            : (isSelected
-                                ? theme.colorScheme.primaryContainer
-                                : Colors.transparent),
-                    boxShadow:
-                        isToday
-                            ? [
-                              BoxShadow(
-                                color: theme.colorScheme.primary.withValues(
-                                  alpha: 0.38,
-                                ),
-                                blurRadius: 8,
-                                spreadRadius: 1,
-                              ),
-                            ]
-                            : null,
-                  ),
-                  child: Center(
-                    child: Text(
-                      '$day',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight:
-                            (isToday || isSelected)
-                                ? FontWeight.bold
-                                : FontWeight.w500,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final double circleSize = (constraints.maxHeight * 0.62).clamp(22.0, 32.0);
+            final double fontSize = (circleSize * 0.45).clamp(11.0, 14.0);
+            return Container(
+              margin: const EdgeInsets.all(1.5),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                border:
+                    isSelected
+                        ? Border.all(color: theme.colorScheme.primary, width: 2)
+                        : null,
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: circleSize,
+                      height: circleSize,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
                         color:
                             isToday
-                                ? theme.colorScheme.onPrimary
-                                : (isCurrentMonth
-                                    ? theme.colorScheme.onSurface
-                                    : theme.colorScheme.outline.withValues(
-                                      alpha: 0.5,
-                                    )),
+                                ? theme.colorScheme.primary
+                                : (isSelected
+                                    ? theme.colorScheme.primaryContainer
+                                    : Colors.transparent),
+                        boxShadow:
+                            isToday
+                                ? [
+                                  BoxShadow(
+                                    color: theme.colorScheme.primary.withValues(
+                                      alpha: 0.38,
+                                    ),
+                                    blurRadius: 6,
+                                    spreadRadius: 1,
+                                  ),
+                                ]
+                                : null,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '$day',
+                          style: TextStyle(
+                            fontSize: fontSize,
+                            fontWeight:
+                                (isToday || isSelected)
+                                    ? FontWeight.bold
+                                    : FontWeight.w500,
+                            color:
+                                isToday
+                                    ? theme.colorScheme.onPrimary
+                                    : (isCurrentMonth
+                                        ? theme.colorScheme.onSurface
+                                        : theme.colorScheme.outline.withValues(
+                                          alpha: 0.5,
+                                        )),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                SizedBox(
-                  height: 6,
-                  child:
-                      hasEvent
-                          ? Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              ...events
-                                  .take(3)
-                                  .map(
-                                    (e) => Container(
-                                      width: 5,
-                                      height: 5,
-                                      margin: const EdgeInsets.symmetric(
-                                        horizontal: 1,
+                    const SizedBox(height: 2),
+                    SizedBox(
+                      height: 5,
+                      child:
+                          hasEvent
+                              ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  ...events
+                                      .take(3)
+                                      .map(
+                                        (e) => Container(
+                                          width: 4.5,
+                                          height: 4.5,
+                                          margin: const EdgeInsets.symmetric(
+                                            horizontal: 1,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                isCurrentMonth
+                                                    ? _categoryColor(
+                                                      e.category,
+                                                      theme,
+                                                    )
+                                                    : _categoryColor(
+                                                      e.category,
+                                                      theme,
+                                                    ).withValues(alpha: 0.4),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
                                       ),
+                                  if (events.length > 3)
+                                    Container(
+                                      width: 4,
+                                      height: 4,
+                                      margin: const EdgeInsets.only(left: 1),
                                       decoration: BoxDecoration(
-                                        color:
-                                            isCurrentMonth
-                                                ? _categoryColor(
-                                                  e.category,
-                                                  theme,
-                                                )
-                                                : _categoryColor(
-                                                  e.category,
-                                                  theme,
-                                                ).withValues(alpha: 0.4),
+                                        color: theme.colorScheme.primary,
                                         shape: BoxShape.circle,
                                       ),
                                     ),
-                                  ),
-                              if (events.length > 3)
-                                Container(
-                                  width: 4,
-                                  height: 4,
-                                  margin: const EdgeInsets.only(left: 1),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                            ],
-                          )
-                          : const SizedBox(),
+                                ],
+                              )
+                              : const SizedBox(),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -1374,20 +1381,38 @@ class _DayViewContent extends StatelessWidget {
                                         e.category,
                                       ].join(' · '),
                                     ),
-                                    trailing: IconButton(
-                                      icon: const Icon(
-                                        Icons.edit_rounded,
-                                        size: 18,
-                                      ),
-                                      onPressed: () {
-                                        HapticFeedback.selectionClick();
-                                        showModalBottomSheet(
-                                          context: context,
-                                          isScrollControlled: true,
-                                          backgroundColor: Colors.transparent,
-                                          builder: (_) => EventEditor(event: e),
-                                        );
-                                      },
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.edit_rounded,
+                                            size: 18,
+                                          ),
+                                          tooltip: 'Edit event',
+                                          onPressed: () {
+                                            HapticFeedback.selectionClick();
+                                            showModalBottomSheet(
+                                              context: context,
+                                              isScrollControlled: true,
+                                              backgroundColor: Colors.transparent,
+                                              builder: (_) => EventEditor(event: e),
+                                            );
+                                          },
+                                        ),
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.delete_outline_rounded,
+                                            size: 18,
+                                            color: theme.colorScheme.error.withValues(alpha: 0.8),
+                                          ),
+                                          tooltip: 'Delete event',
+                                          onPressed: () {
+                                            HapticFeedback.lightImpact();
+                                            _confirmDeleteEvent(context, provider, e);
+                                          },
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 );
@@ -1788,7 +1813,7 @@ class _AgendaEventCard extends StatelessWidget {
                   ),
                   onTap: () {
                     Navigator.pop(ctx);
-                    _confirmDelete(context);
+                    _confirmDeleteEvent(context, provider, event);
                   },
                 ),
               ],
@@ -1796,45 +1821,55 @@ class _AgendaEventCard extends StatelessWidget {
           ),
     );
   }
+}
 
-  void _confirmDelete(BuildContext context) {
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            title: const Text('Delete Event'),
-            content: Text('Are you sure you want to delete "${event.title}"?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () {
-                  HapticFeedback.mediumImpact();
-                  Navigator.pop(ctx);
-                  provider.delete(event.id!);
-                  if (context.mounted) {
-                    showActionSnackBar(
-                      context,
-                      'Event "${event.title}" deleted',
-                      actionLabel: 'Undo',
-                      onAction: () => provider.save(event),
-                    );
-                  }
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(ctx).colorScheme.error,
-                ),
-                child: const Text('Delete'),
-              ),
-            ],
+void _confirmDeleteEvent(
+  BuildContext context,
+  CalendarProvider provider,
+  CalendarEvent event,
+) {
+  showDialog(
+    context: context,
+    builder:
+        (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-    );
-  }
+          icon: Icon(
+            Icons.delete_outline_rounded,
+            color: Theme.of(ctx).colorScheme.error,
+            size: 28,
+          ),
+          title: const Text('Delete Event'),
+          content: Text('Are you sure you want to delete "${event.title}"?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                Navigator.pop(ctx);
+                provider.delete(event.id!);
+                if (context.mounted) {
+                  showActionSnackBar(
+                    context,
+                    'Event "${event.title}" deleted',
+                    actionLabel: 'Undo',
+                    onAction: () => provider.save(event),
+                  );
+                }
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error,
+                foregroundColor: Theme.of(ctx).colorScheme.onError,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+  );
 }
 
 class _EmptyAgendaView extends StatelessWidget {
@@ -2053,6 +2088,53 @@ class _EventEditorState extends State<EventEditor> {
     Navigator.pop(context);
   }
 
+  void _confirmDelete() {
+    if (widget.event == null || widget.event!.id == null) return;
+    final event = widget.event!;
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            icon: Icon(
+              Icons.delete_outline_rounded,
+              color: Theme.of(ctx).colorScheme.error,
+              size: 28,
+            ),
+            title: const Text('Delete Event'),
+            content: Text('Are you sure you want to delete "${event.title}"?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  final provider = context.read<CalendarProvider>();
+                  Navigator.pop(ctx);
+                  Navigator.pop(context);
+                  provider.delete(event.id!);
+                  showActionSnackBar(
+                    context,
+                    'Event "${event.title}" deleted',
+                    actionLabel: 'Undo',
+                    onAction: () => provider.save(event),
+                  );
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(ctx).colorScheme.error,
+                  foregroundColor: Theme.of(ctx).colorScheme.onError,
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -2106,280 +2188,353 @@ class _EventEditorState extends State<EventEditor> {
             right: 20,
             top: 12,
           ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Bottom sheet drag handle
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.3,
-                      ),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      widget.event == null ? 'New Event' : 'Edit Event',
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
+          child: SafeArea(
+            top: false,
+            bottom: true,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Bottom sheet drag handle
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.3,
+                        ),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Title input
-                TextField(
-                  controller: _titleCtrl,
-                  autofocus: widget.event == null,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    labelText: 'Title *',
-                    hintText: 'Add title',
-                    prefixIcon: const Icon(Icons.title_rounded),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    errorText: _titleError,
-                    counterText: '${_titleCtrl.text.length}/$_maxTitleLength',
                   ),
-                  maxLength: _maxTitleLength,
-                ),
-                const SizedBox(height: 12),
 
-                // Date & Time pickers
-                Card(
-                  elevation: 0,
-                  color: theme.colorScheme.surfaceContainerLow,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                icon: const Icon(
-                                  Icons.calendar_today_rounded,
-                                  size: 18,
-                                ),
-                                label: Text(
-                                  DateFormat('MMM d, yyyy').format(_date),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                onPressed: _pickDate,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                icon: const Icon(
-                                  Icons.access_time_rounded,
-                                  size: 18,
-                                ),
-                                label: Text(
-                                  _isAllDay
-                                      ? 'All Day'
-                                      : (_time != null
-                                          ? _time!.format(context)
-                                          : 'Add time'),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                onPressed: _pickTime,
-                              ),
-                            ),
-                          ],
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        widget.event == null ? 'New Event' : 'Edit Event',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'All-day Event',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                ),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (widget.event != null)
+                            IconButton(
+                              icon: Icon(
+                                Icons.delete_outline_rounded,
+                                color: theme.colorScheme.error,
                               ),
+                              tooltip: 'Delete event',
+                              onPressed: _confirmDelete,
                             ),
-                            Switch(
-                              value: _isAllDay,
-                              onChanged: (val) {
-                                HapticFeedback.selectionClick();
-                                setState(() {
-                                  _isAllDay = val;
-                                  if (val) _time = null;
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded),
+                            tooltip: 'Close',
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Title input
+                  TextField(
+                    controller: _titleCtrl,
+                    autofocus: widget.event == null,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                      labelText: 'Title *',
+                      hintText: 'Add title',
+                      prefixIcon: const Icon(Icons.title_rounded),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      errorText: _titleError,
+                      counterText: '${_titleCtrl.text.length}/$_maxTitleLength',
                     ),
+                    maxLength: _maxTitleLength,
                   ),
-                ),
-                const SizedBox(height: 16),
-
-                // Category Choice Chips
-                Text(
-                  'Category',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children:
-                      _calendarCategories.map((cat) {
-                        final isSelected = _category == cat;
-                        final color = _categoryColor(cat, theme);
-                        return ChoiceChip(
-                          selected: isSelected,
-                          avatar: Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: color,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          label: Text(cat),
-                          selectedColor: color.withValues(alpha: 0.2),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          onSelected: (selected) {
-                            if (selected) {
-                              HapticFeedback.selectionClick();
-                              setState(() => _category = cat);
-                            }
-                          },
-                        );
-                      }).toList(),
-                ),
-                const SizedBox(height: 16),
-
-                // Recurrence Choice Chips
-                Text(
-                  'Recurrence',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children:
-                      _recurrenceOptions.asMap().entries.map((entry) {
-                        final key = entry.value;
-                        final label = _recurrenceLabels[entry.key];
-                        final isSelected = _recurrence == key;
-                        return ChoiceChip(
-                          selected: isSelected,
-                          label: Text(label),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          onSelected: (selected) {
-                            if (selected) {
-                              HapticFeedback.selectionClick();
-                              setState(() => _recurrence = key);
-                            }
-                          },
-                        );
-                      }).toList(),
-                ),
-
-                if (_recurrence != 'none') ...[
                   const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.event_repeat_rounded, size: 18),
-                    label: Text(
-                      _recurrenceEnd == null
-                          ? 'End Date (Optional)'
-                          : 'Until ${DateFormat('MMM d, yyyy').format(_recurrenceEnd!)}',
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: _pickRecurrenceEnd,
-                  ),
-                ],
 
-                const SizedBox(height: 16),
-
-                // Notes input
-                TextField(
-                  controller: _notesCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Notes (optional)',
-                    hintText: 'Add description or notes...',
-                    prefixIcon: const Icon(Icons.notes_rounded),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    counterText: '${_notesCtrl.text.length}/$_maxNotesLength',
-                  ),
-                  maxLines: 3,
-                  maxLength: _maxNotesLength,
-                ),
-                const SizedBox(height: 20),
-
-                // Save button
-                FilledButton.icon(
-                  icon: const Icon(Icons.check_rounded),
-                  label: Text(
-                    widget.event == null ? 'Save Event' : 'Update Event',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  // Date & Time pickers
+                  Card(
+                    elevation: 0,
+                    color: theme.colorScheme.surfaceContainerLow,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(
+                                    Icons.calendar_today_rounded,
+                                    size: 18,
+                                  ),
+                                  label: Text(
+                                    DateFormat('MMM d, yyyy').format(_date),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  onPressed: _pickDate,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(
+                                    Icons.access_time_rounded,
+                                    size: 18,
+                                  ),
+                                  label: Text(
+                                    _isAllDay
+                                        ? 'All Day'
+                                        : (_time != null
+                                            ? _time!.format(context)
+                                            : 'Add time'),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  onPressed: _pickTime,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'All-day Event',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              Switch(
+                                value: _isAllDay,
+                                onChanged: (val) {
+                                  HapticFeedback.selectionClick();
+                                  setState(() {
+                                    _isAllDay = val;
+                                    if (val) _time = null;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  onPressed: _save,
-                ),
-              ],
+                  const SizedBox(height: 16),
+
+                  // Category Choice Chips
+                  Text(
+                    'Category',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children:
+                        _calendarCategories.map((cat) {
+                          final isSelected = _category == cat;
+                          final color = _categoryColor(cat, theme);
+                          return ChoiceChip(
+                            selected: isSelected,
+                            avatar: Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            label: Text(cat),
+                            selectedColor: color.withValues(alpha: 0.2),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            onSelected: (selected) {
+                              if (selected) {
+                                HapticFeedback.selectionClick();
+                                setState(() => _category = cat);
+                              }
+                            },
+                          );
+                        }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Recurrence Choice Chips
+                  Text(
+                    'Recurrence',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children:
+                        _recurrenceOptions.asMap().entries.map((entry) {
+                          final key = entry.value;
+                          final label = _recurrenceLabels[entry.key];
+                          final isSelected = _recurrence == key;
+                          return ChoiceChip(
+                            selected: isSelected,
+                            label: Text(label),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            onSelected: (selected) {
+                              if (selected) {
+                                HapticFeedback.selectionClick();
+                                setState(() => _recurrence = key);
+                              }
+                            },
+                          );
+                        }).toList(),
+                  ),
+
+                  if (_recurrence != 'none') ...[
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.event_repeat_rounded, size: 18),
+                      label: Text(
+                        _recurrenceEnd == null
+                            ? 'End Date (Optional)'
+                            : 'Until ${DateFormat('MMM d, yyyy').format(_recurrenceEnd!)}',
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: _pickRecurrenceEnd,
+                    ),
+                  ],
+
+                  const SizedBox(height: 16),
+
+                  // Notes input
+                  TextField(
+                    controller: _notesCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Notes (optional)',
+                      hintText: 'Add description or notes...',
+                      prefixIcon: const Icon(Icons.notes_rounded),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      counterText: '${_notesCtrl.text.length}/$_maxNotesLength',
+                    ),
+                    maxLines: 3,
+                    maxLength: _maxNotesLength,
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Action Buttons (Delete + Update or Save)
+                  if (widget.event != null)
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: OutlinedButton.icon(
+                            icon: Icon(
+                              Icons.delete_outline_rounded,
+                              size: 18,
+                              color: theme.colorScheme.error,
+                            ),
+                            label: Text(
+                              'Delete',
+                              style: TextStyle(
+                                color: theme.colorScheme.error,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: BorderSide(
+                                color: theme.colorScheme.error.withValues(alpha: 0.5),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            onPressed: _confirmDelete,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 3,
+                          child: FilledButton.icon(
+                            icon: const Icon(Icons.check_rounded),
+                            label: const Text(
+                              'Update Event',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            onPressed: _save,
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    FilledButton.icon(
+                      icon: const Icon(Icons.check_rounded),
+                      label: const Text(
+                        'Save Event',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: _save,
+                    ),
+                ],
+              ),
             ),
           ),
         ),

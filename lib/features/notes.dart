@@ -12,6 +12,7 @@ import '../database.dart';
 import '../services/notification_service.dart';
 import '../utils/text_utils.dart';
 import '../utils/snackbar_utils.dart';
+import '../widgets/app_color_picker.dart';
 
 const _unset = Object();
 
@@ -1503,62 +1504,22 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
     }
   }
 
-  void _pickColor() {
-    final colors = [
-      null,
-      Colors.red.shade100.toARGB32(),
-      Colors.orange.shade100.toARGB32(),
-      Colors.yellow.shade100.toARGB32(),
-      Colors.green.shade100.toARGB32(),
-      Colors.blue.shade100.toARGB32(),
-      Colors.purple.shade100.toARGB32(),
-      Colors.pink.shade100.toARGB32(),
-      Colors.teal.shade100.toARGB32(),
-    ];
-    showModalBottomSheet(
+  void _pickColor() async {
+    final currentColor =
+        _editingNote?.color != null ? Color(_editingNote!.color!) : null;
+    final chosen = await showAppColorPickerSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder:
-          (sheetCtx) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children:
-                  colors.map((c) {
-                    final isSel = _editingNote?.color == c;
-                    return GestureDetector(
-                      onTap: () async {
-                        final nav = Navigator.of(sheetCtx);
-                        await _updateNote((n) => n.copyWith(color: c));
-                        nav.pop();
-                      },
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: c != null ? Color(c) : Theme.of(context).cardColor,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color:
-                                isSel
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Theme.of(context).dividerColor,
-                            width: isSel ? 3 : 1,
-                          ),
-                        ),
-                        child:
-                            c == null
-                                ? const Icon(Icons.format_color_reset, size: 20)
-                                : null,
-                      ),
-                    );
-                  }).toList(),
-            ),
-          ),
+      currentColor: currentColor,
+      title: 'Note Color',
+      allowNone: true,
+      presets: appNoteColorPresets,
     );
+    if (chosen != null && mounted) {
+      final isNone = chosen.toARGB32() == 0;
+      await _updateNote(
+        (n) => n.copyWith(color: isNone ? null : chosen.toARGB32()),
+      );
+    }
   }
 
   String _priorityLabel(int priority) {
@@ -1705,7 +1666,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
                       ? Theme.of(context).colorScheme.primary
                       : null,
             ),
-            PopupMenuButton(
+            PopupMenuButton<String>(
               tooltip: 'More',
               onSelected: (v) {
                 if (v == 'duplicate') {
@@ -1719,28 +1680,30 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
                   if (mounted) Navigator.pop(context);
                 } else if (v == 'priority') {
                   _showPriorityPicker();
+                } else if (v == 'delete') {
+                  _confirmDeleteNote();
                 }
               },
               itemBuilder:
-                  (_) => [
-                    PopupMenuItem(
+                  (ctx) => <PopupMenuEntry<String>>[
+                    PopupMenuItem<String>(
                       value: 'pin',
                       child: Text(
                         _editingNote?.pinned == true ? 'Unpin' : 'Pin',
                       ),
                     ),
-                    PopupMenuItem(
+                    PopupMenuItem<String>(
                       value: 'priority',
                       child: Text(
                         'Priority: ${_priorityLabel(_editingNote?.priority ?? 0)}',
                       ),
                     ),
-                    const PopupMenuItem(
+                    const PopupMenuItem<String>(
                       value: 'duplicate',
                       child: Text('Duplicate'),
                     ),
-                    const PopupMenuItem(value: 'share', child: Text('Share')),
-                    PopupMenuItem(
+                    const PopupMenuItem<String>(value: 'share', child: Text('Share')),
+                    PopupMenuItem<String>(
                       value: 'archive',
                       child: Text(
                         _editingNote?.archived == true
@@ -1748,6 +1711,29 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
                             : 'Archive',
                       ),
                     ),
+                    if (_editingNote?.id != null) ...[
+                      const PopupMenuDivider(),
+                      PopupMenuItem<String>(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.delete_outline_rounded,
+                              color: Theme.of(ctx).colorScheme.error,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Delete Note',
+                              style: TextStyle(
+                                color: Theme.of(ctx).colorScheme.error,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
             ),
             IconButton(
@@ -1798,32 +1784,28 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
                 ),
               ),
               Expanded(child: QuillEditor.basic(controller: _controller)),
-            if (_editingNote != null && _editingNote!.reminderTime != null)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                color: Theme.of(
-                  context,
-                ).colorScheme.primaryContainer.withValues(alpha: 0.3),
-                child: Row(
-                  children: [
-                    const Icon(Icons.notifications, size: 14),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        'Reminder: ${DateFormat.yMMMd().add_jm().format(_editingNote!.reminderTime!)}',
-                        style: Theme.of(context).textTheme.bodySmall,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
+              if (_editingNote != null && _editingNote!.reminderTime != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.notifications, size: 14),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Reminder: ${DateFormat.yMMMd().add_jm().format(_editingNote!.reminderTime!)}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       ),
-                    ),
-                    const Spacer(),
-                     SizedBox(
-                      width: 48,
-                      height: 48,
-                      child: IconButton(
+                      IconButton(
                         icon: const Icon(Icons.close, size: 16),
                         tooltip: 'Remove reminder',
                         onPressed: () async {
@@ -1832,201 +1814,116 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
                           );
                         },
                       ),
-                    ),
-                  ],
-                ),
-              ),
-             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: Theme.of(context).colorScheme.outlineVariant,
+                    ],
                   ),
                 ),
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    wordCount,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
                     ),
                   ),
-                  if (_saveStatus.isNotEmpty) ...[
-                    const SizedBox(width: 12),
-                    if (_saveStatus == 'Saving...')
-                      const SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(strokeWidth: 1.5),
-                      ),
-                    if (_saveStatus == 'Saving...')
-                      const SizedBox(width: 4),
+                ),
+                child: Row(
+                  children: [
                     Text(
-                      _saveStatus,
+                      wordCount,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  ],
-                  if (_editingNote != null) ...[
-                    const Spacer(),
-                    Flexible(
-                      child: Text(
-                        'Created: ${DateFormat.yMMMd().add_jm().format(_editingNote!.createdAt)}',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    if (_saveStatus.isNotEmpty) ...[
+                      const SizedBox(width: 12),
+                      if (_saveStatus == 'Saving...')
+                        const SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(strokeWidth: 1.5),
+                        ),
+                      if (_saveStatus == 'Saving...')
+                        const SizedBox(width: 4),
+                      Text(
+                        _saveStatus,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
                       ),
-                    ),
+                    ],
+                    if (_editingNote != null) ...[
+                      const Spacer(),
+                      Flexible(
+                        child: Text(
+                          'Created: ${DateFormat.yMMMd().add_jm().format(_editingNote!.createdAt)}',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
           ),
         ),
       ),
     );
   }
 
+  void _confirmDeleteNote() {
+    if (_editingNote?.id == null) return;
+    final note = _editingNote!;
+    final theme = Theme.of(context);
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            icon: Icon(
+              Icons.delete_outline_rounded,
+              color: theme.colorScheme.error,
+              size: 28,
+            ),
+            title: const Text('Move to Trash'),
+            content: Text(
+              'Move "${note.title.isNotEmpty ? note.title : 'Untitled Note'}" to trash?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  Navigator.pop(ctx);
+                  Navigator.pop(context);
+                  widget.provider.trash(note);
+                  showActionSnackBar(
+                    context,
+                    'Note moved to trash',
+                    actionLabel: 'Undo',
+                    onAction: () => widget.provider.restore(note),
+                  );
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: theme.colorScheme.error,
+                  foregroundColor: theme.colorScheme.onError,
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+    );
+  }
+
   ThemeData get theme => Theme.of(context);
 }
 
-class _NoteCustomColorPicker extends StatefulWidget {
-  final Color initialColor;
-  const _NoteCustomColorPicker({required this.initialColor});
 
-  @override
-  State<_NoteCustomColorPicker> createState() => _NoteCustomColorPickerState();
-}
-
-class _NoteCustomColorPickerState extends State<_NoteCustomColorPicker> {
-  late HSVColor _hsv;
-  final _hexController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _hsv = HSVColor.fromColor(widget.initialColor);
-    _hexController.text = widget.initialColor.toARGB32().toRadixString(16).substring(2).toUpperCase();
-  }
-
-  @override
-  void dispose() {
-    _hexController.dispose();
-    super.dispose();
-  }
-
-  void _updateFromHSV(HSVColor hsv) {
-    setState(() {
-      _hsv = hsv;
-      final hex = hsv.toColor().toARGB32().toRadixString(16).substring(2).toUpperCase();
-      _hexController.text = hex;
-    });
-  }
-
-  void _updateFromHex(String hex) {
-    if (hex.length == 6) {
-      final value = int.tryParse(hex, radix: 16);
-      if (value != null) {
-        final color = Color(0xFF000000 | value);
-        setState(() {
-          _hsv = HSVColor.fromColor(color);
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _hsv.toColor();
-    final theme = Theme.of(context);
-    return Dialog(
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-            Text(
-              'Pick a Color',
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              height: 50,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: theme.colorScheme.outline, width: 2),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Semantics(
-              label: 'Hue: ${_hsv.hue.round()} degrees',
-              slider: true,
-              child: Slider(
-                value: _hsv.hue,
-                min: 0,
-                max: 360,
-                onChanged: (v) => _updateFromHSV(_hsv.withHue(v)),
-                activeColor: color,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: theme.colorScheme.outline),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _hexController,
-                    decoration: const InputDecoration(
-                      labelText: 'Hex Color',
-                      hintText: 'FF5500',
-                      prefixText: '#',
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                    style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
-                    onChanged: _updateFromHex,
-                    onSubmitted: (_) => Navigator.pop(context, color),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: () => Navigator.pop(context, color),
-                  child: const Text('Select'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-      ),
-    );
-  }
-}

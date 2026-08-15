@@ -8,6 +8,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '../database.dart';
 import '../services/notification_service.dart';
 import '../utils/snackbar_utils.dart';
+import '../widgets/app_color_picker.dart';
 
 // =============================================================================
 // Constants — Icon Map (55 icons), Categories, Color Presets
@@ -2348,9 +2349,25 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.close),
-                              onPressed: () => Navigator.pop(ctx),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.delete_outline_rounded,
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
+                                  tooltip: 'Delete Habit',
+                                  onPressed: () {
+                                    Navigator.pop(ctx);
+                                    _confirmDeleteHabit(context, habit, provider);
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close),
+                                  onPressed: () => Navigator.pop(ctx),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -2555,15 +2572,56 @@ class _HabitsScreenState extends State<HabitsScreen> {
                         const SizedBox(height: 24),
                         Row(
                           children: [
+                            OutlinedButton.icon(
+                              icon: Icon(
+                                Icons.delete_outline_rounded,
+                                color: Theme.of(context).colorScheme.error,
+                                size: 18,
+                              ),
+                              label: Text(
+                                'Delete',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(
+                                  color: Theme.of(context).colorScheme.error.withValues(alpha: 0.5),
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                _confirmDeleteHabit(context, habit, provider);
+                              },
+                            ),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
                                 onPressed: () => Navigator.pop(ctx),
                                 child: const Text('Cancel'),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             Expanded(
+                              flex: 2,
                               child: FilledButton(
+                                style: FilledButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
                                 onPressed: titleCtrl.text.trim().isNotEmpty
                                     ? () {
                                         final name = titleCtrl.text.trim();
@@ -2582,7 +2640,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                                         );
                                       }
                                     : null,
-                                child: const Text('Save Changes'),
+                                child: const Text('Save'),
                               ),
                             ),
                           ],
@@ -3268,7 +3326,10 @@ class _ColorPicker extends StatelessWidget {
         ..._colorPresets.map((color) {
           final isSelected = selectedColor == color;
           return GestureDetector(
-            onTap: () => onColorSelected(color),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              onColorSelected(color);
+            },
             child: Container(
               width: 48,
               height: 48,
@@ -3278,27 +3339,31 @@ class _ColorPicker extends StatelessWidget {
                 border: Border.all(
                   color:
                       isSelected
-                          ? theme.colorScheme.onSurface
-                          : Colors.transparent,
-                  width: isSelected ? 3 : 0,
+                          ? (Color(color).computeLuminance() > 0.6
+                              ? Colors.black87
+                              : Colors.white)
+                          : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  width: isSelected ? 3 : 1,
                 ),
-                boxShadow:
-                    isSelected
-                        ? [
-                          BoxShadow(
-                            color: Color(color).withValues(alpha: 0.4),
-                            blurRadius: 6,
-                            spreadRadius: 1,
-                          ),
-                        ]
-                        : null,
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(color).withValues(alpha: isSelected ? 0.5 : 0.2),
+                    blurRadius: isSelected ? 8 : 3,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child:
                   isSelected
-                      ? const Icon(
-                        Icons.check_rounded,
-                        color: Colors.white,
-                        size: 18,
+                      ? Center(
+                        child: Icon(
+                          Icons.check_rounded,
+                          color:
+                              Color(color).computeLuminance() > 0.6
+                                  ? Colors.black87
+                                  : Colors.white,
+                          size: 20,
+                        ),
                       )
                       : null,
             ),
@@ -3306,10 +3371,12 @@ class _ColorPicker extends StatelessWidget {
         }),
         GestureDetector(
           onTap: () async {
+            HapticFeedback.selectionClick();
             final color = await showDialog<Color>(
               context: context,
-              builder: (ctx) => _CustomColorDialog(
+              builder: (ctx) => AppCustomColorPickerDialog(
                 initialColor: Color(selectedColor),
+                title: 'Custom Habit Color',
               ),
             );
             if (color != null) {
@@ -3320,148 +3387,40 @@ class _ColorPicker extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               shape: BoxShape.circle,
-              border: Border.all(color: theme.colorScheme.outline, width: 2),
+              gradient: const SweepGradient(
+                colors: [
+                  Colors.red,
+                  Colors.yellow,
+                  Colors.green,
+                  Colors.cyan,
+                  Colors.blue,
+                  Colors.purple,
+                  Colors.red,
+                ],
+              ),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant,
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.12),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            child: Icon(
-              Icons.palette_outlined,
-              color: theme.colorScheme.onSurfaceVariant,
-              size: 20,
+            child: const Center(
+              child: Icon(
+                Icons.palette_outlined,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
           ),
         ),
       ],
-    );
-  }
-}
-
-class _CustomColorDialog extends StatefulWidget {
-  final Color initialColor;
-  const _CustomColorDialog({required this.initialColor});
-
-  @override
-  State<_CustomColorDialog> createState() => _CustomColorDialogState();
-}
-
-class _CustomColorDialogState extends State<_CustomColorDialog> {
-  late HSVColor _hsv;
-  final _hexController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _hsv = HSVColor.fromColor(widget.initialColor);
-    _hexController.text = widget.initialColor.toARGB32().toRadixString(16).substring(2).toUpperCase();
-  }
-
-  @override
-  void dispose() {
-    _hexController.dispose();
-    super.dispose();
-  }
-
-  void _updateFromHSV(HSVColor hsv) {
-    setState(() {
-      _hsv = hsv;
-      final hex = hsv.toColor().toARGB32().toRadixString(16).substring(2).toUpperCase();
-      _hexController.text = hex;
-    });
-  }
-
-  void _updateFromHex(String hex) {
-    if (hex.length == 6) {
-      final value = int.tryParse(hex, radix: 16);
-      if (value != null) {
-        final color = Color(0xFF000000 | value);
-        setState(() {
-          _hsv = HSVColor.fromColor(color);
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _hsv.toColor();
-    final theme = Theme.of(context);
-    return Dialog(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Pick a Color',
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              height: 50,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: theme.colorScheme.outline, width: 2),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Hue slider
-            Slider(
-              value: _hsv.hue,
-              min: 0,
-              max: 360,
-              onChanged: (v) => _updateFromHSV(_hsv.withHue(v)),
-              activeColor: color,
-            ),
-            const SizedBox(height: 8),
-            // Hex input
-            Row(
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: theme.colorScheme.outline),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _hexController,
-                    decoration: const InputDecoration(
-                      hintText: 'HEX',
-                      prefixText: '#',
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                    style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
-                    onChanged: _updateFromHex,
-                    onSubmitted: (_) => Navigator.pop(context, color),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: () => Navigator.pop(context, color),
-                  child: const Text('Select'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
